@@ -10,6 +10,7 @@
     "jsx": "react",
     "resolveJsonModule": true,
     "target": "es2015",
+    "noImplicitAny": false,
 
     "strict": true
   },
