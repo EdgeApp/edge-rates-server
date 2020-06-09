@@ -9,7 +9,7 @@ sudo apt update
 sudo apt install caddy
 ```
 
-Next, configure Caddy using `/etc/caddy/Caddyfile`:
+Next, replace the contents of `/etc/caddy/Caddyfile` with:
 
 ```
 # CouchDB:

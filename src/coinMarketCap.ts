@@ -70,7 +70,9 @@ const _fetchQuote = async (currency: string, date: string): Promise<string> => {
         return jsonObj.data.quotes[0].quote.USD.price.toString()
       } else {
         console.error(
-          `CoinMarketCap response is invalid ${currency} date:${date}`
+          `CoinMarketCap response is invalid ${currency} date:${date} ${JSON.stringify(
+            jsonObj
+          )}`
         )
       }
     } catch (e) {

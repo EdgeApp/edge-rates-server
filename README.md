@@ -4,18 +4,32 @@
 
 #### Installation
 
+Install Yarn
+
+    https://linuxize.com/post/how-to-install-yarn-on-ubuntu-18-04/
+
+Install Node
+
+    curl -sL https://deb.nodesource.com/setup_10.x -o nodesource_setup.sh
+    sudo bash nodesource_setup.sh
+
+Run Yarn
+
     yarn
 
-Install and run CouchDB v3.1
-https://docs.couchdb.org/en/3.1.0/install/index.html
+Install and run CouchDB v3.1 (use apt install process for Ubuntu 18.04)
 
-Use apt install process for Ubuntu 18.04
-
-Use runit for installation as daemon
+    https://docs.couchdb.org/en/3.1.0/install/index.html
 
 #### Launch API server
 
     node lib/index.js
+
+#### Install forever-service
+
+    sudo npm install -g forever
+
+    sudo npm install -g forever-service
 
 #### Install rates server using `forever-service`
 
