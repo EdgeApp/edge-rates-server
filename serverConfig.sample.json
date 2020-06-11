@@ -1,0 +1,11 @@
+{
+	"dbFullpath": "",
+	"sslPrivateKeyPath": "",
+	"sslCertPath": "",
+	"sslCaCertPath": "",
+	"httpPort": 8087,
+	"httpsPort": 8444,
+	"coinMarketCapApiKey": "",
+	"currencyConverterApiKey": "",
+	"slackWebhookUrl": ""	
+}

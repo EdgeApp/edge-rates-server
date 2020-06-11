@@ -1,9 +1,9 @@
 {
-  "name": "edge-rest-wallet",
+  "name": "edge-rates-server",
   "version": "0.1.0",
   "private": true,
-  "description": "A REST API for storing & sending money, powered by Edge",
-  "repository": "https://github.app/EdgeApp/edge-rest-wallet",
+  "description": "A REST API for retrieving and storing historical crypto and fiat exchange rates.",
+  "repository": "https://github.com/EdgeApp/edge-rates-server",
   "license": "MIT",
   "author": "Airbitz, Inc.",
   "main": "lib/index.js",
@@ -14,8 +14,6 @@
     "fix": "npm run lint -- --fix",
     "prepare": "npm-run-all clean -p build.*",
     "start": "node -r sucrase/register src/index.ts",
-    "test": "mocha -r sucrase/register 'test/**/*.test.ts'",
-    "demo": "parcel serve src/demo/index.html --open",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx ."
   },
   "husky": {
@@ -55,5 +53,15 @@
     "react-dom": "^16.12.0",
     "sucrase": "^3.12.1",
     "typescript": "^3.8.2"
+  },
+  "dependencies": {
+    "biggystring": "^3.0.2",
+    "cleaners": "^0.2.0",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "jsonschema": "^1.2.6",
+    "nano": "^8.2.2",
+    "node-fetch": "^2.6.0",
+    "promisify-node": "^0.5.0"
   }
 }
