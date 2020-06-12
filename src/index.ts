@@ -146,11 +146,21 @@ router.get('/exchangeRate', async function(req, res) {
       .get(dateNorm)
       .catch(e => console.log('DB read error', JSON.stringify(e)))
     if (existingDocument != null) {
-      newDocument = { ...existingDocument, ...newDocument }
+      newDocument = {
+        ...existingDocument,
+        ...newDocument,
+        _rev: existingDocument._rev
+      }
     }
-    dbRates.insert(newDocument).catch(e => {
+    const writeDocument = {
+      ...newDocument,
+      _id: newDocument._id,
+      _rev: newDocument._rev !== '' ? newDocument._rev : undefined
+    }
+    console.log(JSON.stringify(`\n${JSON.stringify(writeDocument)}\n`))
+    dbRates.insert(writeDocument).catch(e => {
       if (e.error !== 'conflict') {
-        postToSlack(dateNorm, `exchangeRate DB write error ${e.reason}`)
+        postToSlack(dateNorm, `rates1 exchangeRate DB write error ${e.reason}`)
       }
       console.log('DB write error', e)
     })
