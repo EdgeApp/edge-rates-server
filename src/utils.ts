@@ -5,6 +5,9 @@ import CONFIG from '../serverConfig.json'
 
 const { slackWebhookUrl } = CONFIG
 
+let postToSlackText = ''
+let postToSlackTime = 1591837000000 // June 10 2020
+
 /*
  * Returns string value of date "normalized" by floor'ing to nearest
  * hour and translating to UTC time.  Or returns undefined if dateSrc
@@ -45,11 +48,20 @@ function validateObject(object: any, schema: any): boolean {
 }
 
 async function postToSlack(date: string, text: string): Promise<void> {
+  // check if it's been 5 minutes since last identical message was sent to Slack
+  if (
+    text === postToSlackText &&
+    Date.now() - postToSlackTime < 1000 * 60 * 5 // 5 minutes
+  ) {
+    return
+  }
   try {
     await fetch(slackWebhookUrl, {
       method: 'POST',
       body: JSON.stringify({ text: `${date} ${text}` })
     })
+    postToSlackText = text
+    postToSlackTime = Date.now()
   } catch (e) {
     console.log('Could not log DB error to Slack', e)
   }
