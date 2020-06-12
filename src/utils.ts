@@ -6,7 +6,7 @@ import CONFIG from '../serverConfig.json'
 const { slackWebhookUrl } = CONFIG
 
 let postToSlackText = ''
-let postToSlackTime = 1591837000000
+let postToSlackTime = 1591837000000 // June 10 2020
 
 /*
  * Returns string value of date "normalized" by floor'ing to nearest
