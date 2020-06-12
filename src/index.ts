@@ -129,7 +129,7 @@ router.get('/exchangeRate', async function(req, res) {
     }
   } catch (e) {
     postToSlack(dateNorm, `exchangeRate query failed ${e.message}`).catch(e)
-    return res.status(500).json({ error: 'exchangeRate query failed' })
+    return res.status(500).json({ error: 'rates1 exchangeRate query failed' })
   }
   if (Date.parse(dateNorm) > Date.now()) {
     return res
@@ -150,9 +150,10 @@ router.get('/exchangeRate', async function(req, res) {
     }
     dbRates.insert(newDocument).catch(e => {
       if (e.error !== 'conflict') {
-        postToSlack(dateNorm, `exchangeRate DB write error ${e.reason}`).catch(
-          e
-        )
+        postToSlack(
+          dateNorm,
+          `rates1 exchangeRate DB write error ${e.reason}`
+        ).catch(e)
       }
       console.log('DB write error', e)
     })
