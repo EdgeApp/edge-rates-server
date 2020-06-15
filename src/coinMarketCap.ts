@@ -53,11 +53,11 @@ const CmcHistoricalQuote = {
 }
 
 const _fetchQuote = async (currency: string, date: string): Promise<string> => {
-  if (CONFIG.coinMarketCapApiKey !== null) {
+  if (CONFIG.coinMarketCapHistoricalApiKey !== null) {
     const options = {
       method: 'GET',
       headers: {
-        'X-CMC_PRO_API_KEY': CONFIG.coinMarketCapApiKey
+        'X-CMC_PRO_API_KEY': CONFIG.coinMarketCapHistoricalApiKey
       },
       json: true
     }
@@ -84,7 +84,7 @@ const _fetchQuote = async (currency: string, date: string): Promise<string> => {
   return ''
 }
 
-const coinMarketCap = async (
+const coinMarketCapHistorical = async (
   currencyA: string,
   currencyB: string,
   date: string
@@ -109,4 +109,4 @@ const coinMarketCap = async (
   }
 }
 
-export { coinMarketCap }
+export { coinMarketCapHistorical }

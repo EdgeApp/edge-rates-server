@@ -10,7 +10,7 @@ import nano from 'nano'
 import promisify from 'promisify-node'
 
 import CONFIG from '../serverConfig.json'
-import { coinMarketCap } from './coinMarketCap'
+import { coinMarketCapHistorical } from './coinMarketCap'
 import { currencyConverter } from './currencyConverter'
 import { normalizeDate, postToSlack } from './utils'
 // const REQUIRED_CODES = ['BC1', 'DASH', 'LTC', 'BCH']
@@ -122,7 +122,7 @@ router.get('/exchangeRate', async function(req, res) {
       response = await currencyConverter(currencyA, currencyB, dateNorm)
     }
     if (response == null) {
-      response = await coinMarketCap(currencyA, currencyB, dateNorm)
+      response = await coinMarketCapHistorical(currencyA, currencyB, dateNorm)
     }
     if (response == null) {
       return res.status(500).json({ error: 'All lookups failed to find rate' })
