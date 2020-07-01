@@ -3,5 +3,6 @@
   "httpPort": 8008,
   "currencyConverterApiKey": "",
   "coinMarketCapHistoricalApiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+  "coinMarketCapCurrentApiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
   "slackWebhookUrl": ""
 }

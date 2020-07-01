@@ -11,6 +11,7 @@ import promisify from 'promisify-node'
 
 import CONFIG from '../serverConfig.json'
 import { coinMarketCapHistorical } from './coinMarketCap'
+import { coinMarketCapCurrent } from './coinMarketCapBasic'
 import { currencyConverter } from './currencyConverter'
 import { normalizeDate, postToSlack } from './utils'
 // const REQUIRED_CODES = ['BC1', 'DASH', 'LTC', 'BCH']
@@ -82,11 +83,15 @@ async function getFromDb(
  * currency_pair: String with the two currencies separated by an underscore. Ex: "ETH_USD"
  */
 router.get('/exchangeRate', async function(req, res) {
+  let hasDate = false
+  let dateStr: string
   const currencyPair = req.query.currency_pair
-  const dateStr =
-    typeof req.query.date === 'string'
-      ? req.query.date
-      : new Date().toISOString()
+  if (typeof req.query.date === 'string') {
+    dateStr = req.query.date
+    hasDate = true
+  } else {
+    dateStr = new Date().toISOString()
+  }
   mylog(`API /exchangeRate query: currencyPair:${currencyPair} date:${dateStr}`)
   if (typeof currencyPair !== 'string' || typeof dateStr !== 'string') {
     return res.status(400).json({
@@ -120,6 +125,9 @@ router.get('/exchangeRate', async function(req, res) {
     response = await getFromDb(currencyPair, dateNorm)
     if (response == null) {
       response = await currencyConverter(currencyA, currencyB, dateNorm)
+    }
+    if (response == null && hasDate === false) {
+      response = await coinMarketCapCurrent(currencyA, currencyB)
     }
     if (response == null) {
       response = await coinMarketCapHistorical(currencyA, currencyB, dateNorm)
