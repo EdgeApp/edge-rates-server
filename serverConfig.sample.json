@@ -2,6 +2,7 @@
   "dbFullpath": "http://username:password@localhost:5984",
   "httpPort": 8008,
   "currencyConverterApiKey": "",
-  "coinMarketCapApiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+  "coinMarketCapHistoricalApiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+  "coinMarketCapCurrentApiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
   "slackWebhookUrl": ""
 }
