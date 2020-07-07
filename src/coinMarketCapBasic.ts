@@ -29,6 +29,9 @@ const _fetchQuote = async (currency: string): Promise<string> => {
     const url = `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${currency}`
     try {
       const result = await fetch(url, options)
+      if (result.status !== 200) {
+        console.error(`CoinMarketCapBasic returned code ${result.status}`)
+      }
       const jsonObj = await result.json()
       asCoinMarketCapCurrentResponse(jsonObj)
       return jsonObj.data[currency].quote.USD.price.toString()
