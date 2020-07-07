@@ -189,6 +189,9 @@ const currencyConverterFetch = async (
     const url = `https://free.currconv.com/api/v7/convert?q=${pair}&compact=ultra&date=${date}&apiKey=${apiKey}`
     try {
       const result = await fetch(url, options)
+      if (result.status !== 200) {
+        console.error(`currencyConvertor returned code ${result.status}`)
+      }
       const jsonObj = await result.json()
       asCurrencyConverterResponse(jsonObj)
       return jsonObj[pair][date].toString()
