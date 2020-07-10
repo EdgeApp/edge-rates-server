@@ -10,6 +10,7 @@ import nano from 'nano'
 import promisify from 'promisify-node'
 
 import CONFIG from '../serverConfig.json'
+import { coincapHistorical } from './coincap'
 import { coinMarketCapHistorical } from './coinMarketCap'
 import { coinMarketCapCurrent } from './coinMarketCapBasic'
 import { currencyConverter } from './currencyConverter'
@@ -128,6 +129,9 @@ router.get('/exchangeRate', async function(req, res) {
     }
     if (response == null && hasDate === false) {
       response = await coinMarketCapCurrent(currencyA, currencyB)
+    }
+    if (response == null) {
+      response = await coincapHistorical(currencyA, currencyB, dateNorm)
     }
     if (response == null) {
       response = await coinMarketCapHistorical(currencyA, currencyB, dateNorm)
