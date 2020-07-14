@@ -24,6 +24,14 @@ const fetchQuote = async (currency: string, date: string): Promise<string> => {
     json: true
   }
   const asset = assetMap[currency]
+  if (asset === undefined) {
+    console.log(
+      `coincap undefined asset ${currency}\nassetMap ${JSON.stringify(
+        assetMap
+      )}`
+    )
+    return ''
+  }
   const timestamp = Date.parse(date)
   const url = `https://api.coincap.io/v2/assets/${asset}/history?interval=m5&start=${timestamp}&end=${timestamp +
     FIVE_MINUTES}`
@@ -35,8 +43,8 @@ const fetchQuote = async (currency: string, date: string): Promise<string> => {
     }
     const jsonObj = await result.json()
     asCoincapResponse(jsonObj)
-    console.log(`coincap response ${JSON.stringify(jsonObj)}`)
     if (jsonObj.data.length > 0) {
+      console.log(`coincap won`)
       return jsonObj.data[0].priceUsd
     }
   } catch (e) {
@@ -93,6 +101,7 @@ const updateAssets = async (): Promise<{ [key: string]: string }> => {
       newObj[element.symbol] = element.id
     })
     lastAssetUpdate = Date.now()
+    console.log('Updated coincap asset list successfully')
     return newObj
   } catch (e) {
     return currentAssets

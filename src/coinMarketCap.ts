@@ -66,6 +66,14 @@ const _fetchQuote = async (currency: string, date: string): Promise<string> => {
       const result = await fetch(url, options)
       if (result.status !== 200) {
         console.error(`CoinMarketCapHistorical returned code ${result.status}`)
+        if (result.status === 429) {
+          const keyInfo = await fetch(
+            'https://pro-api.coinmarketcap.com/v1/key/info',
+            options
+          )
+          console.log(`CoinMarketCap keyInfo ${JSON.stringify(keyInfo)}`)
+        }
+        return ''
       }
       const jsonObj = await result.json()
       const valid = validateObject(jsonObj, CmcHistoricalQuote)
