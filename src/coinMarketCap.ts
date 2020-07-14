@@ -68,7 +68,7 @@ const _fetchQuote = async (currency: string, date: string): Promise<string> => {
         console.error(`CoinMarketCapHistorical returned code ${result.status}`)
         if (result.status === 429) {
           const keyInfo = await fetch(
-            'https://pro-api.coinmarketcap.com/v1/key/info',
+            `https://pro-api.coinmarketcap.com/v1/key/info?CMC_PRO_API_KEY=${CONFIG.coinMarketCapHistoricalApiKey}`,
             options
           )
           console.log(`CoinMarketCap keyInfo ${JSON.stringify(keyInfo)}`)
