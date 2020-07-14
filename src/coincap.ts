@@ -26,9 +26,9 @@ const fetchQuote = async (currency: string, date: string): Promise<string> => {
   const asset = assetMap[currency]
   if (asset === undefined) {
     console.log(
-      `coincap undefined asset ${currency}\nassetMap ${JSON.stringify(
-        assetMap
-      )}`
+      `coincap undefined asset ${currency}\nassetMap has ${
+        Object.keys(assetMap).length
+      } currencies`
     )
     return ''
   }
