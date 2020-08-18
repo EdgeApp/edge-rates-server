@@ -79,6 +79,11 @@ async function getFromDb(
   }
 }
 
+const zeroRateCurrencyCodes = {
+  UFO: true,
+  FORK: true
+}
+
 /*
  * Query params:
  * currency_pair: String with the two currencies separated by an underscore. Ex: "ETH_USD"
@@ -123,7 +128,14 @@ router.get('/exchangeRate', async function(req, res) {
   }
   let response: ExchangeResponse
   try {
-    response = await getFromDb(currencyPair, dateNorm)
+    if (
+      zeroRateCurrencyCodes[currencyA] === true ||
+      zeroRateCurrencyCodes[currencyB] === true
+    )
+      response = { rate: '0', needsWrite: false }
+    if (response == null) {
+      response = await getFromDb(currencyPair, dateNorm)
+    }
     if (response == null) {
       response = await currencyConverter(currencyA, currencyB, dateNorm)
     }
