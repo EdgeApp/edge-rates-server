@@ -2,6 +2,7 @@
 // BASE SETUP
 // =============================================================================
 
+import { bns } from 'biggystring'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import express from 'express'
@@ -112,8 +113,8 @@ router.get('/exchangeRate', async function(req, res) {
         'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_USD"'
     })
   }
-  const currencyA = currencyTokens[0]
-  const currencyB = currencyTokens[1]
+  let currencyA = currencyTokens[0]
+  let currencyB = currencyTokens[1]
   const dateNorm = normalizeDate(currencyA, currencyB, dateStr)
   if (dateNorm == null) {
     return res.status(400).json({
@@ -126,35 +127,47 @@ router.get('/exchangeRate', async function(req, res) {
       .status(400)
       .json({ error: 'Future date received. Must send past date.' })
   }
+  let inversePair = false
   let response: ExchangeResponse
-  try {
-    if (
-      zeroRateCurrencyCodes[currencyA] === true ||
-      zeroRateCurrencyCodes[currencyB] === true
-    )
-      response = { rate: '0', needsWrite: false }
-    if (response == null) {
-      response = await getFromDb(currencyPair, dateNorm)
-    }
-    if (response == null) {
-      response = await currencyConverter(currencyA, currencyB, dateNorm)
-    }
-    if (response == null && hasDate === false) {
-      response = await coinMarketCapCurrent(currencyA, currencyB)
-    }
-    if (response == null) {
-      response = await coincapHistorical(currencyA, currencyB, dateNorm)
-    }
-    if (response == null) {
-      response = await coinMarketCapHistorical(currencyA, currencyB, dateNorm)
-    }
-    if (response == null) {
-      return res.status(500).json({ error: 'All lookups failed to find rate' })
-    }
-  } catch (e) {
-    postToSlack(dateNorm, `exchangeRate query failed ${e.message}`).catch(e)
-    return res.status(500).json({ error: 'rates1 exchangeRate query failed' })
+  if (
+    zeroRateCurrencyCodes[currencyA] === true ||
+    zeroRateCurrencyCodes[currencyB] === true
+  ) {
+    response = { rate: '0', needsWrite: false }
   }
+  do {
+    try {
+      if (response == null) {
+        response = await getFromDb(`${currencyA}_${currencyB}`, dateNorm)
+      }
+      if (response == null) {
+        response = await currencyConverter(currencyA, currencyB, dateNorm)
+      }
+      if (response == null && hasDate === false) {
+        response = await coinMarketCapCurrent(currencyA, currencyB)
+      }
+      if (response == null) {
+        response = await coincapHistorical(currencyA, currencyB, dateNorm)
+      }
+      if (response == null) {
+        response = await coinMarketCapHistorical(currencyA, currencyB, dateNorm)
+      }
+    } catch (e) {
+      postToSlack(dateNorm, `exchangeRate query failed ${e.message}`).catch(e)
+      return res.status(500).json({ error: 'rates1 exchangeRate query failed' })
+    }
+    if (response == null) {
+      // Invert the currency pair and try again
+      currencyA = currencyTokens[1]
+      currencyB = currencyTokens[0]
+      inversePair = !inversePair
+    }
+  } while (inversePair && response == null)
+
+  if (response == null) {
+    return res.status(500).json({ error: 'All lookups failed to find rate' })
+  }
+
   if (Date.parse(dateNorm) > Date.now()) {
     return res
       .status(400)
@@ -194,7 +207,9 @@ router.get('/exchangeRate', async function(req, res) {
   return res.json({
     currency_pair: currencyPair,
     date: dateNorm,
-    exchangeRate: response.rate
+    exchangeRate: inversePair
+      ? bns.div('1', response.rate, 5, 10)
+      : response.rate
   })
 })
 
