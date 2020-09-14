@@ -186,7 +186,7 @@ const currencyConverterFetch = async (
     const options = {
       method: 'GET'
     }
-    const url = `https://free.currconv.com/api/v7/convert?q=${pair}&compact=ultra&date=${date}&apiKey=${apiKey}`
+    const url = `https://api.currconv.com/api/v7/convert?q=${pair}&compact=ultra&date=${date}&apiKey=${apiKey}`
     try {
       const result = await fetch(url, options)
       if (result.status !== 200) {
