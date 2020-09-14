@@ -195,11 +195,6 @@ router.get('/exchangeRate', async function(req, res) {
     return res.status(500).json({ error: 'All lookups failed to find rate' })
   }
 
-  if (Date.parse(dateNorm) > Date.now()) {
-    return res
-      .status(400)
-      .json({ error: 'Future date received. Must send past date.' })
-  }
   if (response.needsWrite) {
     let newDocument: nano.DocumentGetResponse = {
       _id: dateNorm,
