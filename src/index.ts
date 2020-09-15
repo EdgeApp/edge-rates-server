@@ -85,6 +85,11 @@ const zeroRateCurrencyCodes = {
   FORK: true
 }
 
+const fallbackConstantRatePairs = {
+  SAI_USD: 1,
+  DAI_USD: 1
+}
+
 /*
  * Query params:
  * currency_pair: String with the two currencies separated by an underscore. Ex: "ETH_USD"
@@ -164,15 +169,32 @@ router.get('/exchangeRate', async function(req, res) {
     }
   } while (inversePair && response == null)
 
+  // Use fallback hardcoded rates if lookups failed
+  if (
+    response == null &&
+    fallbackConstantRatePairs[`${currencyA}_${currencyB}`] != null
+  ) {
+    response = {
+      rate: fallbackConstantRatePairs[`${currencyA}_${currencyB}`],
+      needsWrite: true
+    }
+  }
+
+  if (
+    response == null &&
+    fallbackConstantRatePairs[`${currencyB}_${currencyA}`] != null
+  ) {
+    response = {
+      rate: fallbackConstantRatePairs[`${currencyB}_${currencyA}`],
+      needsWrite: true
+    }
+  }
+
+  // Return error if everything failed
   if (response == null) {
     return res.status(500).json({ error: 'All lookups failed to find rate' })
   }
 
-  if (Date.parse(dateNorm) > Date.now()) {
-    return res
-      .status(400)
-      .json({ error: 'Future date received. Must send past date.' })
-  }
   if (response.needsWrite) {
     let newDocument: nano.DocumentGetResponse = {
       _id: dateNorm,
