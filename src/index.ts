@@ -63,7 +63,8 @@ export type ExchangeResponse = ExResponse | void
 async function getFromDb(
   currencyA: string,
   currencyB: string,
-  date: string
+  date: string,
+  log: Function
 ): Promise<ExchangeResponse> {
   try {
     const exchangeRate: nano.DocumentGetResponse & {
@@ -84,7 +85,7 @@ async function getFromDb(
     }
   } catch (e) {
     if (e.error !== 'not_found') {
-      console.log('DB read error', e)
+      log(`DB read error ${JSON.stringify(e)}`)
       throw e
     }
   }
@@ -114,7 +115,6 @@ router.get('/exchangeRate', async function(req, res) {
   } else {
     dateStr = new Date().toISOString()
   }
-  mylog(`API /exchangeRate query: currencyPair:${currencyPair} date:${dateStr}`)
   if (typeof currencyPair !== 'string' || typeof dateStr !== 'string') {
     return res.status(400).json({
       error:
@@ -142,6 +142,11 @@ router.get('/exchangeRate', async function(req, res) {
       .status(400)
       .json({ error: 'Future date received. Must send past date.' })
   }
+  const log = (...args): void => {
+    const d = new Date().toISOString()
+    const p = currencyPair
+    console.log(`${d} ${p} ${JSON.stringify(args)}`)
+  }
   let response: ExchangeResponse
   if (
     zeroRateCurrencyCodes[currencyA] === true ||
@@ -151,19 +156,24 @@ router.get('/exchangeRate', async function(req, res) {
   }
   try {
     if (response == null) {
-      response = await getFromDb(currencyA, currencyB, dateNorm)
+      response = await getFromDb(currencyA, currencyB, dateNorm, log)
     }
     if (response == null) {
-      response = await currencyConverter(currencyA, currencyB, dateNorm)
+      response = await currencyConverter(currencyA, currencyB, dateNorm, log)
     }
     if (response == null && hasDate === false) {
-      response = await coinMarketCapCurrent(currencyA, currencyB)
+      response = await coinMarketCapCurrent(currencyA, currencyB, log)
     }
     if (response == null) {
-      response = await coincapHistorical(currencyA, currencyB, dateNorm)
+      response = await coincapHistorical(currencyA, currencyB, dateNorm, log)
     }
     if (response == null) {
-      response = await coinMarketCapHistorical(currencyA, currencyB, dateNorm)
+      response = await coinMarketCapHistorical(
+        currencyA,
+        currencyB,
+        dateNorm,
+        log
+      )
     }
   } catch (e) {
     postToSlack(dateNorm, `exchangeRate query failed ${e.message}`).catch(e)
@@ -202,9 +212,10 @@ router.get('/exchangeRate', async function(req, res) {
       _rev: '',
       [currencyPair]: response.rate
     }
-    const existingDocument = await dbRates
-      .get(dateNorm)
-      .catch(e => console.log('DB read error', JSON.stringify(e)))
+    const existingDocument = await dbRates.get(dateNorm).catch(e => {
+      if (e.error !== 'not_found')
+        log(`DB existing doc read error ${JSON.stringify(e)}`)
+    })
     if (existingDocument != null) {
       newDocument = {
         ...existingDocument,
@@ -216,16 +227,18 @@ router.get('/exchangeRate', async function(req, res) {
       ...newDocument,
       _rev: newDocument._rev !== '' ? newDocument._rev : undefined
     }
-    console.log(JSON.stringify(`\n${JSON.stringify(writeDocument)}\n`))
+    let writeSuccess = true
     dbRates.insert(writeDocument).catch(e => {
+      writeSuccess = false
       if (e.error !== 'conflict') {
         postToSlack(
           dateNorm,
           `rates1 exchangeRate DB write error ${e.reason}`
         ).catch(e)
       }
-      console.log('DB write error', e)
+      log(`DB write error ${JSON.stringify(e)}`)
     })
+    if (writeSuccess) log(`Successfully saved ${writeDocument._id} to db`)
   }
   return res.json({
     currency_pair: currencyPair,

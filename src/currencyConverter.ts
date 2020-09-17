@@ -13,7 +13,8 @@ const asCurrencyConverterResponse = asMap(asMap(asNumber))
 // take two currencies instead of pair
 const currencyConverterFetch = async (
   currency: string,
-  date: string
+  date: string,
+  log: Function
 ): Promise<string> => {
   if (apiKey !== '') {
     const pair = `${currency}_USD`
@@ -24,19 +25,16 @@ const currencyConverterFetch = async (
     try {
       const result = await fetch(url, options)
       if (result.status !== 200) {
-        console.error(`currencyConvertor returned code ${result.status}`)
+        log(`currencyConvertor returned code ${result.status}`)
       }
       const jsonObj = await result.json()
       asCurrencyConverterResponse(jsonObj)
       return jsonObj[pair][date].toString()
     } catch (e) {
-      console.error(
-        e,
-        `CurrencyConverter response is invalid ${currency} date:${date}`
-      )
+      log(`CurrencyConverter response is invalid ${JSON.stringify(e)}`)
     }
   } else {
-    console.error('Missing config CurrencyConverter')
+    log('Missing config CurrencyConverter')
   }
   return ''
 }
@@ -44,7 +42,8 @@ const currencyConverterFetch = async (
 const currencyConverter = async (
   currencyA: string,
   currencyB: string,
-  date: string
+  date: string,
+  log: Function
 ): Promise<ExchangeResponse> => {
   if (
     fiatCurrencyCodes[currencyA] == null ||
@@ -53,7 +52,7 @@ const currencyConverter = async (
     return
   }
   const normalToDate = date.substring(0, 10)
-  const aToUsdRate = await currencyConverterFetch(currencyA, normalToDate)
+  const aToUsdRate = await currencyConverterFetch(currencyA, normalToDate, log)
   if (aToUsdRate === '') {
     return
   }
@@ -63,7 +62,7 @@ const currencyConverter = async (
       needsWrite: true
     }
   }
-  const bToUsdRate = await currencyConverterFetch(currencyB, normalToDate)
+  const bToUsdRate = await currencyConverterFetch(currencyB, normalToDate, log)
   if (bToUsdRate === '') {
     return
   }

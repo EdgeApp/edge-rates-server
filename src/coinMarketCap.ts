@@ -55,7 +55,8 @@ const CmcHistoricalQuote = {
 const _fetchQuote = async (
   cryptoCode: string,
   fiatCode: string,
-  date: string
+  date: string,
+  log: Function
 ): Promise<string | void> => {
   if (CONFIG.coinMarketCapHistoricalApiKey !== null) {
     const options = {
@@ -69,7 +70,7 @@ const _fetchQuote = async (
     try {
       const result = await fetch(url, options)
       if (result.status !== 200) {
-        console.error(`CoinMarketCapHistorical returned code ${result.status}`)
+        log(`CoinMarketCapHistorical returned code ${result.status}`)
         return
       }
       const jsonObj = await result.json()
@@ -77,27 +78,21 @@ const _fetchQuote = async (
       if (valid) {
         return jsonObj.data.quotes[0].quote[fiatCode].price.toString()
       } else {
-        console.error(
-          `CoinMarketCap response is invalid ${cryptoCode}/${fiatCode} date:${date} ${JSON.stringify(
-            jsonObj
-          )}`
-        )
+        log(`CoinMarketCap response is invalid ${JSON.stringify(jsonObj)}`)
       }
     } catch (e) {
-      console.error(
-        `No CoinMarketCap ${cryptoCode}/${fiatCode} date:${date} quote: `,
-        e
-      )
+      log(`No CoinMarketCap quote: ${JSON.stringify(e)}`)
     }
   } else {
-    console.error('Missing config coinMarketCapApiKey')
+    log('Missing config coinMarketCapApiKey')
   }
 }
 
 const coinMarketCapHistorical = async (
   currencyA: string,
   currencyB: string,
-  date: string
+  date: string,
+  log: Function
 ): Promise<ExchangeResponse> => {
   // Check if both codes are fiat
   if (
@@ -116,10 +111,15 @@ const coinMarketCapHistorical = async (
   // Query coinmarketcap if fiat is denominator
   let rate
   if (coinMarketCapFiatMap[currencyB] != null) {
-    rate = await _fetchQuote(currencyA, currencyB, date)
+    rate = await _fetchQuote(currencyA, currencyB, date, log)
   } else {
     // Invert pair and rate if fiat is the numerator
-    rate = bns.div('1', await _fetchQuote(currencyB, currencyA, date), 8, 10)
+    rate = bns.div(
+      '1',
+      await _fetchQuote(currencyB, currencyA, date, log),
+      8,
+      10
+    )
   }
   if (rate == null) return
   return {

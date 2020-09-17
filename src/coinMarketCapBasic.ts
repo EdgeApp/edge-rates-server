@@ -16,7 +16,8 @@ const asCoinMarketCapCurrentResponse = asObject({
 
 const _fetchQuote = async (
   cryptoCode: string,
-  fiatCode: string
+  fiatCode: string,
+  log: Function
 ): Promise<string | void> => {
   if (CONFIG.coinMarketCapCurrentApiKey !== null) {
     const options = {
@@ -30,25 +31,23 @@ const _fetchQuote = async (
     try {
       const result = await fetch(url, options)
       if (result.status !== 200) {
-        console.error(`CoinMarketCapBasic returned code ${result.status}`)
+        log(`CoinMarketCapBasic returned code ${result.status}`)
       }
       const jsonObj = await result.json()
       asCoinMarketCapCurrentResponse(jsonObj)
       return jsonObj.data[cryptoCode].quote[fiatCode].price.toString()
     } catch (e) {
-      console.error(
-        `No CoinMarketCapBasic ${cryptoCode}/${fiatCode} quote: `,
-        e
-      )
+      log(`No CoinMarketCapBasic quote: ${JSON.stringify(e)}`)
     }
   } else {
-    console.error('Missing config coinMarketCapBasicApiKey')
+    log('Missing config coinMarketCapBasicApiKey')
   }
 }
 
 const coinMarketCapCurrent = async (
   currencyA: string,
-  currencyB: string
+  currencyB: string,
+  log: Function
 ): Promise<ExchangeResponse> => {
   // Check if both codes are fiat
   if (
@@ -67,10 +66,10 @@ const coinMarketCapCurrent = async (
   // Query coinmarketcap if fiat is denominator
   let rate
   if (coinMarketCapFiatMap[currencyB] != null) {
-    rate = await _fetchQuote(currencyA, currencyB)
+    rate = await _fetchQuote(currencyA, currencyB, log)
   } else {
     // Invert pair and rate if fiat is the numerator
-    rate = bns.div('1', await _fetchQuote(currencyB, currencyA), 8, 10)
+    rate = bns.div('1', await _fetchQuote(currencyB, currencyA, log), 8, 10)
   }
   if (rate == null) return
   return {

@@ -20,7 +20,8 @@ const asCoincapUpdateAssetsResponse = asObject({
 
 const fetchQuote = async (
   currency: string,
-  date: string
+  date: string,
+  log: Function
 ): Promise<string | void> => {
   const options = {
     method: 'GET',
@@ -32,7 +33,7 @@ const fetchQuote = async (
   try {
     const result = await fetch(url, options)
     if (result.ok === false) {
-      console.error(`coincap returned code ${result.status}`)
+      log(`coincap returned code ${result.status}`)
     }
     const jsonObj = await result.json()
     asCoincapResponse(jsonObj)
@@ -40,14 +41,15 @@ const fetchQuote = async (
       return jsonObj.data[0].priceUsd
     }
   } catch (e) {
-    console.error(`No coincap ${currency} quote: `, e)
+    log(`No coincap quote: ${JSON.stringify(e)}`)
   }
 }
 
 const coincapHistorical = async (
   currencyA: string,
   currencyB: string,
-  date: string
+  date: string,
+  log: Function
 ): Promise<ExchangeResponse> => {
   if (Date.now() - lastAssetUpdate > SEVEN_DAYS) {
     console.log('assets need updating')
@@ -66,10 +68,10 @@ const coincapHistorical = async (
   // Query coincap if fiat is denominator
   let rate
   if (currencyB === 'USD') {
-    rate = await fetchQuote(assetMap[currencyA], date)
+    rate = await fetchQuote(assetMap[currencyA], date, log)
   } else {
     // Invert pair and rate if fiat is the numerator
-    rate = bns.div('1', await fetchQuote(assetMap[currencyB], date), 8, 10)
+    rate = bns.div('1', await fetchQuote(assetMap[currencyB], date, log), 8, 10)
   }
   if (rate == null) return
   return {
