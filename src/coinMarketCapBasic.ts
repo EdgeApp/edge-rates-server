@@ -4,20 +4,20 @@ import fetch from 'node-fetch'
 
 import CONFIG from '../serverConfig.json'
 import { ExchangeResponse } from './index'
+import { coinMarketCapFiatMap } from './utils'
 
 const asCoinMarketCapCurrentResponse = asObject({
   data: asMap(
     asObject({
-      quote: asObject({
-        USD: asObject({
-          price: asNumber
-        })
-      })
+      quote: asMap(asObject({ price: asNumber }))
     })
   )
 })
 
-const _fetchQuote = async (currency: string): Promise<string> => {
+const _fetchQuote = async (
+  cryptoCode: string,
+  fiatCode: string
+): Promise<string | void> => {
   if (CONFIG.coinMarketCapCurrentApiKey !== null) {
     const options = {
       method: 'GET',
@@ -26,7 +26,7 @@ const _fetchQuote = async (currency: string): Promise<string> => {
       },
       json: true
     }
-    const url = `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${currency}`
+    const url = `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${cryptoCode}&convert=${fiatCode}`
     try {
       const result = await fetch(url, options)
       if (result.status !== 200) {
@@ -34,36 +34,47 @@ const _fetchQuote = async (currency: string): Promise<string> => {
       }
       const jsonObj = await result.json()
       asCoinMarketCapCurrentResponse(jsonObj)
-      return jsonObj.data[currency].quote.USD.price.toString()
+      return jsonObj.data[cryptoCode].quote[fiatCode].price.toString()
     } catch (e) {
-      console.error(`No CoinMarketCapBasic ${currency} quote: `, e)
+      console.error(
+        `No CoinMarketCapBasic ${cryptoCode}/${fiatCode} quote: `,
+        e
+      )
     }
   } else {
     console.error('Missing config coinMarketCapBasicApiKey')
   }
-  return ''
 }
 
 const coinMarketCapCurrent = async (
   currencyA: string,
   currencyB: string
 ): Promise<ExchangeResponse> => {
-  const aToUsdRate = await _fetchQuote(currencyA)
-  if (aToUsdRate === '') {
+  // Check if both codes are fiat
+  if (
+    coinMarketCapFiatMap[currencyA] == null &&
+    coinMarketCapFiatMap[currencyB] == null
+  ) {
     return
   }
-  if (currencyB === 'USD') {
-    return {
-      rate: aToUsdRate,
-      needsWrite: true
-    }
-  }
-  const bToUsdRate = await _fetchQuote(currencyB)
-  if (bToUsdRate === '') {
+  // Check if both codes are crypto
+  if (
+    coinMarketCapFiatMap[currencyA] != null &&
+    coinMarketCapFiatMap[currencyB] != null
+  ) {
     return
   }
+  // Query coinmarketcap if fiat is denominator
+  let rate
+  if (coinMarketCapFiatMap[currencyB] != null) {
+    rate = await _fetchQuote(currencyA, currencyB)
+  } else {
+    // Invert pair and rate if fiat is the numerator
+    rate = bns.div('1', await _fetchQuote(currencyB, currencyA), 8, 10)
+  }
+  if (rate == null) return
   return {
-    rate: bns.div(aToUsdRate, bToUsdRate, 8),
+    rate,
     needsWrite: true
   }
 }
