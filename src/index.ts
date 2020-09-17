@@ -61,17 +61,27 @@ interface ExResponse {
 export type ExchangeResponse = ExResponse | void
 
 async function getFromDb(
-  currencyPair: string,
+  currencyA: string,
+  currencyB: string,
   date: string
 ): Promise<ExchangeResponse> {
   try {
     const exchangeRate: nano.DocumentGetResponse & {
       [pair: string]: any
     } = await dbRates.get(date)
-    if (exchangeRate[currencyPair] == null) {
-      return
+    if (exchangeRate[`${currencyA}_${currencyB}`] == null) {
+      if (exchangeRate[`${currencyB}_${currencyA}`] == null) {
+        return
+      }
+      return {
+        rate: bns.div('1', exchangeRate[`${currencyB}_${currencyA}`], 8, 10),
+        needsWrite: false
+      }
     }
-    return { rate: exchangeRate[currencyPair], needsWrite: false }
+    return {
+      rate: exchangeRate[`${currencyA}_${currencyB}`],
+      needsWrite: false
+    }
   } catch (e) {
     if (e.error !== 'not_found') {
       console.log('DB read error', e)
