@@ -1,4 +1,3 @@
-import { bns } from 'biggystring'
 import { asMap, asNumber } from 'cleaners'
 import fetch from 'node-fetch'
 
@@ -12,12 +11,11 @@ const asCurrencyConverterResponse = asMap(asMap(asNumber))
 
 // take two currencies instead of pair
 const currencyConverterFetch = async (
-  currency: string,
+  pair: string,
   date: string,
   log: Function
-): Promise<string> => {
+): Promise<string | void> => {
   if (apiKey !== '') {
-    const pair = `${currency}_USD`
     const options = {
       method: 'GET'
     }
@@ -36,7 +34,6 @@ const currencyConverterFetch = async (
   } else {
     log('Missing config CurrencyConverter')
   }
-  return ''
 }
 
 const currencyConverter = async (
@@ -46,29 +43,20 @@ const currencyConverter = async (
   log: Function
 ): Promise<ExchangeResponse> => {
   if (
-    fiatCurrencyCodes[currencyA] == null ||
-    fiatCurrencyCodes[currencyB] == null
+    fiatCurrencyCodes[currencyA] != null &&
+    fiatCurrencyCodes[currencyB] != null
   ) {
-    return
-  }
-  const normalToDate = date.substring(0, 10)
-  const aToUsdRate = await currencyConverterFetch(currencyA, normalToDate, log)
-  if (aToUsdRate === '') {
-    return
-  }
-  if (currencyB === 'USD') {
+    const normalToDate = date.substring(0, 10)
+    const rate = await currencyConverterFetch(
+      `${currencyA}_${currencyB}`,
+      normalToDate,
+      log
+    )
+    if (rate == null) return
     return {
-      rate: aToUsdRate,
+      rate,
       needsWrite: true
     }
-  }
-  const bToUsdRate = await currencyConverterFetch(currencyB, normalToDate, log)
-  if (bToUsdRate === '') {
-    return
-  }
-  return {
-    rate: bns.div(aToUsdRate, bToUsdRate, 8),
-    needsWrite: true
   }
 }
 

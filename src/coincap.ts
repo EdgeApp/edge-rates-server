@@ -55,22 +55,12 @@ const coincapHistorical = async (
     console.log('assets need updating')
     assetMap = await updateAssets()
   }
-  // Check if either code is supported
-  if (assetMap[currencyA] == null && assetMap[currencyB] == null) return
-  // Check if none of the codes are USD
-  if (currencyA !== 'USD' && currencyB !== 'USD') {
-    return
-  }
-  // Check if both codes are USD
-  if (currencyA === 'USD' && currencyB === 'USD') {
-    return
-  }
-  // Query coincap if fiat is denominator
   let rate
-  if (currencyB === 'USD') {
+  // Query coincap if USD is denominator
+  if (currencyB === 'USD' && assetMap[currencyA] != null) {
     rate = await fetchQuote(assetMap[currencyA], date, log)
-  } else {
-    // Invert pair and rate if fiat is the numerator
+  } else if (currencyA === 'USD' && currencyB != null) {
+    // Invert pair and rate if USD is the numerator
     rate = bns.div('1', await fetchQuote(assetMap[currencyB], date, log), 8, 10)
   }
   if (rate == null) return

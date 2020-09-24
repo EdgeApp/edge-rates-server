@@ -49,28 +49,21 @@ const coinMarketCapCurrent = async (
   currencyB: string,
   log: Function
 ): Promise<ExchangeResponse> => {
-  // Check if both codes are fiat
+  let rate
   if (
-    coinMarketCapFiatMap[currencyA] == null &&
+    coinMarketCapFiatMap[currencyB] != null &&
+    coinMarketCapFiatMap[currencyA] == null
+  ) {
+    // Query coinmarketcap if fiat is denominator
+    rate = await _fetchQuote(currencyA, currencyB, log)
+  } else if (
+    coinMarketCapFiatMap[currencyA] != null &&
     coinMarketCapFiatMap[currencyB] == null
   ) {
-    return
-  }
-  // Check if both codes are crypto
-  if (
-    coinMarketCapFiatMap[currencyA] != null &&
-    coinMarketCapFiatMap[currencyB] != null
-  ) {
-    return
-  }
-  // Query coinmarketcap if fiat is denominator
-  let rate
-  if (coinMarketCapFiatMap[currencyB] != null) {
-    rate = await _fetchQuote(currencyA, currencyB, log)
-  } else {
-    // Invert pair and rate if fiat is the numerator
+    // Invert pair and returned rate if fiat is the numerator
     rate = bns.div('1', await _fetchQuote(currencyB, currencyA, log), 8, 10)
   }
+  // Return null if both codes are fiat, both codes are crypto, or queries fail
   if (rate == null) return
   return {
     rate,
