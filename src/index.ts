@@ -53,31 +53,29 @@ router.use(function(req, res, next) {
   next() // make sure we go to the next routes and don't stop here
 })
 
-interface ExResponse {
-  rate: string
-  needsWrite: boolean
-}
-
-export type ExchangeResponse = ExResponse | void
-
 async function getFromDb(
-  currencyPair: string,
-  date: string
-): Promise<ExchangeResponse> {
+  currencyA: string,
+  currencyB: string,
+  date: string,
+  log: Function
+): Promise<string> {
+  let rate = ''
   try {
     const exchangeRate: nano.DocumentGetResponse & {
       [pair: string]: any
     } = await dbRates.get(date)
-    if (exchangeRate[currencyPair] == null) {
-      return
+    if (exchangeRate[`${currencyA}_${currencyB}`] != null) {
+      rate = exchangeRate[`${currencyA}_${currencyB}`]
+    } else if (exchangeRate[`${currencyB}_${currencyA}`] != null) {
+      rate = bns.div('1', exchangeRate[`${currencyB}_${currencyA}`], 8, 10)
     }
-    return { rate: exchangeRate[currencyPair], needsWrite: false }
   } catch (e) {
     if (e.error !== 'not_found') {
-      console.log('DB read error', e)
+      log(`DB read error ${JSON.stringify(e)}`)
       throw e
     }
   }
+  return rate
 }
 
 const zeroRateCurrencyCodes = {
@@ -104,7 +102,6 @@ router.get('/exchangeRate', async function(req, res) {
   } else {
     dateStr = new Date().toISOString()
   }
-  mylog(`API /exchangeRate query: currencyPair:${currencyPair} date:${dateStr}`)
   if (typeof currencyPair !== 'string' || typeof dateStr !== 'string') {
     return res.status(400).json({
       error:
@@ -118,8 +115,8 @@ router.get('/exchangeRate', async function(req, res) {
         'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_USD"'
     })
   }
-  let currencyA = currencyTokens[0]
-  let currencyB = currencyTokens[1]
+  const currencyA = currencyTokens[0]
+  const currencyB = currencyTokens[1]
   const dateNorm = normalizeDate(currencyA, currencyB, dateStr)
   if (dateNorm == null) {
     return res.status(400).json({
@@ -132,78 +129,72 @@ router.get('/exchangeRate', async function(req, res) {
       .status(400)
       .json({ error: 'Future date received. Must send past date.' })
   }
-  let inversePair = false
-  let response: ExchangeResponse
+  const log = (...args): void => {
+    const d = new Date().toISOString()
+    const p = currencyPair
+    console.log(`${d} ${p} ${JSON.stringify(args)}`)
+  }
+  let rate = ''
+  let needsWrite = true
   if (
     zeroRateCurrencyCodes[currencyA] === true ||
     zeroRateCurrencyCodes[currencyB] === true
   ) {
-    response = { rate: '0', needsWrite: false }
+    rate = '0'
+    needsWrite = false
   }
-  do {
-    try {
-      if (response == null) {
-        response = await getFromDb(`${currencyA}_${currencyB}`, dateNorm)
-      }
-      if (response == null) {
-        response = await currencyConverter(currencyA, currencyB, dateNorm)
-      }
-      if (response == null && hasDate === false) {
-        response = await coinMarketCapCurrent(currencyA, currencyB)
-      }
-      if (response == null) {
-        response = await coincapHistorical(currencyA, currencyB, dateNorm)
-      }
-      if (response == null) {
-        response = await coinMarketCapHistorical(currencyA, currencyB, dateNorm)
-      }
-    } catch (e) {
-      postToSlack(dateNorm, `exchangeRate query failed ${e.message}`).catch(e)
-      return res.status(500).json({ error: 'rates1 exchangeRate query failed' })
+  try {
+    if (rate === '') {
+      rate = await getFromDb(currencyA, currencyB, dateNorm, log)
+      if (rate !== '') needsWrite = false
     }
-    if (response == null) {
-      // Invert the currency pair and try again
-      currencyA = currencyTokens[1]
-      currencyB = currencyTokens[0]
-      inversePair = !inversePair
+    if (rate === '') {
+      rate = await currencyConverter(currencyA, currencyB, dateNorm, log)
     }
-  } while (inversePair && response == null)
+    if (rate === '' && hasDate === false) {
+      rate = await coinMarketCapCurrent(currencyA, currencyB, log)
+    }
+    if (rate === '') {
+      rate = await coincapHistorical(currencyA, currencyB, dateNorm, log)
+    }
+    if (rate === '') {
+      rate = await coinMarketCapHistorical(currencyA, currencyB, dateNorm, log)
+    }
+  } catch (e) {
+    postToSlack(dateNorm, `exchangeRate query failed ${e.message}`).catch(e)
+    return res.status(500).json({ error: 'rates1 exchangeRate query failed' })
+  }
 
   // Use fallback hardcoded rates if lookups failed
   if (
-    response == null &&
+    rate === '' &&
     fallbackConstantRatePairs[`${currencyA}_${currencyB}`] != null
   ) {
-    response = {
-      rate: fallbackConstantRatePairs[`${currencyA}_${currencyB}`],
-      needsWrite: true
-    }
+    rate = fallbackConstantRatePairs[`${currencyA}_${currencyB}`]
   }
 
   if (
-    response == null &&
+    rate === '' &&
     fallbackConstantRatePairs[`${currencyB}_${currencyA}`] != null
   ) {
-    response = {
-      rate: fallbackConstantRatePairs[`${currencyB}_${currencyA}`],
-      needsWrite: true
-    }
+    rate = fallbackConstantRatePairs[`${currencyB}_${currencyA}`]
   }
 
   // Return error if everything failed
-  if (response == null) {
+  if (rate === '') {
     return res.status(500).json({ error: 'All lookups failed to find rate' })
   }
 
-  if (response.needsWrite) {
+  if (needsWrite) {
     let newDocument: nano.DocumentGetResponse = {
       _id: dateNorm,
       _rev: '',
-      [currencyPair]: response.rate
+      [currencyPair]: rate
     }
-    const existingDocument = await dbRates
-      .get(dateNorm)
-      .catch(e => console.log('DB read error', JSON.stringify(e)))
+    const existingDocument = await dbRates.get(dateNorm).catch(e => {
+      if (e.error !== 'not_found')
+        log(`DB existing doc read error ${JSON.stringify(e)}`)
+    })
     if (existingDocument != null) {
       newDocument = {
         ...existingDocument,
@@ -215,23 +206,23 @@ router.get('/exchangeRate', async function(req, res) {
       ...newDocument,
       _rev: newDocument._rev !== '' ? newDocument._rev : undefined
     }
-    console.log(JSON.stringify(`\n${JSON.stringify(writeDocument)}\n`))
+    let writeSuccess = true
     dbRates.insert(writeDocument).catch(e => {
+      writeSuccess = false
       if (e.error !== 'conflict') {
         postToSlack(
           dateNorm,
           `rates1 exchangeRate DB write error ${e.reason}`
         ).catch(e)
       }
-      console.log('DB write error', e)
+      log(`DB write error ${JSON.stringify(e)}`)
     })
+    if (writeSuccess) log(`Successfully saved ${writeDocument._id} to db`)
   }
   return res.json({
     currency_pair: currencyPair,
     date: dateNorm,
-    exchangeRate: inversePair
-      ? bns.div('1', response.rate, 5, 10)
-      : response.rate
+    exchangeRate: rate
   })
 })
 
