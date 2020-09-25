@@ -3,7 +3,6 @@ import { asMap, asNumber, asObject } from 'cleaners'
 import fetch from 'node-fetch'
 
 import CONFIG from '../serverConfig.json'
-import { ExchangeResponse } from './index'
 import { coinMarketCapFiatMap } from './utils'
 
 const asCoinMarketCapCurrentResponse = asObject({
@@ -48,27 +47,25 @@ const coinMarketCapCurrent = async (
   currencyA: string,
   currencyB: string,
   log: Function
-): Promise<ExchangeResponse> => {
-  let rate
+): Promise<string> => {
+  let rate = ''
   if (
     coinMarketCapFiatMap[currencyB] != null &&
     coinMarketCapFiatMap[currencyA] == null
   ) {
     // Query coinmarketcap if fiat is denominator
-    rate = await _fetchQuote(currencyA, currencyB, log)
+    const response = await _fetchQuote(currencyA, currencyB, log)
+    if (response != null) rate = response
   } else if (
     coinMarketCapFiatMap[currencyA] != null &&
     coinMarketCapFiatMap[currencyB] == null
   ) {
     // Invert pair and returned rate if fiat is the numerator
-    rate = bns.div('1', await _fetchQuote(currencyB, currencyA, log), 8, 10)
+    const response = await _fetchQuote(currencyB, currencyA, log)
+    if (response != null) rate = bns.div('1', response, 8, 10)
   }
   // Return null if both codes are fiat, both codes are crypto, or queries fail
-  if (rate == null) return
-  return {
-    rate,
-    needsWrite: true
-  }
+  return rate
 }
 
 export { coinMarketCapCurrent }

@@ -53,35 +53,21 @@ router.use(function(req, res, next) {
   next() // make sure we go to the next routes and don't stop here
 })
 
-interface ExResponse {
-  rate: string
-  needsWrite: boolean
-}
-
-export type ExchangeResponse = ExResponse | void
-
 async function getFromDb(
   currencyA: string,
   currencyB: string,
   date: string,
   log: Function
-): Promise<ExchangeResponse> {
+): Promise<string> {
+  let rate = ''
   try {
     const exchangeRate: nano.DocumentGetResponse & {
       [pair: string]: any
     } = await dbRates.get(date)
-    if (exchangeRate[`${currencyA}_${currencyB}`] == null) {
-      if (exchangeRate[`${currencyB}_${currencyA}`] == null) {
-        return
-      }
-      return {
-        rate: bns.div('1', exchangeRate[`${currencyB}_${currencyA}`], 8, 10),
-        needsWrite: false
-      }
-    }
-    return {
-      rate: exchangeRate[`${currencyA}_${currencyB}`],
-      needsWrite: false
+    if (exchangeRate[`${currencyA}_${currencyB}`] != null) {
+      rate = exchangeRate[`${currencyA}_${currencyB}`]
+    } else if (exchangeRate[`${currencyB}_${currencyA}`] != null) {
+      rate = bns.div('1', exchangeRate[`${currencyB}_${currencyA}`], 8, 10)
     }
   } catch (e) {
     if (e.error !== 'not_found') {
@@ -89,6 +75,7 @@ async function getFromDb(
       throw e
     }
   }
+  return rate
 }
 
 const zeroRateCurrencyCodes = {
@@ -147,33 +134,31 @@ router.get('/exchangeRate', async function(req, res) {
     const p = currencyPair
     console.log(`${d} ${p} ${JSON.stringify(args)}`)
   }
-  let response: ExchangeResponse
+  let rate = ''
+  let needsWrite = true
   if (
     zeroRateCurrencyCodes[currencyA] === true ||
     zeroRateCurrencyCodes[currencyB] === true
   ) {
-    response = { rate: '0', needsWrite: false }
+    rate = '0'
+    needsWrite = false
   }
   try {
-    if (response == null) {
-      response = await getFromDb(currencyA, currencyB, dateNorm, log)
+    if (rate === '') {
+      rate = await getFromDb(currencyA, currencyB, dateNorm, log)
+      if (rate !== '') needsWrite = false
     }
-    if (response == null) {
-      response = await currencyConverter(currencyA, currencyB, dateNorm, log)
+    if (rate === '') {
+      rate = await currencyConverter(currencyA, currencyB, dateNorm, log)
     }
-    if (response == null && hasDate === false) {
-      response = await coinMarketCapCurrent(currencyA, currencyB, log)
+    if (rate === '' && hasDate === false) {
+      rate = await coinMarketCapCurrent(currencyA, currencyB, log)
     }
-    if (response == null) {
-      response = await coincapHistorical(currencyA, currencyB, dateNorm, log)
+    if (rate === '') {
+      rate = await coincapHistorical(currencyA, currencyB, dateNorm, log)
     }
-    if (response == null) {
-      response = await coinMarketCapHistorical(
-        currencyA,
-        currencyB,
-        dateNorm,
-        log
-      )
+    if (rate === '') {
+      rate = await coinMarketCapHistorical(currencyA, currencyB, dateNorm, log)
     }
   } catch (e) {
     postToSlack(dateNorm, `exchangeRate query failed ${e.message}`).catch(e)
@@ -182,35 +167,29 @@ router.get('/exchangeRate', async function(req, res) {
 
   // Use fallback hardcoded rates if lookups failed
   if (
-    response == null &&
+    rate === '' &&
     fallbackConstantRatePairs[`${currencyA}_${currencyB}`] != null
   ) {
-    response = {
-      rate: fallbackConstantRatePairs[`${currencyA}_${currencyB}`],
-      needsWrite: true
-    }
+    rate = fallbackConstantRatePairs[`${currencyA}_${currencyB}`]
   }
 
   if (
-    response == null &&
+    rate === '' &&
     fallbackConstantRatePairs[`${currencyB}_${currencyA}`] != null
   ) {
-    response = {
-      rate: fallbackConstantRatePairs[`${currencyB}_${currencyA}`],
-      needsWrite: true
-    }
+    rate = fallbackConstantRatePairs[`${currencyB}_${currencyA}`]
   }
 
   // Return error if everything failed
-  if (response == null) {
+  if (rate === '') {
     return res.status(500).json({ error: 'All lookups failed to find rate' })
   }
 
-  if (response.needsWrite) {
+  if (needsWrite) {
     let newDocument: nano.DocumentGetResponse = {
       _id: dateNorm,
       _rev: '',
-      [currencyPair]: response.rate
+      [currencyPair]: rate
     }
     const existingDocument = await dbRates.get(dateNorm).catch(e => {
       if (e.error !== 'not_found')
@@ -243,7 +222,7 @@ router.get('/exchangeRate', async function(req, res) {
   return res.json({
     currency_pair: currencyPair,
     date: dateNorm,
-    exchangeRate: response.rate
+    exchangeRate: rate
   })
 })
 

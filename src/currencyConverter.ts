@@ -2,7 +2,6 @@ import { asMap, asNumber } from 'cleaners'
 import fetch from 'node-fetch'
 
 import CONFIG from '../serverConfig.json'
-import { ExchangeResponse } from './index'
 import { fiatCurrencyCodes } from './utils'
 
 const apiKey = CONFIG.currencyConverterApiKey
@@ -41,23 +40,21 @@ const currencyConverter = async (
   currencyB: string,
   date: string,
   log: Function
-): Promise<ExchangeResponse> => {
+): Promise<string> => {
+  let rate = ''
   if (
     fiatCurrencyCodes[currencyA] != null &&
     fiatCurrencyCodes[currencyB] != null
   ) {
     const normalToDate = date.substring(0, 10)
-    const rate = await currencyConverterFetch(
+    const response = await currencyConverterFetch(
       `${currencyA}_${currencyB}`,
       normalToDate,
       log
     )
-    if (rate == null) return
-    return {
-      rate,
-      needsWrite: true
-    }
+    if (response != null) rate = response
   }
+  return rate
 }
 
 export { currencyConverter }

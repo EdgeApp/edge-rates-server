@@ -2,8 +2,6 @@ import { bns } from 'biggystring'
 import { asArray, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
-import { ExchangeResponse } from './index'
-
 const FIVE_MINUTES = 300000 // milliseconds
 const SEVEN_DAYS = 604800000
 
@@ -50,24 +48,22 @@ const coincapHistorical = async (
   currencyB: string,
   date: string,
   log: Function
-): Promise<ExchangeResponse> => {
+): Promise<string> => {
   if (Date.now() - lastAssetUpdate > SEVEN_DAYS) {
     console.log('assets need updating')
     assetMap = await updateAssets()
   }
-  let rate
+  let rate = ''
   // Query coincap if USD is denominator
   if (currencyB === 'USD' && assetMap[currencyA] != null) {
-    rate = await fetchQuote(assetMap[currencyA], date, log)
+    const response = await fetchQuote(assetMap[currencyA], date, log)
+    if (response != null) rate = response
   } else if (currencyA === 'USD' && currencyB != null) {
     // Invert pair and rate if USD is the numerator
-    rate = bns.div('1', await fetchQuote(assetMap[currencyB], date, log), 8, 10)
+    const response = await fetchQuote(assetMap[currencyB], date, log)
+    if (response != null) rate = bns.div('1', response, 8, 10)
   }
-  if (rate == null) return
-  return {
-    rate,
-    needsWrite: true
-  }
+  return rate
 }
 
 const updateAssets = async (): Promise<{ [key: string]: string }> => {
