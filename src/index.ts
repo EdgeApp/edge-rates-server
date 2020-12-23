@@ -156,7 +156,6 @@ router.get('/exchangeRate', async function(req, res) {
         dateNorm,
         log
       )
-      if (rate !== '') needsWrite = false
     }
     if (rate === '') {
       rate = await currencyConverter(currencyA, currencyB, dateNorm, log)
