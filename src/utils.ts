@@ -3,7 +3,7 @@ import fetch from 'node-fetch'
 
 import CONFIG from '../serverConfig.json'
 
-const { slackWebhookUrl } = CONFIG
+const { slackWebhookUrl, bridgeCurrencies } = CONFIG
 
 let postToSlackText = ''
 let postToSlackTime = 1591837000000 // June 10 2020
@@ -65,6 +65,27 @@ async function postToSlack(date: string, text: string): Promise<void> {
   } catch (e) {
     console.log('Could not log DB error to Slack', e)
   }
+}
+
+export const currencyBridge = async (
+  getExchangeRate: Function,
+  currencyA: string,
+  currencyB: string,
+  date: string | Function,
+  log?: Function
+): Promise<string> => {
+  for (const currency of bridgeCurrencies) {
+    try {
+      const currACurr = await getExchangeRate(currencyA, currency, date, log)
+      const currCurrB = await getExchangeRate(currency, currencyB, date, log)
+      if (currACurr !== '' && currCurrB !== '') {
+        return (parseFloat(currACurr) * parseFloat(currCurrB)).toString()
+      }
+    } catch (e) {
+      console.log(e)
+    }
+  }
+  return ''
 }
 
 const coinMarketCapFiatMap = {
