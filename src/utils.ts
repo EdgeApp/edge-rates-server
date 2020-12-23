@@ -75,6 +75,7 @@ export const currencyBridge = async (
   log?: Function
 ): Promise<string> => {
   for (const currency of bridgeCurrencies) {
+    if (currencyA === currency || currencyB === currency) continue
     try {
       const currACurr = await getExchangeRate(currencyA, currency, date, log)
       const currCurrB = await getExchangeRate(currency, currencyB, date, log)
