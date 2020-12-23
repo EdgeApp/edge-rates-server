@@ -15,7 +15,7 @@ import { coincapHistorical } from './coincap'
 import { coinMarketCapHistorical } from './coinMarketCap'
 import { coinMarketCapCurrent } from './coinMarketCapBasic'
 import { currencyConverter } from './currencyConverter'
-import { normalizeDate, postToSlack } from './utils'
+import { currencyBridge, normalizeDate, postToSlack } from './utils'
 // const REQUIRED_CODES = ['BC1', 'DASH', 'LTC', 'BCH']
 
 // call the packages we need
@@ -149,16 +149,60 @@ router.get('/exchangeRate', async function(req, res) {
       if (rate !== '') needsWrite = false
     }
     if (rate === '') {
+      rate = await currencyBridge(
+        getFromDb,
+        currencyA,
+        currencyB,
+        dateNorm,
+        log
+      )
+    }
+    if (rate === '') {
       rate = await currencyConverter(currencyA, currencyB, dateNorm, log)
+    }
+    if (rate === '') {
+      rate = await currencyBridge(
+        currencyConverter,
+        currencyA,
+        currencyB,
+        dateNorm,
+        log
+      )
     }
     if (rate === '' && hasDate === false) {
       rate = await coinMarketCapCurrent(currencyA, currencyB, log)
     }
     if (rate === '') {
+      rate = await currencyBridge(
+        coinMarketCapCurrent,
+        currencyA,
+        currencyB,
+        log
+      )
+    }
+    if (rate === '') {
       rate = await coincapHistorical(currencyA, currencyB, dateNorm, log)
     }
     if (rate === '') {
+      rate = await currencyBridge(
+        coincapHistorical,
+        currencyA,
+        currencyB,
+        dateNorm,
+        log
+      )
+    }
+    if (rate === '') {
       rate = await coinMarketCapHistorical(currencyA, currencyB, dateNorm, log)
+    }
+    if (rate === '') {
+      rate = await currencyBridge(
+        coinMarketCapHistorical,
+        currencyA,
+        currencyB,
+        dateNorm,
+        log
+      )
     }
   } catch (e) {
     postToSlack(dateNorm, `exchangeRate query failed ${e.message}`).catch(e)

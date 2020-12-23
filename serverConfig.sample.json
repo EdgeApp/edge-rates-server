@@ -1,6 +1,7 @@
 {
   "dbFullpath": "http://username:password@localhost:5984",
   "httpPort": 8008,
+  "bridgeCurrencies": ["USD", "BTC"],
   "currencyConverterApiKey": "",
   "coinMarketCapHistoricalApiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
   "coinMarketCapCurrentApiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
