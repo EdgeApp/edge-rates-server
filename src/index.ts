@@ -149,16 +149,16 @@ router.get('/exchangeRate', async function(req, res) {
       if (rate !== '') needsWrite = false
     }
     if (rate === '') {
-      rate = await currencyBridge(
-        getFromDb,
-        currencyA,
-        currencyB,
-        dateNorm,
-        log
-      )
+      rate = await currencyConverter(currencyA, currencyB, dateNorm, log)
+    }
+    if (rate === '' && hasDate === false) {
+      rate = await coinMarketCapCurrent(currencyA, currencyB, dateNorm, log)
     }
     if (rate === '') {
-      rate = await currencyConverter(currencyA, currencyB, dateNorm, log)
+      rate = await coincapHistorical(currencyA, currencyB, dateNorm, log)
+    }
+    if (rate === '') {
+      rate = await coinMarketCapHistorical(currencyA, currencyB, dateNorm, log)
     }
     if (rate === '') {
       rate = await currencyBridge(
@@ -166,22 +166,19 @@ router.get('/exchangeRate', async function(req, res) {
         currencyA,
         currencyB,
         dateNorm,
-        log
+        log,
+        true
       )
-    }
-    if (rate === '' && hasDate === false) {
-      rate = await coinMarketCapCurrent(currencyA, currencyB, log)
     }
     if (rate === '') {
       rate = await currencyBridge(
         coinMarketCapCurrent,
         currencyA,
         currencyB,
-        log
+        '',
+        log,
+        true
       )
-    }
-    if (rate === '') {
-      rate = await coincapHistorical(currencyA, currencyB, dateNorm, log)
     }
     if (rate === '') {
       rate = await currencyBridge(
@@ -189,11 +186,9 @@ router.get('/exchangeRate', async function(req, res) {
         currencyA,
         currencyB,
         dateNorm,
-        log
+        log,
+        true
       )
-    }
-    if (rate === '') {
-      rate = await coinMarketCapHistorical(currencyA, currencyB, dateNorm, log)
     }
     if (rate === '') {
       rate = await currencyBridge(
@@ -201,7 +196,18 @@ router.get('/exchangeRate', async function(req, res) {
         currencyA,
         currencyB,
         dateNorm,
-        log
+        log,
+        true
+      )
+    }
+    if (rate === '') {
+      rate = await currencyBridge(
+        getFromDb,
+        currencyA,
+        currencyB,
+        dateNorm,
+        log,
+        false
       )
     }
   } catch (e) {
@@ -230,38 +236,7 @@ router.get('/exchangeRate', async function(req, res) {
   }
 
   if (needsWrite) {
-    let newDocument: nano.DocumentGetResponse = {
-      _id: dateNorm,
-      _rev: '',
-      [currencyPair]: rate
-    }
-    const existingDocument = await dbRates.get(dateNorm).catch(e => {
-      if (e.error !== 'not_found')
-        log(`DB existing doc read error ${JSON.stringify(e)}`)
-    })
-    if (existingDocument != null) {
-      newDocument = {
-        ...existingDocument,
-        ...newDocument,
-        _rev: existingDocument._rev
-      }
-    }
-    const writeDocument = {
-      ...newDocument,
-      _rev: newDocument._rev !== '' ? newDocument._rev : undefined
-    }
-    let writeSuccess = true
-    dbRates.insert(writeDocument).catch(e => {
-      writeSuccess = false
-      if (e.error !== 'conflict') {
-        postToSlack(
-          dateNorm,
-          `rates1 exchangeRate DB write error ${e.reason}`
-        ).catch(e)
-      }
-      log(`DB write error ${JSON.stringify(e)}`)
-    })
-    if (writeSuccess) log(`Successfully saved ${writeDocument._id} to db`)
+    await writeNewPair(dateNorm, currencyPair, rate, log)
   }
   return res.json({
     currency_pair: currencyPair,
@@ -289,3 +264,45 @@ const { httpPort = 8008 } = CONFIG
 httpServer.listen(CONFIG.httpPort, '127.0.0.1')
 
 mylog(`Express server listening on port ${httpPort}`)
+
+export const writeNewPair = async (
+  dateNorm: string,
+  currencyPair: string,
+  rate: string,
+  log: Function
+): Promise<void> => {
+  const existingDocument = await dbRates.get(dateNorm).catch(e => {
+    if (e.error !== 'not_found')
+      log(`DB existing doc read error ${JSON.stringify(e)}`)
+  })
+  if (existingDocument[currencyPair] != null) return
+  let newDocument: nano.DocumentGetResponse = {
+    _id: dateNorm,
+    _rev: '',
+    [currencyPair]: rate
+  }
+  if (existingDocument != null) {
+    newDocument = {
+      ...existingDocument,
+      ...newDocument,
+      _rev: existingDocument._rev
+    }
+  }
+  const writeDocument = {
+    ...newDocument,
+    _rev: newDocument._rev !== '' ? newDocument._rev : undefined
+  }
+  let writeSuccess = true
+  await dbRates.insert(writeDocument).catch(e => {
+    writeSuccess = false
+    if (e.error !== 'conflict') {
+      postToSlack(
+        dateNorm,
+        `rates1 exchangeRate DB write error ${e.reason}`
+      ).catch(e)
+    }
+    log(`DB write error ${JSON.stringify(e)}`)
+  })
+  if (writeSuccess)
+    log(`Successfully saved ${currencyPair} in ${writeDocument._id} to db`)
+}

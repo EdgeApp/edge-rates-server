@@ -2,6 +2,7 @@ import { validate } from 'jsonschema'
 import fetch from 'node-fetch'
 
 import CONFIG from '../serverConfig.json'
+import { writeNewPair } from './index'
 
 const { slackWebhookUrl, bridgeCurrencies } = CONFIG
 
@@ -71,14 +72,19 @@ export const currencyBridge = async (
   getExchangeRate: Function,
   currencyA: string,
   currencyB: string,
-  date: string | Function,
-  log?: Function
+  date: string,
+  log: Function,
+  writeNeeded: boolean
 ): Promise<string> => {
   for (const currency of bridgeCurrencies) {
     if (currencyA === currency || currencyB === currency) continue
     try {
       const currACurr = await getExchangeRate(currencyA, currency, date, log)
+      if (currACurr !== '' && writeNeeded)
+        await writeNewPair(date, `${currencyA}_${currency}`, currACurr, log)
       const currCurrB = await getExchangeRate(currency, currencyB, date, log)
+      if (currCurrB !== '' && writeNeeded)
+        await writeNewPair(date, `${currency}_${currencyB}`, currCurrB, log)
       if (currACurr !== '' && currCurrB !== '') {
         return (parseFloat(currACurr) * parseFloat(currCurrB)).toString()
       }
