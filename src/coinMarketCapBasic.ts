@@ -46,6 +46,7 @@ const _fetchQuote = async (
 const coinMarketCapCurrent = async (
   currencyA: string,
   currencyB: string,
+  date: string,
   log: Function
 ): Promise<string> => {
   let rate = ''
