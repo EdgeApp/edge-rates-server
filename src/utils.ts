@@ -1,4 +1,5 @@
 import { validate } from 'jsonschema'
+import nano from 'nano'
 import fetch from 'node-fetch'
 
 import CONFIG from '../serverConfig.json'
@@ -68,31 +69,42 @@ async function postToSlack(date: string, text: string): Promise<void> {
   }
 }
 
+interface CurrencyRates {
+  _id: string
+  _rev: string
+  [currencyPair: string]: string
+}
+
 export const currencyBridge = async (
   getExchangeRate: Function,
   currencyA: string,
   currencyB: string,
   date: string,
   log: Function,
-  writeNeeded: boolean
-): Promise<string> => {
+  currencyRates: nano.DocumentGetResponse
+): Promise<void> => {
   for (const currency of bridgeCurrencies) {
+    const pair1 = `${currencyA}_${currency}`
+    const pair2 = `${currency}_${currencyB}`
     if (currencyA === currency || currencyB === currency) continue
     try {
-      const currACurr = await getExchangeRate(currencyA, currency, date, log)
-      if (currACurr !== '' && writeNeeded)
-        await writeNewPair(date, `${currencyA}_${currency}`, currACurr, log)
-      const currCurrB = await getExchangeRate(currency, currencyB, date, log)
-      if (currCurrB !== '' && writeNeeded)
-        await writeNewPair(date, `${currency}_${currencyB}`, currCurrB, log)
+      const currACurr =
+        currencyRates[pair1] ??
+        (await getExchangeRate(currencyA, currency, date, log))
+      if (currACurr !== '') Object.assign(currencyRates, { [pair1]: currACurr })
+      const currCurrB =
+        currencyRates[pair2] ??
+        (await getExchangeRate(currency, currencyB, date, log))
+      if (currCurrB !== '') Object.assign(currencyRates, { [pair2]: currCurrB })
       if (currACurr !== '' && currCurrB !== '') {
-        return (parseFloat(currACurr) * parseFloat(currCurrB)).toString()
+        const rate = (parseFloat(currACurr) * parseFloat(currCurrB)).toString()
+        Object.assign(currencyRates, { [`${currencyA}_${currencyB}`]: rate })
+        return
       }
     } catch (e) {
       console.log(e)
     }
   }
-  return ''
 }
 
 const coinMarketCapFiatMap = {
