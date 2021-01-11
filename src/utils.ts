@@ -1,8 +1,14 @@
+import { bns } from 'biggystring'
+import { asObject, asOptional, asString } from 'cleaners'
 import { validate } from 'jsonschema'
 import nano from 'nano'
 import fetch from 'node-fetch'
 
 import CONFIG from '../serverConfig.json'
+import { coincapHistorical } from './coincap'
+import { coinMarketCapHistorical } from './coinMarketCap'
+import { coinMarketCapCurrent } from './coinMarketCapBasic'
+import { currencyConverter } from './currencyConverter'
 import { writeNewPair } from './index'
 
 const { slackWebhookUrl, bridgeCurrencies } = CONFIG
@@ -15,7 +21,7 @@ let postToSlackTime = 1591837000000 // June 10 2020
  * hour and translating to UTC time.  Or returns undefined if dateSrc
  * is invalid.
  */
-function normalizeDate(
+export function normalizeDate(
   currencyA: string,
   currencyB: string,
   dateSrc: string
@@ -35,7 +41,7 @@ function normalizeDate(
   return dateNorm.toISOString()
 }
 
-function validateObject(object: any, schema: any): boolean {
+export function validateObject(object: any, schema: any): boolean {
   const result = validate(object, schema)
 
   if (result.errors.length === 0) {
@@ -49,7 +55,7 @@ function validateObject(object: any, schema: any): boolean {
   }
 }
 
-async function postToSlack(date: string, text: string): Promise<void> {
+export async function postToSlack(date: string, text: string): Promise<void> {
   // check if it's been 5 minutes since last identical message was sent to Slack
   if (
     text === postToSlackText &&
@@ -69,10 +75,47 @@ async function postToSlack(date: string, text: string): Promise<void> {
   }
 }
 
-interface CurrencyRates {
-  _id: string
-  _rev: string
-  [currencyPair: string]: string
+export interface ReturnRate {
+  currency_pair?: string
+  date?: string
+  exchangeRate?: string
+  error?: Error
+}
+
+const zeroRateCurrencyCodes = {
+  UFO: true,
+  FORK: true
+}
+
+const fallbackConstantRatePairs = {
+  SAI_USD: 1,
+  DAI_USD: 1
+}
+
+async function getFromDb(
+  localDb: any,
+  currencyA: string,
+  currencyB: string,
+  date: string,
+  log: Function
+): Promise<string> {
+  let rate = ''
+  try {
+    const exchangeRate: nano.DocumentGetResponse & {
+      [pair: string]: any
+    } = await localDb.get(date)
+    if (exchangeRate[`${currencyA}_${currencyB}`] != null) {
+      rate = exchangeRate[`${currencyA}_${currencyB}`]
+    } else if (exchangeRate[`${currencyB}_${currencyA}`] != null) {
+      rate = bns.div('1', exchangeRate[`${currencyB}_${currencyA}`], 8, 10)
+    }
+  } catch (e) {
+    if (e.error !== 'not_found') {
+      log(`DB read error ${JSON.stringify(e)}`)
+      throw e
+    }
+  }
+  return rate
 }
 
 export const currencyBridge = async (
@@ -107,7 +150,196 @@ export const currencyBridge = async (
   }
 }
 
-const coinMarketCapFiatMap = {
+export const getRate = async (
+  localDb: any,
+  currencyA: string,
+  currencyB: string,
+  currencyPair: string,
+  date: string,
+  log: Function
+): Promise<string> => {
+  let rate = ''
+  if (
+    zeroRateCurrencyCodes[currencyA] === true ||
+    zeroRateCurrencyCodes[currencyB] === true
+  ) {
+    rate = '0'
+  }
+  try {
+    let existingDocument
+    if (rate === '') {
+      rate = await getFromDb(localDb, currencyA, currencyB, date, log)
+    }
+    if (rate === '') {
+      existingDocument = await localDb.get(date).catch(e => {
+        if (e.error !== 'not_found')
+          log(`DB existing doc read error ${JSON.stringify(e)}`)
+      })
+      if (existingDocument == null) {
+        existingDocument = {
+          _id: date,
+          [currencyPair]: rate
+        }
+      }
+
+      await currencyBridge(
+        getFromDb,
+        currencyA,
+        currencyB,
+        date,
+        log,
+        existingDocument
+      )
+      rate = existingDocument[currencyPair] ?? ''
+    }
+    if (rate === '') {
+      const exchanges = [
+        currencyConverter,
+        coinMarketCapCurrent,
+        coincapHistorical,
+        coinMarketCapHistorical
+      ]
+      for (const exchange of exchanges) {
+        if (existingDocument[currencyPair] == null) {
+          const exchangeRate = await exchange(currencyA, currencyB, date, log)
+          if (exchangeRate !== '') {
+            existingDocument[currencyPair] = exchangeRate
+          }
+        }
+        if (existingDocument[currencyPair] == null) {
+          await currencyBridge(
+            exchange,
+            currencyA,
+            currencyB,
+            date,
+            log,
+            existingDocument
+          )
+        }
+        if (existingDocument[currencyPair] != null) {
+          rate = existingDocument[currencyPair]
+          await localDb.insert(existingDocument).catch(e => {
+            if (e.error !== 'conflict') {
+              throw new Error('Future date received. Must send past date.')
+            }
+            log(`DB write error ${JSON.stringify(e)}`)
+          })
+          break
+        }
+      }
+    }
+
+    // Use fallback hardcoded rates if lookups failed
+    if (
+      rate === '' &&
+      fallbackConstantRatePairs[`${currencyA}_${currencyB}`] != null
+    ) {
+      rate = fallbackConstantRatePairs[`${currencyA}_${currencyB}`]
+    }
+
+    if (
+      rate === '' &&
+      fallbackConstantRatePairs[`${currencyB}_${currencyA}`] != null
+    ) {
+      rate = fallbackConstantRatePairs[`${currencyB}_${currencyA}`]
+    }
+
+    // Return error if everything failed
+    if (rate === '') {
+      throw new Error('All lookups failed to find exchange rate.')
+    }
+
+    return rate
+  } catch (e) {
+    e.errorCode = 500
+    e.errorType = 'dbError'
+    throw e
+  }
+}
+
+export const asExchangeRateReq = asObject({
+  currency_pair: asString,
+  date: asOptional(asString)
+})
+
+const asRateParam = (param: any): any => {
+  try {
+    const { currency_pair: currencyPair, date } = asExchangeRateReq(param)
+    let dateStr: string
+    if (typeof date === 'string') {
+      dateStr = date
+    } else {
+      dateStr = new Date().toISOString()
+    }
+    if (typeof currencyPair !== 'string' || typeof dateStr !== 'string') {
+      throw new Error(
+        'Missing or invalid query param(s): currency_pair and date should both be strings'
+      )
+    }
+    const currencyTokens = currencyPair.split('_')
+    if (currencyTokens.length !== 2) {
+      throw new Error(
+        'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_USD"'
+      )
+    }
+    const currencyA = currencyTokens[0]
+    const currencyB = currencyTokens[1]
+    const parsedDate = normalizeDate(currencyA, currencyB, dateStr)
+    if (parsedDate == null) {
+      throw new Error(
+        'date query param malformed.  should be conventional date string, ex:"2019-11-21T15:28:21.123Z"'
+      )
+    }
+    if (Date.parse(parsedDate) > Date.now()) {
+      throw new Error('Future date received. Must send past date.')
+    }
+    return { currencyPair, currencyA, currencyB, date: parsedDate }
+  } catch (e) {
+    e.errorCode = 400
+    throw e
+  }
+}
+
+export const getExchangeRate = async (
+  query: ReturnType<typeof asExchangeRateReq>,
+  localDb: any
+): Promise<ReturnRate> => {
+  try {
+    // asRateParams is cleaner
+    const { currencyA, currencyB, currencyPair, date } = asRateParam(query)
+    const log = (...args): void => {
+      const d = new Date().toISOString()
+      const p = currencyPair
+      console.log(`${d} ${p} ${JSON.stringify(args)}`)
+    }
+    const exchangeRate = await getRate(
+      localDb,
+      currencyA,
+      currencyB,
+      currencyPair,
+      date,
+      log
+    )
+    return {
+      currency_pair: currencyPair,
+      date,
+      exchangeRate
+    }
+  } catch (e) {
+    if (e.errorType === 'dbError') {
+      postToSlack(
+        new Date().toISOString(),
+        `exchangeRate query failed ${e.message}`
+      ).catch(e)
+    }
+    return {
+      currency_pair: query.currency_pair,
+      error: e
+    }
+  }
+}
+
+export const coinMarketCapFiatMap = {
   USD: '2781',
   AUD: '2782',
   BRL: '2783',
@@ -203,7 +435,7 @@ const coinMarketCapFiatMap = {
   VES: '3573'
 }
 
-const fiatCurrencyCodes: { [code: string]: boolean } = {
+export const fiatCurrencyCodes: { [code: string]: boolean } = {
   ALL: true,
   XCD: true,
   EUR: true,
@@ -369,12 +601,4 @@ const fiatCurrencyCodes: { [code: string]: boolean } = {
   ZMK: true,
   XAG: true,
   ZWL: true
-}
-
-export {
-  normalizeDate,
-  validateObject,
-  postToSlack,
-  coinMarketCapFiatMap,
-  fiatCurrencyCodes
 }
