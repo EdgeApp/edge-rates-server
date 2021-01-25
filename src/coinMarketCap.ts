@@ -4,7 +4,7 @@ import fetch from 'node-fetch'
 import CONFIG from '../serverConfig.json'
 import { coinMarketCapFiatMap, validateObject } from './utils'
 
-const CmcHistoricalQuote = {
+export const CmcHistoricalQuote = {
   type: 'object',
   properties: {
     data: {
