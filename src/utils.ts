@@ -9,7 +9,6 @@ import { coincapHistorical } from './coincap'
 import { coinMarketCapHistorical } from './coinMarketCap'
 import { coinMarketCapCurrent } from './coinMarketCapBasic'
 import { currencyConverter } from './currencyConverter'
-import { writeNewPair } from './index'
 
 const { slackWebhookUrl, bridgeCurrencies } = CONFIG
 
@@ -21,11 +20,7 @@ let postToSlackTime = 1591837000000 // June 10 2020
  * hour and translating to UTC time.  Or returns undefined if dateSrc
  * is invalid.
  */
-export function normalizeDate(
-  currencyA: string,
-  currencyB: string,
-  dateSrc: string
-): string | void {
+export function normalizeDate(dateSrc: string): string | void {
   const dateNorm = new Date(dateSrc)
   if (dateNorm.toString() === 'Invalid Date') {
     return undefined
@@ -262,7 +257,14 @@ export const asExchangeRateReq = asObject({
   date: asOptional(asString)
 })
 
-const asRateParam = (param: any): any => {
+interface RateParamReturn {
+  currencyA: string
+  currencyB: string
+  currencyPair: string
+  date: string
+}
+
+const asRateParam = (param: any): RateParamReturn => {
   try {
     const { currency_pair: currencyPair, date } = asExchangeRateReq(param)
     let dateStr: string
@@ -284,7 +286,7 @@ const asRateParam = (param: any): any => {
     }
     const currencyA = currencyTokens[0]
     const currencyB = currencyTokens[1]
-    const parsedDate = normalizeDate(currencyA, currencyB, dateStr)
+    const parsedDate = normalizeDate(dateStr)
     if (parsedDate == null) {
       throw new Error(
         'date query param malformed.  should be conventional date string, ex:"2019-11-21T15:28:21.123Z"'
@@ -305,7 +307,6 @@ export const getExchangeRate = async (
   localDb: any
 ): Promise<ReturnRate> => {
   try {
-    // asRateParams is cleaner
     const { currencyA, currencyB, currencyPair, date } = asRateParam(query)
     const log = (...args): void => {
       const d = new Date().toISOString()
