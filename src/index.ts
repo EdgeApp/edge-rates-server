@@ -60,7 +60,11 @@ router.use(function(req, res, next) {
  * currency_pair: String with the two currencies separated by an underscore. Ex: "ETH_USD"
  */
 router.get('/exchangeRate', async function(req, res) {
-  res.json(await getExchangeRate(req.query, dbRates))
+  const result = await getExchangeRate(req.query, dbRates)
+  if (result.error != null) {
+    return res.status(400).send(result.error)
+  }
+  res.json(result)
 })
 
 router.post('/exchangeRates', async function(req, res) {
