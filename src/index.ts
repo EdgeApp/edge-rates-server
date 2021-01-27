@@ -79,12 +79,13 @@ router.post('/exchangeRates', async function(req, res) {
       .status(400)
       .send(`Exceeded Limit of ${EXCHANGE_RATES_BATCH_LIMIT}`)
   }
-  const returnedRates: ReturnRate[] = []
+  const returnedRates: Array<Promise<ReturnRate>> = []
   for (const exchangeRateLookup of queryResult.data) {
-    returnedRates.push(await getExchangeRate(exchangeRateLookup, dbRates))
+    returnedRates.push(getExchangeRate(exchangeRateLookup, dbRates))
   }
 
-  res.json({ data: returnedRates })
+  const data = await Promise.all(returnedRates)
+  res.json({ data })
 })
 
 // middleware to use for all requests
