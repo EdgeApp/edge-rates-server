@@ -12,9 +12,6 @@ import { currencyConverter } from './currencyConverter'
 
 const { slackWebhookUrl, bridgeCurrencies } = CONFIG
 
-let postToSlackText = ''
-let postToSlackTime = 1591837000000 // June 10 2020
-
 /*
  * Returns string value of date "normalized" by floor'ing to nearest
  * hour and translating to UTC time.  Or returns undefined if dateSrc
@@ -50,6 +47,9 @@ export function validateObject(object: any, schema: any): boolean {
   }
 }
 
+let postToSlackText = ''
+let postToSlackTime = 1591837000000 // June 10 2020
+
 export async function postToSlack(date: string, text: string): Promise<void> {
   // check if it's been 5 minutes since last identical message was sent to Slack
   if (
@@ -59,12 +59,12 @@ export async function postToSlack(date: string, text: string): Promise<void> {
     return
   }
   try {
+    postToSlackText = text
+    postToSlackTime = Date.now()
     await fetch(slackWebhookUrl, {
       method: 'POST',
       body: JSON.stringify({ text: `${date} ${text}` })
     })
-    postToSlackText = text
-    postToSlackTime = Date.now()
   } catch (e) {
     console.log('Could not log DB error to Slack', e)
   }
@@ -87,13 +87,27 @@ const fallbackConstantRatePairs = {
   DAI_USD: 1
 }
 
-async function getFromDb(
+// use this mock for unit testing for getFromDb
+// const localDb = {
+//   get: date => fixtures[date]
+// }
+
+type ProviderFetch = (
   localDb: any,
   currencyA: string,
   currencyB: string,
   date: string,
   log: Function
-): Promise<string> {
+) => Promise<string>
+
+// move to a separate file, use type for all other providers
+const getFromDb: ProviderFetch = async (
+  localDb,
+  currencyA,
+  currencyB,
+  date,
+  log
+) => {
   let rate = ''
   try {
     const exchangeRate: nano.DocumentGetResponse & {
@@ -112,6 +126,10 @@ async function getFromDb(
   }
   return rate
 }
+
+// use this mock for unit testing for currencyBridge
+// const getExchangeRate = async (currencyA, currencyB, date, log) =>
+// fixtures[`${currencyA}_${currencyB}`][date]
 
 export const currencyBridge = async (
   getExchangeRate: Function,
@@ -145,7 +163,20 @@ export const currencyBridge = async (
   }
 }
 
-export const getRate = async (
+type ErrorType = 'not_found' | 'conflict' | 'db_error'
+interface RateError extends Error {
+  errorCode?: number
+  errorType?: ErrorType
+}
+
+const rateError = (
+  message: string,
+  errorCode: number = 500,
+  errorType?: ErrorType
+): RateError => Object.assign(new Error(message), { errorCode, errorType })
+
+// should be its own file
+const getRate = async (
   localDb: any,
   currencyA: string,
   currencyB: string,
@@ -153,102 +184,101 @@ export const getRate = async (
   date: string,
   log: Function
 ): Promise<string> => {
-  let rate = ''
   if (
     zeroRateCurrencyCodes[currencyA] === true ||
     zeroRateCurrencyCodes[currencyB] === true
-  ) {
-    rate = '0'
-  }
+  )
+    return '0'
   try {
-    let existingDocument
-    if (rate === '') {
-      rate = await getFromDb(localDb, currencyA, currencyB, date, log)
+    const dbRate = await getFromDb(localDb, currencyA, currencyB, date, log)
+    if (dbRate != null && dbRate !== '') return dbRate
+
+    let existingDocument = await localDb.get(date).catch(e => {
+      if (e.error !== 'not_found') {
+        log(`${currencyPair} does not exist for date: ${date}`)
+      }
+    })
+    if (existingDocument == null) {
+      existingDocument = {
+        _id: date,
+        [currencyPair]: ''
+      }
     }
-    if (rate === '') {
-      existingDocument = await localDb.get(date).catch(e => {
-        if (e.error !== 'not_found')
-          log(`DB existing doc read error ${JSON.stringify(e)}`)
-      })
-      if (existingDocument == null) {
-        existingDocument = {
-          _id: date,
-          [currencyPair]: rate
-        }
+
+    await currencyBridge(
+      () => '',
+      currencyA,
+      currencyB,
+      date,
+      log,
+      existingDocument
+    )
+    const dbBridge = existingDocument[currencyPair]
+    if (dbBridge != null && dbBridge !== '') return dbBridge
+
+    const exchanges = [
+      currencyConverter,
+      coinMarketCapCurrent,
+      coincapHistorical,
+      coinMarketCapHistorical
+    ]
+    let bridge = ''
+    for (const exchange of exchanges) {
+      bridge = await exchange(currencyA, currencyB, date, log)
+      if (bridge != null && bridge !== '') {
+        existingDocument[currencyPair] = bridge
+        break
       }
 
       await currencyBridge(
-        getFromDb,
+        exchange,
         currencyA,
         currencyB,
         date,
         log,
         existingDocument
       )
-      rate = existingDocument[currencyPair] ?? ''
-    }
-    if (rate === '') {
-      const exchanges = [
-        currencyConverter,
-        coinMarketCapCurrent,
-        coincapHistorical,
-        coinMarketCapHistorical
-      ]
-      for (const exchange of exchanges) {
-        if (existingDocument[currencyPair] == null) {
-          const exchangeRate = await exchange(currencyA, currencyB, date, log)
-          if (exchangeRate !== '') {
-            existingDocument[currencyPair] = exchangeRate
-          }
-        }
-        if (existingDocument[currencyPair] == null) {
-          await currencyBridge(
-            exchange,
-            currencyA,
-            currencyB,
-            date,
-            log,
-            existingDocument
-          )
-        }
-        if (existingDocument[currencyPair] != null) {
-          rate = existingDocument[currencyPair]
-          await localDb.insert(existingDocument).catch(e => {
-            if (e.error !== 'conflict') {
-              throw new Error('Future date received. Must send past date.')
-            }
-            log(`DB write error ${JSON.stringify(e)}`)
-          })
-          break
-        }
+
+      bridge = existingDocument[currencyPair]
+      if (bridge != null && bridge !== '') {
+        break
       }
     }
 
+    if (bridge != null && bridge !== '') {
+      await localDb.insert(existingDocument).catch(e => {
+        if (e.error !== 'conflict') {
+          // write more informative error messages
+          throw rateError(
+            'Future date received. Must send past date.',
+            400,
+            'conflict'
+          )
+        }
+        log(`DB write error ${JSON.stringify(e)}`)
+      })
+      return bridge
+    }
+
     // Use fallback hardcoded rates if lookups failed
-    if (
-      rate === '' &&
-      fallbackConstantRatePairs[`${currencyA}_${currencyB}`] != null
-    ) {
-      rate = fallbackConstantRatePairs[`${currencyA}_${currencyB}`]
+    if (fallbackConstantRatePairs[`${currencyA}_${currencyB}`] != null) {
+      return fallbackConstantRatePairs[`${currencyA}_${currencyB}`]
     }
 
-    if (
-      rate === '' &&
-      fallbackConstantRatePairs[`${currencyB}_${currencyA}`] != null
-    ) {
-      rate = fallbackConstantRatePairs[`${currencyB}_${currencyA}`]
+    if (fallbackConstantRatePairs[`${currencyB}_${currencyA}`] != null) {
+      return fallbackConstantRatePairs[`${currencyB}_${currencyA}`]
     }
 
-    // Return error if everything failed
-    if (rate === '') {
-      throw new Error('All lookups failed to find exchange rate.')
-    }
-
-    return rate
+    // write more informative error messages
+    // for requests older than a week, save 0 for a failed request, but only if the date is older than a week. (time period of week is a number from config file, can be changed)
+    throw rateError(
+      'All lookups failed to find exchange rate.',
+      400,
+      'not_found'
+    )
   } catch (e) {
-    e.errorCode = 500
-    e.errorType = 'dbError'
-    throw e
+    if (e.errorCode === 400) throw e
+    throw rateError(e.message, 500, 'db_error')
   }
 }
 
@@ -297,6 +327,7 @@ export const asRateParam = (param: any): RateParamReturn => {
   }
 }
 
+// should be same file as getRate
 export const getExchangeRate = async (
   query: ReturnType<typeof asExchangeRateReq>,
   localDb: any
@@ -322,7 +353,9 @@ export const getExchangeRate = async (
       exchangeRate
     }
   } catch (e) {
-    if (e.errorType === 'dbError') {
+    // write more informative error messages, write error + message + code
+
+    if (e.errorType === 'db_error') {
       postToSlack(
         new Date().toISOString(),
         `exchangeRate query failed ${e.message}`
@@ -335,6 +368,7 @@ export const getExchangeRate = async (
   }
 }
 
+// move to separate js file
 export const coinMarketCapFiatMap = {
   USD: '2781',
   AUD: '2782',
@@ -431,6 +465,7 @@ export const coinMarketCapFiatMap = {
   VES: '3573'
 }
 
+// move to separate js file
 export const fiatCurrencyCodes: { [code: string]: boolean } = {
   ALL: true,
   XCD: true,
