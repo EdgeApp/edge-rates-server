@@ -2,7 +2,8 @@ import { bns } from 'biggystring'
 import fetch from 'node-fetch'
 
 import CONFIG from '../serverConfig.json'
-import { coinMarketCapFiatMap, validateObject } from './utils'
+import { coinMarketCapFiatMap } from './coinMarketCapFiatMap'
+import { validateObject } from './utils'
 
 export const CmcHistoricalQuote = {
   type: 'object',

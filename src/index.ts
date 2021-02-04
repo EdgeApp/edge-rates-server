@@ -11,7 +11,7 @@ import nano from 'nano'
 import promisify from 'promisify-node'
 
 import CONFIG from '../serverConfig.json'
-import { asExchangeRateReq, getExchangeRate, ReturnRate } from './utils'
+import { asExchangeRateReq, getExchangeRate, ReturnRate } from './rates'
 // const REQUIRED_CODES = ['BC1', 'DASH', 'LTC', 'BCH']
 
 const asExchangeRatesReq = asObject({

@@ -3,7 +3,7 @@ import { asMap, asNumber, asObject } from 'cleaners'
 import fetch from 'node-fetch'
 
 import CONFIG from '../serverConfig.json'
-import { coinMarketCapFiatMap } from './utils'
+import { coinMarketCapFiatMap } from './coinMarketCapFiatMap'
 
 const asCoinMarketCapCurrentResponse = asObject({
   data: asMap(
