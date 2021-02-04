@@ -264,7 +264,7 @@ interface RateParamReturn {
   date: string
 }
 
-const asRateParam = (param: any): RateParamReturn => {
+export const asRateParam = (param: any): RateParamReturn => {
   try {
     const { currency_pair: currencyPair, date } = asExchangeRateReq(param)
     let dateStr: string
@@ -272,11 +272,6 @@ const asRateParam = (param: any): RateParamReturn => {
       dateStr = date
     } else {
       dateStr = new Date().toISOString()
-    }
-    if (typeof currencyPair !== 'string' || typeof dateStr !== 'string') {
-      throw new Error(
-        'Missing or invalid query param(s): currency_pair and date should both be strings'
-      )
     }
     const currencyTokens = currencyPair.split('_')
     if (currencyTokens.length !== 2) {
