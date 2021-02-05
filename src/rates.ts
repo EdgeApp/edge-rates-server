@@ -33,6 +33,11 @@ const rateError = (
   errorType?: ErrorType
 ): RateError => Object.assign(new Error(message), { errorCode, errorType })
 
+interface ReturnGetRate {
+  rate: string
+  document?: any
+}
+
 const getRate = async (
   localDb: any,
   currencyA: string,
@@ -40,15 +45,15 @@ const getRate = async (
   currencyPair: string,
   date: string,
   log: Function
-): Promise<string> => {
+): Promise<ReturnGetRate> => {
   if (
     zeroRateCurrencyCodes[currencyA] === true ||
     zeroRateCurrencyCodes[currencyB] === true
   )
-    return '0'
+    return { rate: '0' }
   try {
     const dbRate = await getFromDb(localDb, currencyA, currencyB, date, log)
-    if (dbRate != null && dbRate !== '') return dbRate
+    if (dbRate != null && dbRate !== '') return { rate: dbRate }
 
     let existingDocument = await localDb.get(date).catch(e => {
       if (e.error !== 'not_found') {
@@ -71,7 +76,7 @@ const getRate = async (
       existingDocument
     )
     const dbBridge = existingDocument[currencyPair]
-    if (dbBridge != null && dbBridge !== '') return dbBridge
+    if (dbBridge != null && dbBridge !== '') return { rate: dbBridge }
 
     const exchanges = [
       currencyConverter,
@@ -103,17 +108,7 @@ const getRate = async (
     }
 
     if (bridge != null && bridge !== '') {
-      await localDb.insert(existingDocument).catch(e => {
-        if (e.error !== 'conflict') {
-          throw rateError(
-            `RATES SERVER: Future date received ${date} for currency pair ${currencyA}_${currencyB}. Must send past date.`,
-            400,
-            'conflict'
-          )
-        }
-        log(`DB write error ${JSON.stringify(e)}`)
-      })
-      return bridge
+      return { rate: bridge, document: existingDocument }
     }
 
     // Use fallback hardcoded rates if lookups failed
@@ -150,11 +145,15 @@ const getRate = async (
   }
 }
 
-export interface ReturnRate {
+interface ReturnRateUserResponse {
   currency_pair?: string
   date?: string
   exchangeRate?: string
   error?: Error
+}
+export interface ReturnRate {
+  data: ReturnRateUserResponse
+  document?: any
 }
 
 export const getExchangeRate = async (
@@ -168,7 +167,7 @@ export const getExchangeRate = async (
       const p = currencyPair
       console.log(`${d} ${p} ${JSON.stringify(args)}`)
     }
-    const exchangeRate = await getRate(
+    const response = await getRate(
       localDb,
       currencyA,
       currencyB,
@@ -176,10 +175,14 @@ export const getExchangeRate = async (
       date,
       log
     )
+
     return {
-      currency_pair: currencyPair,
-      date,
-      exchangeRate
+      data: {
+        currency_pair: currencyPair,
+        date,
+        exchangeRate: response.rate
+      },
+      document: response.document
     }
   } catch (e) {
     if (e.errorType === 'db_error') {
@@ -189,8 +192,10 @@ export const getExchangeRate = async (
       ).catch(e)
     }
     return {
-      currency_pair: query.currency_pair,
-      error: e
+      data: {
+        currency_pair: query.currency_pair,
+        error: e
+      }
     }
   }
 }
@@ -273,7 +278,7 @@ interface RateParamReturn {
   date: string
 }
 
-const asRateParam = (param: any): RateParamReturn => {
+export const asRateParam = (param: any): RateParamReturn => {
   try {
     const { currency_pair: currencyPair, date } = asExchangeRateReq(param)
     let dateStr: string

@@ -62,3 +62,6 @@ export async function postToSlack(date: string, text: string): Promise<void> {
     console.log('Could not log DB error to Slack', e)
   }
 }
+
+export const snooze = async (ms: number): Promise<void> =>
+  new Promise((resolve: Function) => setTimeout(resolve, ms))
