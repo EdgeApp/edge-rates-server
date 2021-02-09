@@ -2,7 +2,8 @@ import { assert } from 'chai'
 import { describe, it } from 'mocha'
 
 import { CmcHistoricalQuote } from '../src/coinMarketCap'
-import { asRateParam, normalizeDate, validateObject } from '../src/utils'
+import { asRateParam } from '../src/rates'
+import { normalizeDate, validateObject } from '../src/utils'
 import fixtures from './unitUtils.json'
 
 for (const test of fixtures.normalizeDate) {

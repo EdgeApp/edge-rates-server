@@ -11,7 +11,7 @@ import nano from 'nano'
 import promisify from 'promisify-node'
 
 import CONFIG from '../serverConfig.json'
-import { asExchangeRateReq, getExchangeRate, ReturnRate } from './utils'
+import { asExchangeRateReq, getExchangeRate, ReturnRate } from './rates'
 // const REQUIRED_CODES = ['BC1', 'DASH', 'LTC', 'BCH']
 
 const asExchangeRatesReq = asObject({
@@ -61,10 +61,15 @@ router.use(function(req, res, next) {
  */
 router.get('/exchangeRate', async function(req, res) {
   const result = await getExchangeRate(req.query, dbRates)
-  if (result.error != null) {
-    return res.status(400).send(result.error)
+  if (result.data.error != null) {
+    return res.status(400).send(result.data.error)
   }
-  res.json(result)
+  if (result.document != null) {
+    await dbRates.insert(result.document).catch(e => {
+      console.log(e)
+    })
+  }
+  res.json(result.data)
 })
 
 router.post('/exchangeRates', async function(req, res) {
@@ -85,6 +90,18 @@ router.post('/exchangeRates', async function(req, res) {
   }
 
   const data = await Promise.all(returnedRates)
+  let mergedDoc = {}
+  for (const rateQuery of data) {
+    if (rateQuery.document != null) {
+      mergedDoc = { ...mergedDoc, ...rateQuery.document }
+      delete rateQuery.document
+    }
+  }
+  if (Object.keys(mergedDoc).length !== 0) {
+    await dbRates.insert(mergedDoc).catch(e => {
+      console.log(e)
+    })
+  }
   res.json({ data })
 })
 

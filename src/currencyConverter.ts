@@ -2,7 +2,7 @@ import { asMap, asNumber } from 'cleaners'
 import fetch from 'node-fetch'
 
 import CONFIG from '../serverConfig.json'
-import { fiatCurrencyCodes } from './utils'
+import { fiatCurrencyCodes } from './fiatCurrencyCodes'
 
 const apiKey = CONFIG.currencyConverterApiKey
 

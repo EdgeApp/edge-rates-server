@@ -3,6 +3,8 @@
 /dist/
 /lib/
 /serverConfig.json
+/.nyc_output
+/coverage
 
 # Package managers:
 node_modules/
