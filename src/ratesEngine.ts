@@ -7,8 +7,7 @@ import {
 } from '../serverConfig.json'
 import { snooze } from './utils'
 
-const endPoint = `https://${ratesServerAddress}/v1/exchangeRates`
-//  const endPoint = `http://localhost:8008/v1/exchangeRates`
+const endPoint = `${ratesServerAddress}/v1/exchangeRates`
 
 const LOOP_DELAY = 1000 * 60 * 10 // Delay 10 minutes
 const allCurrencies = cryptoCurrencyCodes.concat(fiatCurrencyCodes)

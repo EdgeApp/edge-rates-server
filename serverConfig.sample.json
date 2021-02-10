@@ -35,7 +35,7 @@
     "VET"
   ],
   "fiatCurrencyCodes": ["EUR", "CNY", "JPY", "GBP"],
-  "ratesServerAddress": "rates1.edge.app",
+  "ratesServerAddress": "https://rates1.edge.app",
   "currencyConverterApiKey": "",
   "coinMarketCapHistoricalApiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
   "coinMarketCapCurrentApiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
