@@ -3,7 +3,6 @@
 // =============================================================================
 
 import bodyParser from 'body-parser'
-import { asArray, asObject } from 'cleaners'
 import cors from 'cors'
 import express from 'express'
 import http from 'http'
@@ -12,12 +11,9 @@ import nano from 'nano'
 import promisify from 'promisify-node'
 
 import CONFIG from '../serverConfig.json'
-import { asExchangeRateReq, getExchangeRate, ReturnRate } from './rates'
+import { getExchangeRate } from './rates/rates'
+import { asExchangeRatesReq, asRateParam, ReturnRate } from './types'
 import { log } from './utils'
-
-const asExchangeRatesReq = asObject({
-  data: asArray(asExchangeRateReq)
-})
 
 const EXCHANGE_RATES_BATCH_LIMIT = 100
 
@@ -52,7 +48,13 @@ const router = express.Router()
  * currency_pair: String with the two currencies separated by an underscore. Ex: "ETH_USD"
  */
 router.get('/exchangeRate', async function(req, res) {
-  const result = await getExchangeRate(req.query, dbRates)
+  let rateQuery
+  try {
+    rateQuery = asRateParam(req.query)
+  } catch (e) {
+    return res.status(400).send(`Missing Request fields.`)
+  }
+  const result = await getExchangeRate(rateQuery, dbRates)
   if (result.document != null) {
     dbRates
       .insert(result.document)
@@ -70,21 +72,27 @@ router.get('/exchangeRate', async function(req, res) {
 })
 
 router.post('/exchangeRates', async function(req, res) {
-  let queryResult
+  let ratesQuery
   try {
-    queryResult = asExchangeRatesReq(req.body)
+    ratesQuery = asExchangeRatesReq(req.body)
   } catch (e) {
     return res.status(400).send(`Missing Request fields.`)
   }
-  if (queryResult.data.length > EXCHANGE_RATES_BATCH_LIMIT) {
+  const currencyCodes = Object.keys(ratesQuery)
+  if (currencyCodes.length > EXCHANGE_RATES_BATCH_LIMIT) {
     return res
       .status(400)
       .send(`Exceeded Limit of ${EXCHANGE_RATES_BATCH_LIMIT}`)
   }
-  const returnedRates: Array<Promise<ReturnRate>> = []
-  for (const exchangeRateLookup of queryResult.data) {
-    returnedRates.push(getExchangeRate(exchangeRateLookup, dbRates))
-  }
+  const returnedRates: Array<Promise<ReturnRate>> = currencyCodes.map(
+    async currencyPair => {
+      const rateQuery = asRateParam({
+        currency_pair: currencyPair,
+        date: ratesQuery[currencyPair]
+      })
+      return getExchangeRate(rateQuery, dbRates)
+    }
+  )
 
   const allRates = await Promise.all(returnedRates)
   let mergedDoc = {}

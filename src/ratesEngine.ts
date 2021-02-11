@@ -9,31 +9,28 @@ import { log, snooze } from './utils'
 
 const endPoint = `${ratesServerAddress}/v1/exchangeRates`
 
-const LOOP_DELAY = 1000 * 60 * 10 // Delay 10 minutes
+const LOOP_DELAY = 1000 * 60 * 5 // Delay 5 minutes
 const allCurrencies = cryptoCurrencyCodes.concat(fiatCurrencyCodes)
 const bridgeCurrency = 'USD'
 
-interface pairQuery {
-  currency_pair: string
-  date: string
+interface PairBody {
+  [currencyPair: string]: string
 }
 
 const ratesEngine = async (): Promise<void> => {
   const currentDate = new Date().toISOString()
   try {
-    const data: pairQuery[] = []
-    for (const currencyCode of allCurrencies) {
-      data.push({
-        currency_pair: `${bridgeCurrency}_${currencyCode}`,
-        date: currentDate
-      })
-    }
+    const data: PairBody = allCurrencies.reduce(
+      (body, currencyCode) =>
+        Object.assign(body, {
+          [`${currencyCode}_${bridgeCurrency}`]: currentDate
+        }),
+      {}
+    )
     const response = await fetch(endPoint, {
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       method: 'POST',
-      body: JSON.stringify({ data })
+      body: JSON.stringify(data)
     })
     if (response.ok === true) {
       log(`Successfully saved new currencyPairs`)

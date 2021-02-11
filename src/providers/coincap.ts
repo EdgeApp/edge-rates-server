@@ -2,7 +2,7 @@ import { bns } from 'biggystring'
 import { asArray, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
-import { ProviderFetch } from '../rates'
+import { ProviderFetch } from '../types'
 import { log } from '../utils'
 
 const FIVE_MINUTES = 300000 // milliseconds
@@ -47,7 +47,11 @@ const fetchQuote = async (
   }
 }
 
-const coincapHistorical: ProviderFetch = async (currencyA, currencyB, date) => {
+const coincapHistorical: ProviderFetch = async ({
+  currencyA,
+  currencyB,
+  date
+}) => {
   if (Date.now() - lastAssetUpdate > SEVEN_DAYS && updating === false) {
     updating = true
     log(

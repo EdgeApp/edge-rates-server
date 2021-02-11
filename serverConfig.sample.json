@@ -35,6 +35,14 @@
     "VET"
   ],
   "fiatCurrencyCodes": ["EUR", "CNY", "JPY", "GBP"],
+  "zeroRateCurrencyCodes": {
+    "UFO": true,
+    "FORK": true
+  },
+  "fallbackConstantRatePairs": {
+    "SAI_USD": 1,
+    "DAI_USD": 1
+  },
   "ratesServerAddress": "https://rates1.edge.app",
   "currencyConverterApiKey": "",
   "coinMarketCapHistoricalApiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",

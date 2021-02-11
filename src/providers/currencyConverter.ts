@@ -2,7 +2,7 @@ import { asMap, asNumber } from 'cleaners'
 import fetch from 'node-fetch'
 
 import CONFIG from '../../serverConfig.json'
-import { ProviderFetch } from '../rates'
+import { ProviderFetch } from '../types'
 import { log } from '../utils'
 import { fiatCurrencyCodes } from './fiatCurrencyCodes'
 
@@ -45,7 +45,11 @@ const currencyConverterFetch = async (
   }
 }
 
-const currencyConverter: ProviderFetch = async (currencyA, currencyB, date) => {
+const currencyConverter: ProviderFetch = async ({
+  currencyA,
+  currencyB,
+  date
+}) => {
   let rate = ''
   if (
     fiatCurrencyCodes[currencyA] != null &&

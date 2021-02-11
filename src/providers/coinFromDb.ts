@@ -1,20 +1,14 @@
 import { bns } from 'biggystring'
 import nano from 'nano'
 
+import { RateParams } from '../types'
 import { log } from '../utils'
 
-export type DbFetch = (
-  localDb: any,
-  currencyA: string,
-  currencyB: string,
-  date: string
-) => Promise<string>
+export type DbFetch = (rateParam: RateParams, localDb: any) => Promise<string>
 
 export const coinFromDb: DbFetch = async (
-  localDb,
-  currencyA,
-  currencyB,
-  date
+  { currencyA, currencyB, date },
+  localDb
 ) => {
   let rate = ''
   try {

@@ -2,7 +2,7 @@ import { bns } from 'biggystring'
 import fetch from 'node-fetch'
 
 import CONFIG from '../../serverConfig.json'
-import { ProviderFetch } from '../rates'
+import { ProviderFetch } from '../types'
 import { log, validateObject } from '../utils'
 import { coinMarketCapFiatMap } from './coinMarketCapFiatMap'
 
@@ -105,11 +105,11 @@ const _fetchQuote = async (
   }
 }
 
-const coinMarketCapHistorical: ProviderFetch = async (
+const coinMarketCapHistorical: ProviderFetch = async ({
   currencyA,
   currencyB,
   date
-) => {
+}) => {
   let rate = ''
   if (
     coinMarketCapFiatMap[currencyB] != null &&

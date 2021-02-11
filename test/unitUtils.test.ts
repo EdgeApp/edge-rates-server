@@ -2,7 +2,7 @@ import { assert } from 'chai'
 import { describe, it } from 'mocha'
 
 import { CmcHistoricalQuote } from '../src/providers/coinMarketCap'
-import { asRateParam } from '../src/rates'
+import { asRateParam } from '../src/types'
 import { normalizeDate, validateObject } from '../src/utils'
 import fixtures from './unitUtils.json'
 
