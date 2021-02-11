@@ -1,13 +1,13 @@
-import { bns } from 'biggystring'
 import { asObject, asOptional, asString } from 'cleaners'
 import nano from 'nano'
 
 import CONFIG from '../serverConfig.json'
-import { coincapHistorical } from './coincap'
-import { coinMarketCapHistorical } from './coinMarketCap'
-import { coinMarketCapCurrent } from './coinMarketCapBasic'
-import { currencyConverter } from './currencyConverter'
-import { normalizeDate, postToSlack } from './utils'
+import { coincapHistorical } from './providers/coincap'
+import { coinFromDb } from './providers/coinFromDb'
+import { coinMarketCapHistorical } from './providers/coinMarketCap'
+import { coinMarketCapCurrent } from './providers/coinMarketCapBasic'
+import { currencyConverter } from './providers/currencyConverter'
+import { log, normalizeDate, postToSlack } from './utils'
 
 const { bridgeCurrencies } = CONFIG
 
@@ -34,8 +34,9 @@ const rateError = (
 ): RateError => Object.assign(new Error(message), { errorCode, errorType })
 
 interface ReturnGetRate {
-  rate: string
+  rate?: string
   document?: any
+  error?: RateError
 }
 
 const getRate = async (
@@ -43,8 +44,7 @@ const getRate = async (
   currencyA: string,
   currencyB: string,
   currencyPair: string,
-  date: string,
-  log: Function
+  date: string
 ): Promise<ReturnGetRate> => {
   if (
     zeroRateCurrencyCodes[currencyA] === true ||
@@ -52,7 +52,7 @@ const getRate = async (
   )
     return { rate: '0' }
   try {
-    const dbRate = await getFromDb(localDb, currencyA, currencyB, date, log)
+    const dbRate = await coinFromDb(localDb, currencyA, currencyB, date)
     if (dbRate != null && dbRate !== '') return { rate: dbRate }
 
     let existingDocument = await localDb.get(date).catch(e => {
@@ -68,15 +68,15 @@ const getRate = async (
     }
 
     await currencyBridge(
-      () => '',
+      async () => Promise.resolve(''),
       currencyA,
       currencyB,
       date,
-      log,
       existingDocument
     )
     const dbBridge = existingDocument[currencyPair]
-    if (dbBridge != null && dbBridge !== '') return { rate: dbBridge }
+    if (dbBridge != null && dbBridge !== '')
+      return { rate: dbBridge, document: existingDocument }
 
     const exchanges = [
       currencyConverter,
@@ -86,7 +86,7 @@ const getRate = async (
     ]
     let bridge = ''
     for (const exchange of exchanges) {
-      bridge = await exchange(currencyA, currencyB, date, log)
+      bridge = await exchange(currencyA, currencyB, date)
       if (bridge != null && bridge !== '') {
         existingDocument[currencyPair] = bridge
         break
@@ -97,7 +97,6 @@ const getRate = async (
         currencyA,
         currencyB,
         date,
-        log,
         existingDocument
       )
 
@@ -113,32 +112,25 @@ const getRate = async (
 
     // Use fallback hardcoded rates if lookups failed
     if (fallbackConstantRatePairs[`${currencyA}_${currencyB}`] != null) {
-      return fallbackConstantRatePairs[`${currencyA}_${currencyB}`]
+      return { rate: fallbackConstantRatePairs[`${currencyA}_${currencyB}`] }
     }
 
     if (fallbackConstantRatePairs[`${currencyB}_${currencyA}`] != null) {
-      return fallbackConstantRatePairs[`${currencyB}_${currencyA}`]
+      return { rate: fallbackConstantRatePairs[`${currencyB}_${currencyA}`] }
     }
 
-    const requestedDateTimestamp = new Date(date).getTime()
-    if (Date.now() - CONFIG.ratesLookbackLimit > requestedDateTimestamp) {
-      existingDocument[currencyPair] = 0
-      await localDb.insert(existingDocument).catch(e => {
-        if (e.error !== 'conflict') {
-          throw rateError(
-            `RATES SERVER: Future date received ${date} for currency pair ${currencyA}_${currencyB}. Must send past date.`,
-            400,
-            'conflict'
-          )
-        }
-        log(`DB write error ${JSON.stringify(e)}`)
-      })
-    }
-    throw rateError(
+    const error = rateError(
       `RATES SERVER: All lookups failed to find exchange rate for currencypair ${currencyA}_${currencyB} at date ${date}.`,
       400,
       'not_found'
     )
+
+    const requestedDateTimestamp = new Date(date).getTime()
+    if (Date.now() - CONFIG.ratesLookbackLimit > requestedDateTimestamp) {
+      existingDocument[currencyPair] = '0'
+      return { document: existingDocument, error }
+    }
+    return { error }
   } catch (e) {
     if (e.errorCode === 400) throw e
     throw rateError(e.message, 500, 'db_error')
@@ -149,11 +141,11 @@ interface ReturnRateUserResponse {
   currency_pair?: string
   date?: string
   exchangeRate?: string
-  error?: Error
 }
 export interface ReturnRate {
   data: ReturnRateUserResponse
   document?: any
+  error?: Error
 }
 
 export const getExchangeRate = async (
@@ -162,27 +154,22 @@ export const getExchangeRate = async (
 ): Promise<ReturnRate> => {
   try {
     const { currencyA, currencyB, currencyPair, date } = asRateParam(query)
-    const log = (...args): void => {
-      const d = new Date().toISOString()
-      const p = currencyPair
-      console.log(`${d} ${p} ${JSON.stringify(args)}`)
-    }
-    const response = await getRate(
+    const { rate, error, document } = await getRate(
       localDb,
       currencyA,
       currencyB,
       currencyPair,
-      date,
-      log
+      date
     )
 
     return {
       data: {
         currency_pair: currencyPair,
         date,
-        exchangeRate: response.rate
+        exchangeRate: rate
       },
-      document: response.document
+      error: error,
+      document: document
     }
   } catch (e) {
     if (e.errorType === 'db_error') {
@@ -193,53 +180,24 @@ export const getExchangeRate = async (
     }
     return {
       data: {
-        currency_pair: query.currency_pair,
-        error: e
-      }
+        currency_pair: query.currency_pair
+      },
+      error: e
     }
   }
 }
 
-type ProviderFetch = (
-  localDb: any,
+export type ProviderFetch = (
   currencyA: string,
   currencyB: string,
-  date: string,
-  log: Function
+  date: string
 ) => Promise<string>
 
-const getFromDb: ProviderFetch = async (
-  localDb,
-  currencyA,
-  currencyB,
-  date,
-  log
-) => {
-  let rate = ''
-  try {
-    const exchangeRate: nano.DocumentGetResponse & {
-      [pair: string]: any
-    } = await localDb.get(date)
-    if (exchangeRate[`${currencyA}_${currencyB}`] != null) {
-      rate = exchangeRate[`${currencyA}_${currencyB}`]
-    } else if (exchangeRate[`${currencyB}_${currencyA}`] != null) {
-      rate = bns.div('1', exchangeRate[`${currencyB}_${currencyA}`], 8, 10)
-    }
-  } catch (e) {
-    if (e.error !== 'not_found') {
-      log(`DB read error ${JSON.stringify(e)}`)
-      throw e
-    }
-  }
-  return rate
-}
-
 export const currencyBridge = async (
-  getExchangeRate: Function,
+  getExchangeRate: ProviderFetch,
   currencyA: string,
   currencyB: string,
   date: string,
-  log: Function,
   currencyRates: nano.DocumentGetResponse
 ): Promise<void> => {
   for (const currency of bridgeCurrencies) {
@@ -249,11 +207,11 @@ export const currencyBridge = async (
     try {
       const currACurr =
         currencyRates[pair1] ??
-        (await getExchangeRate(currencyA, currency, date, log))
+        (await getExchangeRate(currencyA, currency, date))
       if (currACurr !== '') Object.assign(currencyRates, { [pair1]: currACurr })
       const currCurrB =
         currencyRates[pair2] ??
-        (await getExchangeRate(currency, currencyB, date, log))
+        (await getExchangeRate(currency, currencyB, date))
       if (currCurrB !== '') Object.assign(currencyRates, { [pair2]: currCurrB })
       if (currACurr !== '' && currCurrB !== '') {
         const rate = (parseFloat(currACurr) * parseFloat(currCurrB)).toString()

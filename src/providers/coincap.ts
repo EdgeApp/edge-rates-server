@@ -2,8 +2,13 @@ import { bns } from 'biggystring'
 import { asArray, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
+import { ProviderFetch } from '../rates'
+import { log } from '../utils'
+
 const FIVE_MINUTES = 300000 // milliseconds
 const SEVEN_DAYS = 604800000
+
+let updating = false
 
 let lastAssetUpdate: number = 1593561600000 // July 1st, 2020
 let assetMap = {}
@@ -18,8 +23,7 @@ const asCoincapUpdateAssetsResponse = asObject({
 
 const fetchQuote = async (
   currency: string,
-  date: string,
-  log: Function
+  date: string
 ): Promise<string | void> => {
   const options = {
     method: 'GET',
@@ -39,28 +43,29 @@ const fetchQuote = async (
       return jsonObj.data[0].priceUsd
     }
   } catch (e) {
-    log(`No coincap quote: ${JSON.stringify(e)}`)
+    log(`currency: ${currency}`, 'No coincap quote: ', e)
   }
 }
 
-const coincapHistorical = async (
-  currencyA: string,
-  currencyB: string,
-  date: string,
-  log: Function
-): Promise<string> => {
-  if (Date.now() - lastAssetUpdate > SEVEN_DAYS) {
-    console.log('assets need updating')
+const coincapHistorical: ProviderFetch = async (currencyA, currencyB, date) => {
+  if (Date.now() - lastAssetUpdate > SEVEN_DAYS && updating === false) {
+    updating = true
+    log(
+      `currencyA: ${currencyA}`,
+      `currencyB: ${currencyB}`,
+      'coincapHistorical is updating'
+    )
     assetMap = await updateAssets()
+    updating = false
   }
   let rate = ''
   // Query coincap if USD is denominator
   if (currencyB === 'USD' && assetMap[currencyA] != null) {
-    const response = await fetchQuote(assetMap[currencyA], date, log)
+    const response = await fetchQuote(assetMap[currencyA], date)
     if (response != null) rate = response
   } else if (currencyA === 'USD' && currencyB != null) {
     // Invert pair and rate if USD is the numerator
-    const response = await fetchQuote(assetMap[currencyB], date, log)
+    const response = await fetchQuote(assetMap[currencyB], date)
     if (response != null) rate = bns.div('1', response, 8, 10)
   }
   return rate
@@ -76,7 +81,7 @@ const updateAssets = async (): Promise<{ [key: string]: string }> => {
   try {
     const result = await fetch(url, options)
     if (result.ok === false) {
-      console.error(`coincap updateAssets returned code ${result.status}`)
+      log('ERROR', `coincap updateAssets returned code ${result.status}`)
     }
     const jsonObj = await result.json()
     asCoincapUpdateAssetsResponse(jsonObj)
@@ -85,7 +90,7 @@ const updateAssets = async (): Promise<{ [key: string]: string }> => {
       newObj[element.symbol] = element.id
     })
     lastAssetUpdate = Date.now()
-    console.log('Updated coincap asset list successfully')
+    log('Updated coincap asset list successfully')
     return newObj
   } catch (e) {
     return currentAssets

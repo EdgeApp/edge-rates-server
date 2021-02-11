@@ -5,7 +5,7 @@ import {
   fiatCurrencyCodes,
   ratesServerAddress
 } from '../serverConfig.json'
-import { snooze } from './utils'
+import { log, snooze } from './utils'
 
 const endPoint = `${ratesServerAddress}/v1/exchangeRates`
 
@@ -36,18 +36,20 @@ const ratesEngine = async (): Promise<void> => {
       body: JSON.stringify({ data })
     })
     if (response.ok === true) {
-      console.log(`Successfully saved new currencyPairs`)
+      log(`Successfully saved new currencyPairs`)
+      const responseObj = await response.json()
+      log('All currency pair results', responseObj)
     } else {
-      console.log(`Could not save new currencyPairs`)
+      log(`Could not save new currencyPairs`)
     }
   } catch (e) {
-    console.log(currentDate)
-    console.log(e)
+    log(currentDate)
+    log(e)
   } finally {
-    console.log('SNOOZING ***********************************')
+    log('SNOOZING ***********************************')
     await snooze(LOOP_DELAY)
-    ratesEngine().catch(e => console.log(e))
+    ratesEngine().catch(e => log(e))
   }
 }
 
-ratesEngine().catch(e => console.log(e))
+ratesEngine().catch(e => log(e))

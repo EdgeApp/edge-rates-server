@@ -5,6 +5,16 @@ import CONFIG from '../serverConfig.json'
 
 const { slackWebhookUrl } = CONFIG
 
+export const log = (...args): void => {
+  const isoDate = new Date().toISOString()
+  let result = `${isoDate} - `
+  for (const arg of args) {
+    if (typeof arg === 'string') result += `${arg}, `
+    else result += `\n${JSON.stringify(arg)}`
+  }
+  console.log(result)
+}
+
 /*
  * Returns string value of date "normalized" by floor'ing to nearest
  * hour and translating to UTC time.  Or returns undefined if dateSrc
