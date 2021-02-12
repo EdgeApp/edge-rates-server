@@ -1,4 +1,3 @@
-import { validate } from 'jsonschema'
 import fetch from 'node-fetch'
 
 import CONFIG from '../serverConfig.json'
@@ -34,20 +33,6 @@ export function normalizeDate(dateSrc: string): string | void {
   dateNorm.setSeconds(0)
   dateNorm.setMilliseconds(0)
   return dateNorm.toISOString()
-}
-
-export function validateObject(object: any, schema: any): boolean {
-  const result = validate(object, schema)
-
-  if (result.errors.length === 0) {
-    return true
-  } else {
-    for (let i = 0; i < result.errors.length; i++) {
-      const errMsg = result.errors[i].message
-      console.log(`ERROR: validateObject: ${errMsg}`)
-    }
-    return false
-  }
 }
 
 let postToSlackText = ''

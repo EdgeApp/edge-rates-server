@@ -1,0 +1,75 @@
+{
+    "asCoinMarketCapHistoricalResponse": {
+        "good response": [
+          {
+             "data": {
+                "id": 1,
+                "isActive": 1,
+                "isFiat": 0,
+                "name": "Bitcoin",
+                "quotes": [
+                   {
+                      "quote": {
+                         "USD": {
+                            "market_cap": 5.9438399E11,
+                            "price": 31971.914,
+                            "timestamp": "2021-01-04T23:59:38.000Z",
+                            "volume_24h": 8.1163477E10
+                         }
+                      },
+                      "timestamp": "2021-01-04T23:59:38.000Z"
+                   }
+                ],
+                "symbol": "BTC"
+             },
+             "status": {
+                "credit_count": 1,
+                "elapsed": 22,
+                "error_code": 0,
+                "error_message": null,
+                "notice": null,
+                "timestamp": "2021-01-25T21:47:03.454Z"
+             }
+          },
+          true
+        ],
+        "must be a valid ISO 8601 timestamp": [
+          {
+             "status": {
+                "credit_count": 0,
+                "elapsed": 0,
+                "error_code": 400,
+                "error_message": "\"time_end\" must be a valid ISO 8601 timestamp or unix time value",
+                "notice": null,
+                "timestamp": "2021-01-25T22:07:08.364Z"
+             }
+          },
+          false
+        ],
+       "Exceeded your API Keys HTTP request rate limit": [
+          {
+             "status": {
+                "credit_count": 0,
+                "elapsed": 0,
+                "error_code": 1008,
+                "error_message": "You've exceeded your API Key's HTTP request rate limit. Rate limits reset every minute.",
+                "timestamp": "2021-01-25T22:11:40.216Z"
+             }
+          },
+          false
+        ],
+       "Invalid symbol for": [
+          {
+             "status": {
+                "credit_count": 0,
+                "elapsed": 0,
+                "error_code": 400,
+                "error_message": "Invalid value for \"symbol\": \"SHT\"",
+                "notice": null,
+                "timestamp": "2021-01-25T22:14:31.330Z"
+             }
+          },
+          false
+       ]
+    }
+}

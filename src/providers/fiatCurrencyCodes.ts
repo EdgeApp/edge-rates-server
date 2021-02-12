@@ -1,4 +1,4 @@
-export const fiatCurrencyCodes = {
+export const fiatMap = {
   ALL: true,
   XCD: true,
   EUR: true,

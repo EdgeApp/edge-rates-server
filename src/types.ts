@@ -8,6 +8,12 @@ export interface RateError extends Error {
   errorType?: ErrorType
 }
 
+export interface RateParams {
+  currencyA: string
+  currencyB: string
+  currencyPair: string
+  date: string
+}
 export interface ReturnRateUserResponse {
   date?: string
   exchangeRate?: string
@@ -28,12 +34,16 @@ export interface RatesDocument {
   [currencyPair: string]: string
 }
 
-export type ProviderFetch = (rateParams: RateParams) => Promise<string>
+export interface ProviderConfig {
+  url: string
+  apiKey?: string
+}
 
-export interface RateParams {
-  currencyA: string
-  currencyB: string
-  date: string
+export type ProviderFetch = (rateParams: RateParams) => Promise<string | void>
+
+export interface Provider {
+  fetchRate: ProviderFetch
+  validRequest: (ratesParams: RateParams) => boolean
 }
 
 export const asExchangeRatesReq = asMap(asString)
@@ -73,7 +83,7 @@ export const asRateParam = (param: any): RateParams => {
     if (Date.parse(parsedDate) > Date.now()) {
       throw new Error('Future date received. Must send past date.')
     }
-    return { currencyA, currencyB, date: parsedDate }
+    return { currencyA, currencyB, currencyPair, date: parsedDate }
   } catch (e) {
     e.errorCode = 400
     throw e

@@ -8,8 +8,14 @@ const { bridgeCurrencies } = CONFIG
 export const currencyBridge = async (
   rateParams: RateParams,
   currencyRates: RatesDocument,
-  getExchangeRate: ProviderFetch
+  rateProviders: ProviderFetch | ProviderFetch[]
 ): Promise<RatesDocument> => {
+  const providers = Array.isArray(rateProviders)
+    ? [...rateProviders]
+    : [rateProviders]
+  if (providers.length === 0) return currencyRates
+  const rateProvider = providers[0]
+
   const { currencyA, currencyB } = rateParams
   const rates = { ...currencyRates }
 
@@ -21,7 +27,7 @@ export const currencyBridge = async (
     try {
       const bridgeRate =
         rates[pairA] ??
-        (await getExchangeRate({ ...rateParams, currencyB: bridgeCurrency })) ??
+        (await rateProvider({ ...rateParams, currencyB: bridgeCurrency })) ??
         ''
       if (bridgeRate !== '') rates[pairA] = bridgeRate
     } catch (e) {}
@@ -29,7 +35,7 @@ export const currencyBridge = async (
     try {
       const bridgeRate =
         rates[pairB] ??
-        (await getExchangeRate({ ...rateParams, currencyA: bridgeCurrency })) ??
+        (await rateProvider({ ...rateParams, currencyA: bridgeCurrency })) ??
         ''
       if (bridgeRate !== '') rates[pairB] = bridgeRate
     } catch (e) {}
@@ -41,5 +47,5 @@ export const currencyBridge = async (
     }
   }
 
-  return rates
+  return currencyBridge(rateParams, rates, providers.slice(1))
 }

@@ -1,8 +1,5 @@
 import CONFIG from '../../serverConfig.json'
-import { coincapHistorical } from '../providers/coincap'
-import { coinMarketCapHistorical } from '../providers/coinMarketCap'
-import { coinMarketCapCurrent } from '../providers/coinMarketCapBasic'
-import { currencyConverter } from '../providers/currencyConverter'
+import { defaultProviders } from '../providers/providers'
 import { RateParams, ReturnGetRate, ReturnRate } from '../types'
 import { postToSlack } from '../utils'
 import { currencyBridge } from './currencyBridge'
@@ -10,34 +7,27 @@ import {
   getFallbackConstantRate,
   getRateFromDB,
   getRateFromExchanges,
-  getRateFromExchangesBridge,
   getRatesDocument,
   getZeroRate,
   rateError
 } from './rateHelpers'
 
-const defaultExchanges = [
-  currencyConverter,
-  coinMarketCapCurrent,
-  coincapHistorical,
-  coinMarketCapHistorical
-]
-
 const getRate = async (
   rateParams: RateParams,
   localDb: any,
   lookbackLimit = CONFIG.ratesLookbackLimit,
-  exchanges = defaultExchanges
+  exchanges = defaultProviders
 ): Promise<ReturnGetRate> => {
-  const { currencyA, currencyB, date } = rateParams
-  const currencyPair = `${currencyA}_${currencyB}`
+  const { currencyA, currencyB, currencyPair, date } = rateParams
 
-  const response = getZeroRate(rateParams)
-  if (response != null) return response
+  const zeroRates = getZeroRate(rateParams)
+  const zeroRate = zeroRates[currencyPair]
+  if (zeroRate != null && zeroRate !== '') return { rate: zeroRate }
 
   try {
-    const response = await getRateFromDB(rateParams, localDb)
-    if (response != null) return response
+    const dbRates = await getRateFromDB(rateParams, localDb)
+    const dbRate = dbRates[currencyPair]
+    if (dbRate != null && dbRate !== '') return { rate: dbRate }
   } catch (e) {
     throw rateError(e.message, 500, 'db_error')
   }
@@ -48,7 +38,6 @@ const getRate = async (
     const dbBridgedRates = await currencyBridge(rateParams, dbRates, async () =>
       Promise.resolve('')
     )
-
     const bridgeRate = dbBridgedRates[currencyPair]
     if (bridgeRate != null && bridgeRate !== '')
       return { rate: bridgeRate, document: dbBridgedRates }
@@ -58,24 +47,24 @@ const getRate = async (
       dbBridgedRates,
       exchanges
     )
-
     const exchangeRate = exchageRates[currencyPair]
     if (exchangeRate != null && exchangeRate !== '')
       return { rate: exchangeRate, document: exchageRates }
 
-    const exchageBridgedRates = await getRateFromExchangesBridge(
+    const exchageBridgedRates = await currencyBridge(
       rateParams,
       exchageRates,
       exchanges
     )
-
     const exchangeBridgesRate = exchageBridgedRates[currencyPair]
     if (exchangeBridgesRate != null && exchangeBridgesRate !== '')
       return { rate: exchangeBridgesRate, document: exchageBridgedRates }
 
     // Use fallback hardcoded rates if lookups failed
-    const response = getFallbackConstantRate(rateParams)
-    if (response != null) return response
+    const fallbackRates = getFallbackConstantRate(rateParams)
+    const fallbackRate = fallbackRates[currencyPair]
+    if (fallbackRate != null && fallbackRate !== '')
+      return { rate: fallbackRate }
 
     const requestedDateTimestamp = new Date(date).getTime()
     if (Date.now() - lookbackLimit > requestedDateTimestamp) {
@@ -97,14 +86,12 @@ const getRate = async (
 }
 
 export const getExchangeRate = async (
-  { currencyA, currencyB, date }: RateParams,
+  rateParams: RateParams,
   localDb: any
 ): Promise<ReturnRate> => {
+  const { date, currencyPair } = rateParams
   try {
-    const { rate, error, document } = await getRate(
-      { currencyA, currencyB, date },
-      localDb
-    )
+    const { rate, error, document } = await getRate(rateParams, localDb)
 
     return {
       data: {
@@ -118,7 +105,7 @@ export const getExchangeRate = async (
     if (e.errorType === 'db_error') {
       postToSlack(
         new Date().toISOString(),
-        `RATES SERVER: exchangeRate query failed for ${currencyA}_${currencyB} with error code ${e.errorCode}.  ${e.message}`
+        `RATES SERVER: exchangeRate query failed for ${currencyPair} with error code ${e.errorCode}.  ${e.message}`
       ).catch(e)
     }
     return { error: e }

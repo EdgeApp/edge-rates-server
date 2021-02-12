@@ -1,133 +1,107 @@
-import { bns } from 'biggystring'
+import {
+  asArray,
+  asMap,
+  asNumber,
+  asObject,
+  asOptional,
+  asString
+} from 'cleaners'
 import fetch from 'node-fetch'
 
 import CONFIG from '../../serverConfig.json'
-import { ProviderFetch } from '../types'
-import { log, validateObject } from '../utils'
-import { coinMarketCapFiatMap } from './coinMarketCapFiatMap'
+import { ProviderConfig, ProviderFetch, RateParams } from '../types'
+import { log } from '../utils'
+import { fiatMap } from './coinMarketCapFiatMap'
 
-export const CmcHistoricalQuote = {
-  type: 'object',
-  properties: {
-    data: {
-      type: 'object',
-      properties: {
-        id: { type: 'number' },
-        name: { type: 'string' },
-        symbol: { type: 'string' },
-        quotes: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              timestamp: { type: 'string' },
-              quote: {
-                type: 'object',
-                additionalProperties: {
-                  type: 'object',
-                  properties: {
-                    price: { type: 'number' },
-                    timestamp: { type: 'string' }
-                  },
-                  required: ['price', 'timestamp']
-                }
-              }
-            },
-            required: ['quote']
-          }
-        }
-      },
-      required: ['id', 'name', 'symbol', 'quotes']
-    },
-    status: {
-      type: 'object',
-      properties: {
-        timestamp: { type: 'string' },
-        error_code: { type: 'number' },
-        elapsed: { type: 'number' },
-        credit_count: { type: 'number' }
-      },
-      required: ['timestamp']
-    }
-  },
-  required: ['data', 'status']
-}
+const historicalConfig = CONFIG.coinMarketCapHistorical
+const currentConfig = CONFIG.coinMarketCapCurrent
 
-const _fetchQuote = async (
-  cryptoCode: string,
-  fiatCode: string,
-  date: string
-): Promise<string | void> => {
-  if (CONFIG.coinMarketCapHistoricalApiKey !== null) {
-    const options = {
-      method: 'GET',
-      headers: {
-        'X-CMC_PRO_API_KEY': CONFIG.coinMarketCapHistoricalApiKey
-      },
-      json: true
-    }
-    const url = `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical?symbol=${cryptoCode}&time_end=${date}&count=1&convert=${fiatCode}`
+export const asQuote = asMap(
+  asObject({ price: asNumber, timestamp: asOptional(asString) })
+)
+
+export const asCoinMarketCapCurrentResponse = asObject({
+  data: asMap(asObject({ quote: asQuote }))
+})
+
+export const asCoinMarketCapHistoricalResponse = asObject({
+  status: asObject({
+    timestamp: asString,
+    error_code: asOptional(asNumber),
+    error_message: asOptional(asNumber),
+    elapsed: asOptional(asNumber),
+    credit_count: asOptional(asNumber)
+  }),
+  data: asObject({
+    id: asOptional(asNumber),
+    name: asOptional(asString),
+    symbol: asOptional(asString),
+    quotes: asArray(
+      asObject({
+        timestamp: asString,
+        quote: asQuote
+      })
+    )
+  })
+})
+
+export const fetchCoinMarketCap = (
+  { apiKey, url }: ProviderConfig,
+  asQuery: (rateParams: RateParams) => string,
+  asResponse: (response: object, rateParams: RateParams) => string
+): ProviderFetch => async rateParams => {
+  const { currencyA: cryptoCode, currencyB: fiatCode, date } = rateParams
+  if (fiatMap[fiatCode] == null || fiatMap[cryptoCode] != null) {
+    return
+  }
+  if (apiKey !== null) {
     try {
-      const result = await fetch(url, options)
-      if (result.status !== 200) {
-        log(
-          `cryptoCode: ${cryptoCode}`,
-          `fiatCode: ${fiatCode}`,
-          `date: ${date}`,
-          `CoinMarketCapHistorical returned code ${result.status}`
-        )
-        return
-      }
+      const queryUrl = `${url}${asQuery(rateParams)}`
+      const result = await fetch(queryUrl, {
+        method: 'GET',
+        headers: { 'X-CMC_PRO_API_KEY': apiKey },
+        json: true
+      })
       const jsonObj = await result.json()
-      const valid = validateObject(jsonObj, CmcHistoricalQuote)
-      if (valid) {
-        return jsonObj.data.quotes[0].quote[fiatCode].price.toString()
-      } else {
-        log(
-          `cryptoCode: ${cryptoCode}`,
-          `fiatCode: ${fiatCode}`,
-          `date: ${date}`,
-          'CoinMarketCap response is invalid',
-          jsonObj
+
+      if (result.ok === false || jsonObj.status.error_message != null) {
+        throw new Error(
+          `CoinMarketCap returned code ${jsonObj.status.error_message ??
+            result.status}`
         )
       }
+
+      return asResponse(jsonObj, rateParams)
     } catch (e) {
       log(
         `cryptoCode: ${cryptoCode}`,
         `fiatCode: ${fiatCode}`,
         `date: ${date}`,
+        `url: ${url}`,
         'No CoinMarketCap quote',
         e
       )
     }
   } else {
-    log('Missing config coinMarketCapApiKey')
+    log(`Missing apiKey for ${url}`)
   }
 }
 
-const coinMarketCapHistorical: ProviderFetch = async ({
-  currencyA,
-  currencyB,
-  date
-}) => {
-  let rate = ''
-  if (
-    coinMarketCapFiatMap[currencyB] != null &&
-    coinMarketCapFiatMap[currencyA] == null
-  ) {
-    // Query coinmarketcap if fiat is denominator
-    const response = await _fetchQuote(currencyA, currencyB, date)
-    if (response != null) rate = response
-  } else if (
-    coinMarketCapFiatMap[currencyA] != null &&
-    coinMarketCapFiatMap[currencyB] == null
-  ) {
-    // Invert pair and returned rate if fiat is the numerator
-    const response = await _fetchQuote(currencyB, currencyA, date)
-    if (response != null) rate = bns.div('1', response, 8, 10)
+export const coinMarketCapHistorical = fetchCoinMarketCap(
+  historicalConfig,
+  ({ currencyA, currencyB, date }) =>
+    `?symbol=${currencyA}&convert=${currencyB}&time_end=${date}&count=1`,
+  (response, { currencyB }) => {
+    const rates = asCoinMarketCapHistoricalResponse(response)
+    return rates.data.quotes[0].quote[currencyB].price.toString()
   }
-  // Return null if both codes are fiat, both codes are crypto, or queries fail
-  return rate
-}
+)
 
-export { coinMarketCapHistorical }
+export const coinMarketCapCurrent = fetchCoinMarketCap(
+  currentConfig,
+  ({ currencyA, currencyB }) => `?symbol=${currencyA}&convert=${currencyB}`,
+  (response, { currencyA, currencyB }) => {
+    const rates = asCoinMarketCapCurrentResponse(response)
+    return rates.data[currencyA].quote[currencyB].price.toString()
+  }
+)

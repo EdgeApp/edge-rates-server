@@ -4,38 +4,37 @@ import fetch from 'node-fetch'
 import CONFIG from '../../serverConfig.json'
 import { ProviderFetch } from '../types'
 import { log } from '../utils'
-import { fiatCurrencyCodes } from './fiatCurrencyCodes'
+import { fiatMap } from './fiatCurrencyCodes'
 
-const apiKey = CONFIG.currencyConverterApiKey
+const { url: currencyConverterUrl, apiKey } = CONFIG.currencyConverter
 
 const asCurrencyConverterResponse = asMap(asMap(asNumber))
 
 // take two currencies instead of pair
-const currencyConverterFetch = async (
-  pair: string,
-  date: string
-): Promise<string | void> => {
+export const currencyConverter: ProviderFetch = async rateParams => {
+  const { currencyA, currencyB, currencyPair, date } = rateParams
+  if (fiatMap[currencyA] == null || fiatMap[currencyB] == null) return
+
+  const normalToDate = date.substring(0, 10)
   if (apiKey !== '') {
-    const options = {
-      method: 'GET'
-    }
-    const url = `https://api.currconv.com/api/v7/convert?q=${pair}&compact=ultra&date=${date}&apiKey=${apiKey}`
+    const url = `${currencyConverterUrl}?q=${currencyPair}&compact=ultra&date=${normalToDate}&apiKey=${apiKey}`
     try {
-      const result = await fetch(url, options)
+      const result = await fetch(url, {
+        method: 'GET'
+      })
       if (result.status !== 200) {
         log(
-          `currencyPair: ${pair}`,
-          `date: ${date}`,
+          `currencyPair: ${currencyPair}`,
+          `date: ${normalToDate}`,
           `currencyConvertor returned code ${result.status}`
         )
       }
-      const jsonObj = await result.json()
-      asCurrencyConverterResponse(jsonObj)
-      return jsonObj[pair][date].toString()
+      const jsonObj = asCurrencyConverterResponse(await result.json())
+      return jsonObj[currencyPair][normalToDate].toString()
     } catch (e) {
       log(
-        `currencyPair: ${pair}`,
-        `date: ${date}`,
+        `currencyPair: ${currencyPair}`,
+        `date: ${normalToDate}`,
         'CurrencyConverter response is invalid',
         e
       )
@@ -44,25 +43,3 @@ const currencyConverterFetch = async (
     log('Missing config CurrencyConverter')
   }
 }
-
-const currencyConverter: ProviderFetch = async ({
-  currencyA,
-  currencyB,
-  date
-}) => {
-  let rate = ''
-  if (
-    fiatCurrencyCodes[currencyA] != null &&
-    fiatCurrencyCodes[currencyB] != null
-  ) {
-    const normalToDate = date.substring(0, 10)
-    const response = await currencyConverterFetch(
-      `${currencyA}_${currencyB}`,
-      normalToDate
-    )
-    if (response != null) rate = response
-  }
-  return rate
-}
-
-export { currencyConverter }

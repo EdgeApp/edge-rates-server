@@ -113,6 +113,7 @@
            "output": {
               "currencyA": "USD",
               "currencyB": "BTC",
+              "currencyPair": "USD_BTC",
               "date": "2011-10-05T14:40:00.000Z"
            }
         },
@@ -150,6 +151,7 @@
            "output": {
               "currencyA": "USD",
               "currencyB": "BTC",
+              "currencyPair": "USD_BTC",
               "date": "variableDate"
            }
         },

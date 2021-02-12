@@ -44,9 +44,22 @@
     "DAI_USD": 1
   },
   "ratesServerAddress": "https://rates1.edge.app",
-  "currencyConverterApiKey": "",
-  "coinMarketCapHistoricalApiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
-  "coinMarketCapCurrentApiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
+  "currencyConverter": {
+    "url": "https://api.currconv.com/api/v7/convert",
+    "apiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+  },
+  "coinMarketCapCurrent": {
+    "url": "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest",
+    "apiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+  },
+  "coinMarketCapHistorical": {
+    "url": "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical",
+    "apiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+  },
+  "coincapHistorical": {
+    "url": "https://api.coincap.io/v2/assets",
+    "apiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+  },
   "slackWebhookUrl": "",
   "ratesLookbackLimit": 604800000
 }

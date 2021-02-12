@@ -1,4 +1,4 @@
-export const coinMarketCapFiatMap = {
+export const fiatMap = {
   USD: '2781',
   AUD: '2782',
   BRL: '2783',
