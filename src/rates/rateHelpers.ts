@@ -12,10 +12,12 @@ import { log } from '../utils'
 const { zeroRateCurrencyCodes, fallbackConstantRatePairs } = CONFIG
 
 export const rateError = (
+  rateParams: RateParams,
   message: string,
-  errorCode: number = 500,
-  errorType?: ErrorType
-): RateError => Object.assign(new Error(message), { errorCode, errorType })
+  errorType: ErrorType = 'db_error',
+  errorCode: number = 500
+): RateError =>
+  Object.assign(new Error(message), { errorCode, errorType }, rateParams)
 
 export const getZeroRate = (
   { currencyA, currencyB, currencyPair, date }: RateParams,
@@ -46,6 +48,7 @@ export const getFallbackConstantRate = (
   return result
 }
 
+// TODO - Remove this
 export const getRateFromDB = async (
   rateParams: RateParams,
   localDb: any

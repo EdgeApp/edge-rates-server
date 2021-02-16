@@ -48,7 +48,7 @@
     "url": "https://api.currconv.com/api/v7/convert",
     "apiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
   },
-  "coinMarketCapCurrent": {
+  "coinMarketCapLatest": {
     "url": "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest",
     "apiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
   },
@@ -57,8 +57,7 @@
     "apiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
   },
   "coincapHistorical": {
-    "url": "https://api.coincap.io/v2/assets",
-    "apiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"
+    "url": "https://api.coincap.io/v2/assets"
   },
   "slackWebhookUrl": "",
   "ratesLookbackLimit": 604800000

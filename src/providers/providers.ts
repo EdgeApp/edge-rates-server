@@ -2,7 +2,7 @@ import { bns } from 'biggystring'
 
 import { ProviderFetch } from '../types'
 import { coincapHistorical } from './coincapHistorical'
-import { coinMarketCapCurrent, coinMarketCapHistorical } from './coinMarketCap'
+import { coinMarketCapHistorical, coinMarketCapLatest } from './coinMarketCap'
 import { currencyConverter } from './currencyConverter'
 
 export const providerFetch = (
@@ -33,7 +33,7 @@ export const providerFetch = (
 
 export const defaultProviders = [
   currencyConverter,
-  coinMarketCapCurrent,
+  coinMarketCapLatest,
   coincapHistorical,
   coinMarketCapHistorical
 ].map(provider => providerFetch(provider))

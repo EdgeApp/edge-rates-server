@@ -1,18 +1,25 @@
-import { asMap, asObject, asOptional, asString } from 'cleaners'
+import {
+  asMap,
+  asObject,
+  asOptional,
+  asString,
+  Cleaner,
+  ObjectShape
+} from 'cleaners'
 
 import { normalizeDate } from './utils'
 
 export type ErrorType = 'not_found' | 'conflict' | 'db_error'
-export interface RateError extends Error {
-  errorCode?: number
-  errorType?: ErrorType
-}
 
 export interface RateParams {
   currencyA: string
   currencyB: string
   currencyPair: string
   date: string
+}
+export interface RateError extends Error, RateParams {
+  errorCode?: number
+  errorType?: ErrorType
 }
 export interface ReturnRateUserResponse {
   date?: string
@@ -52,24 +59,19 @@ export const asExchangeRateReq = asObject({
   date: asOptional(asString)
 })
 
+export const asObjectMap = <T>(
+  obj: ObjectShape<T>
+): Cleaner<{ [key: string]: T }> => asMap(asObject(obj))
+
 export const asRateParam = (param: any): RateParams => {
   try {
     const { currency_pair: currencyPair, date } = asExchangeRateReq(param)
-    let dateStr: string
-    if (typeof date === 'string') {
-      dateStr = date
-    } else {
-      dateStr = new Date().toISOString()
-    }
-    if (typeof currencyPair !== 'string' || typeof dateStr !== 'string') {
-      throw new Error(
-        'Missing or invalid query param(s): currency_pair and date should both be strings'
-      )
-    }
+    const dateStr = date ?? new Date().toISOString()
+
     const currencyTokens = currencyPair.split('_')
     if (currencyTokens.length !== 2) {
       throw new Error(
-        'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_USD"'
+        'currency_pair query param malformed. should be [curA]_[curB], ex: "ETH_USD"'
       )
     }
     const currencyA = currencyTokens[0]
@@ -77,7 +79,7 @@ export const asRateParam = (param: any): RateParams => {
     const parsedDate = normalizeDate(dateStr)
     if (parsedDate == null) {
       throw new Error(
-        'date query param malformed.  should be conventional date string, ex:"2019-11-21T15:28:21.123Z"'
+        'date query param malformed. should be conventional date string, ex:"2019-11-21T15:28:21.123Z"'
       )
     }
     if (Date.parse(parsedDate) > Date.now()) {

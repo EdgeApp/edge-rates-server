@@ -1,5 +1,5 @@
-import AwaitLock from 'async-lock'
-import { asArray, asObject, asString } from 'cleaners'
+import AwaitLock from 'await-lock'
+import { asArray, asNumber, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import CONFIG from '../../serverConfig.json'
@@ -18,36 +18,59 @@ const SEVEN_DAYS = 604800000
 const JULY_1ST_2020: number = 1593561600000
 const lock = new AwaitLock()
 
-const asCoincapResponse = asObject({
-  data: asArray(asObject({ priceUsd: asString }))
+export const asCoincapError = asObject({
+  error: asOptional(asString),
+  timestamp: asNumber
 })
 
-const asCoincapUpdateAssetsResponse = asObject({
-  data: asArray(asObject({ id: asString, symbol: asString }))
+export const asHistoricalQuote = asObject({
+  priceUsd: asString,
+  time: asNumber,
+  circulatingSupply: asOptional(asString),
+  date: asOptional(asString)
 })
 
+export const asAssetsQuote = asObject({
+  id: asString,
+  rank: asString,
+  symbol: asString,
+  name: asString,
+  priceUsd: asString
+})
+
+export const asCoincapHistoricalData = asObject({
+  data: asOptional(asArray(asHistoricalQuote))
+})
+
+export const asCoincapAssetsData = asObject({
+  data: asArray(asAssetsQuote)
+})
+
+// TODO - Merge into one function
 const updateAssets = (
   assetMap: AssetMap = {},
   lastAssetUpdate: number = JULY_1ST_2020,
   url: string = `${coinCapUrl}?limit=2000`
-) => async ({ currencyPair }: RateParams): Promise<AssetMap> => {
+) => async (rateParams: RateParams): Promise<AssetMap> => {
   await lock.acquireAsync()
 
   try {
-    if (Date.now() - lastAssetUpdate < SEVEN_DAYS) throw new Error('too soon')
+    if (Date.now() - lastAssetUpdate < SEVEN_DAYS) throw new Error('too_soon')
 
     log('CoincapHistorical is updating')
 
     const result = await fetch(url, { method: 'GET', json: true })
     const jsonObj = await result.json()
+    const { error } = asCoincapError(jsonObj)
 
-    if (result.ok === false || jsonObj.error != null) {
+    if ((error != null && error !== '') || result.ok === false) {
       throw new Error(
-        `CoincapHistorical returned code ${jsonObj.error ?? result.status}`
+        `CoincapHistorical returned code ${error ?? result.status}`
       )
     }
 
-    const newAssets = asCoincapUpdateAssetsResponse(jsonObj).data.reduce(
+    const { data } = asCoincapAssetsData(jsonObj)
+    const newAssets = data.reduce(
       (assets, { symbol, id }) => ({ ...assets, [symbol]: id }),
       {}
     )
@@ -55,13 +78,8 @@ const updateAssets = (
     assetMap = newAssets
     log('Updated CoincapHistorical asset list successfully')
   } catch (e) {
-    if (e.message !== 'too soon') {
-      log(
-        'ERROR',
-        `currencyPair: ${currencyPair}`,
-        'No CoincapHistorical assets',
-        e.message
-      )
+    if (e.message !== 'too_soon') {
+      log('ERROR', `url: ${url}`, 'No CoincapHistorical assets', e, rateParams)
     }
   } finally {
     lock.release()
@@ -71,34 +89,30 @@ const updateAssets = (
 
 const assetMap = updateAssets()
 
+// TODO - Merge into one function
 export const coincapHistorical: ProviderFetch = async rateParams => {
   const assets = await assetMap(rateParams)
 
-  const { currencyA, currencyB, currencyPair, date } = rateParams
+  const { currencyA, currencyB, date } = rateParams
   if (currencyB !== 'USD' || assets[currencyA] == null) return
+  const timestamp = Date.parse(date)
+  const url = `${coinCapUrl}/${currencyA}/history?interval=m5&start=${timestamp}&end=${timestamp +
+    FIVE_MINUTES}`
 
   try {
-    const timestamp = Date.parse(date)
-    const url = `${coinCapUrl}/${currencyA}/history?interval=m5&start=${timestamp}&end=${timestamp +
-      FIVE_MINUTES}`
-
     const result = await fetch(url, { method: 'GET', json: true })
     const jsonObj = await result.json()
+    const { error } = asCoincapError(jsonObj)
 
-    if (result.ok === false || jsonObj.error != null) {
+    if ((error != null && error !== '') || result.ok === false) {
       throw new Error(
-        `CoincapHistorical returned code ${jsonObj.error ?? result.status}`
+        `CoincapHistorical returned code ${error ?? result.status}`
       )
     }
 
-    const rate = asCoincapResponse(jsonObj)
-    if (rate.data.length > 0) return rate.data[0].priceUsd
+    const { data } = asCoincapHistoricalData(jsonObj)
+    if (data != null && data.length > 0) return data[0].priceUsd
   } catch (e) {
-    log(
-      'ERROR',
-      `currencyPair: ${currencyPair}`,
-      'No CoincapHistorical quote',
-      e.message
-    )
+    log('ERROR', `url: ${url}`, 'No CoincapHistorical quote', e, rateParams)
   }
 }

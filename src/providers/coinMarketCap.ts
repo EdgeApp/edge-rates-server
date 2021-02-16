@@ -1,45 +1,50 @@
-import {
-  asArray,
-  asMap,
-  asNumber,
-  asObject,
-  asOptional,
-  asString
-} from 'cleaners'
+import { asArray, asNumber, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import CONFIG from '../../serverConfig.json'
-import { ProviderConfig, ProviderFetch, RateParams } from '../types'
+import {
+  asObjectMap,
+  ProviderConfig,
+  ProviderFetch,
+  RateParams
+} from '../types'
 import { log } from '../utils'
 import { fiatMap } from './coinMarketCapFiatMap'
 
-const historicalConfig = CONFIG.coinMarketCapHistorical
-const currentConfig = CONFIG.coinMarketCapCurrent
-
-export const asQuote = asMap(
-  asObject({ price: asNumber, timestamp: asOptional(asString) })
-)
-
-export const asCoinMarketCapCurrentResponse = asObject({
-  data: asMap(asObject({ quote: asQuote }))
-})
-
-export const asCoinMarketCapHistoricalResponse = asObject({
+export const asCoinMarketCapStatus = asObject({
   status: asObject({
     timestamp: asString,
-    error_code: asOptional(asNumber),
-    error_message: asOptional(asNumber),
-    elapsed: asOptional(asNumber),
-    credit_count: asOptional(asNumber)
-  }),
+    error_code: asNumber,
+    error_message: asOptional(asString, null),
+    elapsed: asNumber,
+    credit_count: asNumber,
+    notice: asOptional(asString, null)
+  })
+})
+
+export const asLatestQuote = asObjectMap({
+  price: asNumber,
+  last_updated: asString
+})
+
+export const asHistoricalQuote = asObjectMap({
+  price: asNumber,
+  timestamp: asString
+})
+
+export const asCoinMarketCapLatestData = asObject({
+  data: asObjectMap({ quote: asLatestQuote })
+})
+
+export const asCoinMarketCapHistoricalData = asObject({
   data: asObject({
-    id: asOptional(asNumber),
-    name: asOptional(asString),
-    symbol: asOptional(asString),
+    id: asNumber,
+    name: asString,
+    symbol: asString,
     quotes: asArray(
       asObject({
         timestamp: asString,
-        quote: asQuote
+        quote: asHistoricalQuote
       })
     )
   })
@@ -50,10 +55,8 @@ export const fetchCoinMarketCap = (
   asQuery: (rateParams: RateParams) => string,
   asResponse: (response: object, rateParams: RateParams) => string
 ): ProviderFetch => async rateParams => {
-  const { currencyA: cryptoCode, currencyB: fiatCode, date } = rateParams
-  if (fiatMap[fiatCode] == null || fiatMap[cryptoCode] != null) {
-    return
-  }
+  const { currencyA: cryptoCode, currencyB: fiatCode } = rateParams
+  if (fiatMap[fiatCode] == null || fiatMap[cryptoCode] != null) return
   if (apiKey !== null) {
     try {
       const queryUrl = `${url}${asQuery(rateParams)}`
@@ -63,45 +66,41 @@ export const fetchCoinMarketCap = (
         json: true
       })
       const jsonObj = await result.json()
-
-      if (result.ok === false || jsonObj.status.error_message != null) {
+      const { status } = asCoinMarketCapStatus(jsonObj)
+      if (
+        status.error_code !== 0 ||
+        (status.error_message != null && status.error_message !== '') ||
+        result.ok === false
+      ) {
         throw new Error(
-          `CoinMarketCap returned code ${jsonObj.status.error_message ??
-            result.status}`
+          `CoinMarketCap returned with status: ${JSON.stringify(status)}`
         )
       }
 
       return asResponse(jsonObj, rateParams)
     } catch (e) {
-      log(
-        `cryptoCode: ${cryptoCode}`,
-        `fiatCode: ${fiatCode}`,
-        `date: ${date}`,
-        `url: ${url}`,
-        'No CoinMarketCap quote',
-        e
-      )
+      log('ERROR', `url: ${url}`, 'No CoinMarketCap quote', e, rateParams)
     }
   } else {
-    log(`Missing apiKey for ${url}`)
+    log(`Missing apiKey for ${url}`, rateParams)
   }
 }
 
-export const coinMarketCapHistorical = fetchCoinMarketCap(
-  historicalConfig,
-  ({ currencyA, currencyB, date }) =>
-    `?symbol=${currencyA}&convert=${currencyB}&time_end=${date}&count=1`,
-  (response, { currencyB }) => {
-    const rates = asCoinMarketCapHistoricalResponse(response)
-    return rates.data.quotes[0].quote[currencyB].price.toString()
+export const coinMarketCapLatest = fetchCoinMarketCap(
+  CONFIG.coinMarketCapLatest,
+  ({ currencyA, currencyB }) => `?symbol=${currencyA}&convert=${currencyB}`,
+  (response, { currencyA, currencyB }) => {
+    const { data } = asCoinMarketCapLatestData(response)
+    return data[currencyA].quote[currencyB].price.toString()
   }
 )
 
-export const coinMarketCapCurrent = fetchCoinMarketCap(
-  currentConfig,
-  ({ currencyA, currencyB }) => `?symbol=${currencyA}&convert=${currencyB}`,
-  (response, { currencyA, currencyB }) => {
-    const rates = asCoinMarketCapCurrentResponse(response)
-    return rates.data[currencyA].quote[currencyB].price.toString()
+export const coinMarketCapHistorical = fetchCoinMarketCap(
+  CONFIG.coinMarketCapHistorical,
+  ({ currencyA, currencyB, date }) =>
+    `?symbol=${currencyA}&convert=${currencyB}&time_end=${date}&count=1`,
+  (response, { currencyB }) => {
+    const { data } = asCoinMarketCapHistoricalData(response)
+    return data.quotes[0].quote[currencyB].price.toString()
   }
 )

@@ -18,7 +18,7 @@ const getRate = async (
   lookbackLimit = CONFIG.ratesLookbackLimit,
   exchanges = defaultProviders
 ): Promise<ReturnGetRate> => {
-  const { currencyA, currencyB, currencyPair, date } = rateParams
+  const { currencyPair, date } = rateParams
 
   const zeroRates = getZeroRate(rateParams)
   const zeroRate = zeroRates[currencyPair]
@@ -29,7 +29,7 @@ const getRate = async (
     const dbRate = dbRates[currencyPair]
     if (dbRate != null && dbRate !== '') return { rate: dbRate }
   } catch (e) {
-    throw rateError(e.message, 500, 'db_error')
+    throw rateError(rateParams, e.message)
   }
 
   try {
@@ -74,14 +74,15 @@ const getRate = async (
 
     return {
       error: rateError(
-        `RATES SERVER: All lookups failed to find exchange rate for currencypair ${currencyA}_${currencyB} at date ${date}.`,
-        400,
-        'not_found'
+        rateParams,
+        'RATES SERVER: All lookups failed to find exchange rate for this query',
+        'not_found',
+        400
       )
     }
   } catch (e) {
     if (e.errorCode === 400) throw e
-    throw rateError(e.message, 500, 'db_error')
+    throw rateError(rateParams, e.message)
   }
 }
 

@@ -1,0 +1,100 @@
+{
+  "asCoinMarketCapHistoricalResponse": {
+    "good response": [
+      {
+        "data": {
+          "id": 1,
+          "isActive": 1,
+          "isFiat": 0,
+          "name": "Bitcoin",
+          "quotes": [
+            {
+              "quote": {
+                "USD": {
+                  "market_cap": 594383990000,
+                  "price": 31971.914,
+                  "timestamp": "2021-01-04T23:59:38.000Z",
+                  "volume_24h": 81163477000
+                }
+              },
+              "timestamp": "2021-01-04T23:59:38.000Z"
+            }
+          ],
+          "symbol": "BTC"
+        },
+        "status": {
+          "credit_count": 1,
+          "elapsed": 22,
+          "error_code": 0,
+          "error_message": null,
+          "notice": null,
+          "timestamp": "2021-01-25T21:47:03.454Z"
+        }
+      },
+      true
+    ],
+    "must be a valid ISO 8601 timestamp": [
+      {
+        "status": {
+          "credit_count": 0,
+          "elapsed": 0,
+          "error_code": 400,
+          "error_message": "\"time_end\" must be a valid ISO 8601 timestamp or unix time value",
+          "notice": null,
+          "timestamp": "2021-01-25T22:07:08.364Z"
+        }
+      },
+      false
+    ],
+    "exceeded your API Key's monthly credit limit": [
+      {
+        "status": {
+          "credit_count": 0,
+          "elapsed": 0,
+          "error_code": 1010,
+          "error_message": "You've exceeded your API Key's monthly credit limit. Please contact us at api@coinmarketcap.com if you need assistance upgrading your plan.",
+          "notice": "You have used 100% of your plan's monthly credit limit.",
+          "timestamp": "2021-02-12T21:13:22.061Z"
+        }
+      },
+      false
+    ],
+    "API key missing": [
+      {
+        "status": {
+          "credit_count": 0,
+          "elapsed": 0,
+          "error_code": 1002,
+          "error_message": "API key missing.",
+          "timestamp": "2021-02-12T21:36:29.115Z"
+        }
+      },
+      false
+    ],
+    "Exceeded your API Key's HTTP request rate limit": [
+      {
+        "status": {
+          "credit_count": 0,
+          "elapsed": 0,
+          "error_code": 1008,
+          "error_message": "You've exceeded your API Key's HTTP request rate limit. Rate limits reset every minute.",
+          "timestamp": "2021-01-25T22:11:40.216Z"
+        }
+      },
+      false
+    ],
+    "Invalid value for symbol": [
+      {
+        "status": {
+          "credit_count": 0,
+          "elapsed": 0,
+          "error_code": 400,
+          "error_message": "Invalid value for \"symbol\": \"SHT\"",
+          "notice": null,
+          "timestamp": "2021-01-25T22:14:31.330Z"
+        }
+      },
+      false
+    ]
+  }
+}
