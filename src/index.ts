@@ -1,5 +1,5 @@
-import { createServer } from './app'
 import { config } from './config'
+import { createServer } from './server'
 import { logger } from './utils'
 // Create Server
 const server = createServer(config)

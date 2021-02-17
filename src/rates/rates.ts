@@ -1,12 +1,14 @@
-import { RateGetter, RateParams, ReturnGetRate, ReturnGetRates } from '../types'
-import { logger, SlackPoster } from '../utils'
+import {
+  RateGetterCurried,
+  RateParams,
+  ReturnGetRate,
+  ReturnGetRates
+} from '../types'
 import { rateError } from './rateHelpers'
-
-const postToSlack = SlackPoster()
 
 const getRateRec = async (
   rateParams: RateParams,
-  rateGetters: RateGetter[],
+  rateGetters: RateGetterCurried[],
   rateData: ReturnGetRate = {}
 ): Promise<ReturnGetRate> => {
   // If there are no "rateGetters", return a rateError error.
@@ -25,17 +27,11 @@ const getRateRec = async (
       rateParams,
       rateData.document ?? { _id: rateParams.date }
     )
-    if (newRateData.rate != null) return rateData
+
+    if (newRateData.rate != null) return newRateData
 
     return getRateRec(rateParams, rateGetters.slice(0), newRateData)
   } catch (e) {
-    // Notify slack about critical errors with the database (like db is down).
-    if (e.errorType === 'db_error') {
-      postToSlack(
-        new Date().toISOString(),
-        `RATES SERVER: exchangeRate query failed for ${rateParams.currencyPair} with error code ${e.errorCode}.  ${e.message}`
-      ).catch(e)
-    }
     // Convert the error to rateError in case it's not one already.
     return {
       error: e.errorCode != null ? e : rateError(rateParams, e.message)
@@ -45,7 +41,7 @@ const getRateRec = async (
 
 export const getRates = async (
   ratesQuery: RateParams[],
-  rateGetters: RateGetter[]
+  rateGetters: RateGetterCurried[]
 ): Promise<ReturnGetRates> => {
   const returnedRates = ratesQuery.map(async rateParams => {
     const rateResponse = await getRateRec(rateParams, rateGetters)
@@ -66,7 +62,6 @@ export const getRates = async (
       }
 
       if (error != null) {
-        logger(error)
         results.push({ currencyPair, date, error })
       } else {
         results.push({ currencyPair, date, exchangeRate: rate })

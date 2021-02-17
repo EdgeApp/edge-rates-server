@@ -9,6 +9,7 @@ import {
   Cleaner,
   ObjectShape
 } from 'cleaners'
+import express from 'express'
 
 import { config } from './config'
 import { normalizeDate } from './utils'
@@ -18,6 +19,15 @@ const ERRORS = ['not_found', 'conflict', 'db_error', 'bad_query']
 /// ///////////// ///
 /// /// Types /// ///
 /// ///////////// ///
+export type CleanedRequest = express.Request & { params: any }
+export type RateResponse = express.Response & ReturnGetRates
+
+export type RateMiddleware = (
+  req: CleanedRequest,
+  res: RateResponse,
+  next: express.NextFunction
+) => Promise<void> | void
+
 export type ErrorType = ReturnType<typeof asErrorType>
 export type CurrencyRates = ReturnType<typeof asCurrencyRates>
 export interface RateParams {
@@ -42,16 +52,16 @@ export type ProviderConfig = ReturnType<typeof asProviderConfig>
 export type ServerConfig = ReturnType<typeof asServerConfig>
 
 export type RateGetterOptions = Partial<
-  ServerConfig & { exchanges: ProviderFetch[]; localDb: any }
+  ServerConfig & { exchanges: ProviderFetch[]; localDB: any }
 >
 
-export type RateGetterFull = (
+export type RateGetter = (
   options: RateGetterOptions,
   rateParams: RateParams,
   document: RatesDocument
 ) => ReturnGetRate | Promise<ReturnGetRate>
 
-export type RateGetter = (
+export type RateGetterCurried = (
   rateParams: RateParams,
   document: RatesDocument
 ) => ReturnGetRate | Promise<ReturnGetRate>
@@ -154,11 +164,13 @@ export const asProviderConfig = asObject({
 })
 
 export const asServerConfig = asObject({
-  dbFullpath: asString,
-  httpHost: asOptional(asString),
-  httpPort: asOptional(asNumber),
-  exchangesBatchLimit: asNumber,
-  bridgeCurrencies: asArray(asString),
+  dbFullpath: asOptional(asString, 'http://admin:password@localhost:5984'),
+  dbName: asOptional(asString, 'db_rates'),
+  httpHost: asOptional(asString, '127.0.0.1'),
+  httpPort: asOptional(asNumber, 8008),
+  exchangesBatchLimit: asOptional(asNumber, 100),
+  bridgeCurrencies: asOptional(asArray(asString), ['USD', 'BTC']),
+  ratesLookbackLimit: asOptional(asNumber, 604800000),
   cryptoCurrencyCodes: asArray(asString),
   zeroRateCurrencyCodes: asZeroRateCurrencyCodes,
   fallbackConstantRatePairs: asMap(asString),
@@ -168,8 +180,7 @@ export const asServerConfig = asObject({
   coinMarketCapLatest: asProviderConfig,
   coinMarketCapHistorical: asProviderConfig,
   coincapHistorical: asProviderConfig,
-  slackWebhookUrl: asString,
-  ratesLookbackLimit: asNumber
+  slackWebhookUrl: asString
 })
 
 export const asExchangeRateReq = asObject({

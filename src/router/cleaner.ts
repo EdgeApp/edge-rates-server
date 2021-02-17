@@ -10,12 +10,10 @@ export const clean = cleaner => (req, res, next) => {
     }
     return next()
   } catch (e) {
-    return res.status(400).send({
-      error: {
-        message: e.message,
-        errorType: 'bad_query',
-        errorCode: 400
-      }
+    return next({
+      message: e.message,
+      errorType: 'bad_query',
+      errorCode: 400
     })
   }
 }

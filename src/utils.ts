@@ -1,8 +1,6 @@
 import { bns } from 'biggystring'
 import fetch from 'node-fetch'
 
-import { config } from './config'
-
 const FIVE_MINUTES = 1000 * 60 * 5
 
 export const inverseRate = (rate: string): string => bns.div('1', rate, 8, 10)
@@ -43,30 +41,32 @@ export function normalizeDate(dateSrc: string): string | void {
 }
 
 export const SlackPoster = (
+  slackWebhookUrl,
   lastText = '',
-  lastDate = Date.now() - FIVE_MINUTES,
-  { slackWebhookUrl } = config
-) => async (date: string, text: string): Promise<void> => {
+  lastDate = 1591837000000 // June 10 2020
+) => async (text: string): Promise<void> => {
   console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
   console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-  console.log('47. date', date)
   console.log('48. text', text)
   console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
   console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+  const now = Date.now()
   // check if it's been 5 minutes since last identical message was sent to Slack
   if (
     slackWebhookUrl == null ||
     slackWebhookUrl === '' ||
-    (text === lastText && Date.now() - lastDate < FIVE_MINUTES) // 5 minutes
+    (text === lastText && now - lastDate < FIVE_MINUTES) // 5 minutes
   ) {
     return
   }
   try {
     lastText = text
-    lastDate = Date.now()
+    lastDate = now
     await fetch(slackWebhookUrl, {
       method: 'POST',
-      body: JSON.stringify({ text: `${date} ${text}` })
+      body: JSON.stringify({
+        text: `${new Date(now).toISOString()} ${JSON.stringify(text)}`
+      })
     })
   } catch (e) {
     console.log('Could not log DB error to Slack', e)

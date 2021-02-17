@@ -1,8 +1,8 @@
 import { bns } from 'biggystring'
 
-import { RateGetterFull } from '../types'
+import { RateGetter } from '../types'
 
-export const getBridgedRate: RateGetterFull = async (
+export const getBridgedRate: RateGetter = async (
   { exchanges = [], bridgeCurrencies = ['USD'] },
   rateParams,
   currencyRates

@@ -1,9 +1,4 @@
 {
-  "dbFullpath": "http://username:password@localhost:5984",
-  "httpHost": "127.0.0.1",
-  "httpPort": 8008,
-  "exchangesBatchLimit": 100,
-  "bridgeCurrencies": ["USD", "BTC"],
   "cryptoCurrencyCodes": [
     "BTC",
     "ETH",
@@ -61,6 +56,5 @@
   "coincapHistorical": {
     "url": "https://api.coincap.io/v2/assets"
   },
-  "slackWebhookUrl": "",
-  "ratesLookbackLimit": 604800000
+  "slackWebhookUrl": ""
 }

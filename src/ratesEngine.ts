@@ -12,9 +12,8 @@ interface PairBody {
   [currencyPair: string]: string
 }
 
-const ratesEngineInit = async (config: ServerConfig): Promise<void> => {
-  const { cryptoCurrencyCodes, fiatCurrencyCodes, ratesServerAddress } = config
-
+const ratesEngineInit = async (opts: ServerConfig = config): Promise<void> => {
+  const { cryptoCurrencyCodes, fiatCurrencyCodes, ratesServerAddress } = opts
   const endPoint = `${ratesServerAddress}/v1/exchangeRates`
   const allCurrencies = cryptoCurrencyCodes.concat(fiatCurrencyCodes)
   return ratesEngine(endPoint, allCurrencies)
@@ -23,24 +22,21 @@ const ratesEngineInit = async (config: ServerConfig): Promise<void> => {
 const ratesEngine = async (endPoint, allCurrencies): Promise<void> => {
   const currentDate = new Date().toISOString()
   try {
-    const data: PairBody = allCurrencies.reduce(
-      (body, currencyCode) =>
-        Object.assign(body, {
-          [`${currencyCode}_${fixedCurrency}`]: currentDate
-        }),
-      {}
-    )
+    const data: PairBody = allCurrencies.map(currencyCode => ({
+      currency_pair: `${currencyCode}_${fixedCurrency}`,
+      date: currentDate
+    }))
+
     const response = await fetch(endPoint, {
       headers: { 'Content-Type': 'application/json' },
       method: 'POST',
       body: JSON.stringify(data)
     })
+    const responseObj = await response.json()
     if (response.ok === true) {
-      logger(`Successfully saved new currencyPairs`)
-      const responseObj = await response.json()
-      logger('All currency pair results', responseObj)
+      logger('Successfully saved new currencyPairs', responseObj)
     } else {
-      logger(`Could not save new currencyPairs`)
+      logger('Could not save new currencyPairs', responseObj)
     }
   } catch (e) {
     logger(currentDate)
@@ -52,4 +48,4 @@ const ratesEngine = async (endPoint, allCurrencies): Promise<void> => {
   }
 }
 
-ratesEngineInit(config).catch(e => logger(e))
+ratesEngineInit().catch(e => logger(e))
