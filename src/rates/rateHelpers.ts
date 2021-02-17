@@ -1,105 +1,112 @@
 import CONFIG from '../../serverConfig.json'
-import { coinFromDb } from '../providers/coinFromDb'
 import {
   ErrorType,
   ProviderFetch,
   RateError,
   RateParams,
-  RatesDocument
+  RatesDocument,
+  ReturnGetRate
 } from '../types'
-import { log } from '../utils'
+import { inverseRate, logger } from '../utils'
 
-const { zeroRateCurrencyCodes, fallbackConstantRatePairs } = CONFIG
+const {
+  ratesLookbackLimit,
+  zeroRateCurrencyCodes,
+  fallbackConstantRatePairs
+} = CONFIG
 
 export const rateError = (
   rateParams: RateParams,
   message: string,
   errorType: ErrorType = 'db_error',
   errorCode: number = 500
-): RateError =>
-  Object.assign(new Error(message), { errorCode, errorType }, rateParams)
+): RateError => ({ message, errorCode, errorType, ...rateParams })
 
-export const getZeroRate = (
-  { currencyA, currencyB, currencyPair, date }: RateParams,
-  zeroRates = zeroRateCurrencyCodes
-): RatesDocument => {
-  const result = { _id: date }
-
-  if (zeroRates[currencyA] === true || zeroRates[currencyB] === true)
-    return { ...result, [currencyPair]: '0' }
-
-  return result
-}
-
-export const getFallbackConstantRate = (
-  { currencyA, currencyB, currencyPair, date }: RateParams,
-  fallBackRates = fallbackConstantRatePairs
-): RatesDocument => {
-  const result = { _id: date }
-  const currencyPairB = `${currencyB}_${currencyA}`
-
-  if (fallBackRates[currencyPair] != null) {
-    return { ...result, [currencyPair]: fallBackRates[currencyPair] }
-  }
-
-  if (fallBackRates[currencyPairB] != null) {
-    return { ...result, [currencyPair]: fallBackRates[currencyPairB] }
-  }
-  return result
-}
-
-// TODO - Remove this
-export const getRateFromDB = async (
+export const getDbRate = async (
   rateParams: RateParams,
   localDb: any
-): Promise<RatesDocument> => {
+): Promise<ReturnGetRate> => {
   const { currencyPair, date } = rateParams
-  const result = { _id: date }
-  const dbRate = await coinFromDb(rateParams, localDb)
-  if (dbRate != null && dbRate !== '')
-    return {
-      ...result,
-      [currencyPair]: dbRate
-    }
-  return result
-}
-
-export const getRatesDocument = async (
-  { currencyPair, date }: RateParams,
-  localDb: any
-): Promise<RatesDocument> => {
   try {
     const ratesDocuments = await localDb.get(date)
-    return ratesDocuments
+    const rate = getDocumentRate(rateParams, ratesDocuments)
+    return { document: ratesDocuments, ...rate }
   } catch (e) {
     if (e.error === 'not_found') {
-      log(`${currencyPair} does not exist for date: ${date}`)
-    }
-    return {
-      _id: date,
-      [currencyPair]: ''
+      logger(`${currencyPair} does not exist for date: ${date}`)
+      return { document: { _id: date } }
+    } else {
+      throw rateError(rateParams, e.message)
     }
   }
 }
 
-export const getRateFromExchanges = async (
-  rateParam: RateParams,
-  currencyRates: RatesDocument,
-  exchanges: ProviderFetch[]
-): Promise<RatesDocument> => {
-  if (exchanges.length === 0) return currencyRates
-  const exchange = exchanges[0]
+export const getZeroRate = (
+  { currencyA, currencyB }: RateParams,
+  zeroRates = zeroRateCurrencyCodes
+): ReturnGetRate =>
+  zeroRates[currencyA] === true || zeroRates[currencyB] === true
+    ? { rate: '0' }
+    : {}
 
-  const { currencyPair } = rateParam
-  const rates = { ...currencyRates }
+export const getFallbackConstantRate = (
+  rateParams: RateParams
+): ReturnGetRate =>
+  getDocumentRate(rateParams, {
+    _id: rateParams.date,
+    ...fallbackConstantRatePairs
+  })
+
+export const getDocumentRate = (
+  { currencyA, currencyB, currencyPair }: RateParams,
+  currencyRates: RatesDocument
+): ReturnGetRate => {
+  if (currencyRates[currencyPair] != null)
+    return {
+      rate: currencyRates[currencyPair]
+    }
+
+  const inversePair = `${currencyB}_${currencyA}`
+  if (currencyRates[inversePair] != null) {
+    return {
+      rate: inverseRate(currencyRates[inversePair])
+    }
+  }
+  return {}
+}
+
+export const getExchangesRate = async (
+  rateParams: RateParams,
+  currencyRates: RatesDocument = { _id: rateParams.date },
+  exchanges: ProviderFetch[]
+): Promise<ReturnGetRate> => {
+  if (exchanges.length === 0) return { document: currencyRates }
 
   try {
-    const rate = await exchange(rateParam)
-    if (rate != null && rate !== '') {
-      rates[currencyPair] = rate
-      return rates
-    }
+    const rate = await exchanges[0](rateParams)
+    if (rate != null)
+      return {
+        rate,
+        document: { ...currencyRates, [rateParams.currencyPair]: rate }
+      }
   } catch (e) {}
 
-  return getRateFromExchanges(rateParam, rates, exchanges.slice(1))
+  return getExchangesRate(rateParams, currencyRates, exchanges.slice(1))
+}
+
+export const getExpiredRate = (
+  { currencyPair, date }: RateParams,
+  currencyRates: RatesDocument = { _id: date },
+  lookbackLimit = ratesLookbackLimit
+): ReturnGetRate => {
+  if (Date.now() - lookbackLimit > new Date(date).getTime()) {
+    return {
+      rate: '0',
+      document: {
+        ...currencyRates,
+        [currencyPair]: '0'
+      }
+    }
+  }
+  return {}
 }

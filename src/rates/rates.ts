@@ -1,114 +1,121 @@
-import CONFIG from '../../serverConfig.json'
 import { defaultProviders } from '../providers/providers'
-import { RateParams, ReturnGetRate, ReturnRate } from '../types'
-import { postToSlack } from '../utils'
+import { RateParams, ReturnGetRate, ReturnGetRates } from '../types'
+import { logger, SlackPoster } from '../utils'
 import { currencyBridge } from './currencyBridge'
 import {
+  getDbRate,
+  getExchangesRate,
+  getExpiredRate,
   getFallbackConstantRate,
-  getRateFromDB,
-  getRateFromExchanges,
-  getRatesDocument,
   getZeroRate,
   rateError
 } from './rateHelpers'
 
-const getRate = async (
+const postToSlack = SlackPoster()
+
+export const getRate = async (
   rateParams: RateParams,
   localDb: any,
-  lookbackLimit = CONFIG.ratesLookbackLimit,
   exchanges = defaultProviders
 ): Promise<ReturnGetRate> => {
-  const { currencyPair, date } = rateParams
-
-  const zeroRates = getZeroRate(rateParams)
-  const zeroRate = zeroRates[currencyPair]
-  if (zeroRate != null && zeroRate !== '') return { rate: zeroRate }
+  const { currencyPair } = rateParams
 
   try {
-    const dbRates = await getRateFromDB(rateParams, localDb)
-    const dbRate = dbRates[currencyPair]
-    if (dbRate != null && dbRate !== '') return { rate: dbRate }
-  } catch (e) {
-    throw rateError(rateParams, e.message)
-  }
+    // Check if one of the currency is a zero rate currency.
+    const zeroRate = getZeroRate(rateParams)
+    if (zeroRate.rate != null) return zeroRate
 
-  try {
-    const dbRates = await getRatesDocument(rateParams, localDb)
+    // Get all the currency rates for the requested date from the db.
+    // Try to get the currencyPair or the inverted currencyPair rate.
+    const dbRates = await getDbRate(rateParams, localDb)
+    if (dbRates.rate != null) return zeroRate
 
-    const dbBridgedRates = await currencyBridge(rateParams, dbRates, async () =>
-      Promise.resolve('')
-    )
-    const bridgeRate = dbBridgedRates[currencyPair]
-    if (bridgeRate != null && bridgeRate !== '')
-      return { rate: bridgeRate, document: dbBridgedRates }
+    // Try to get the rate from the document using bridged currencies.
+    const dbBridgedRates = await currencyBridge(rateParams, dbRates.document)
+    if (dbBridgedRates.rate != null) return dbBridgedRates
 
-    const exchageRates = await getRateFromExchanges(
+    // Try to get the rate from any of the exchanges.
+    const exchangeRate = await getExchangesRate(
       rateParams,
-      dbBridgedRates,
+      dbBridgedRates.document,
       exchanges
     )
-    const exchangeRate = exchageRates[currencyPair]
-    if (exchangeRate != null && exchangeRate !== '')
-      return { rate: exchangeRate, document: exchageRates }
+    if (exchangeRate.rate != null) return exchangeRate
 
+    // Try to get the rate from any of the exchanges using bridged currencies.
     const exchageBridgedRates = await currencyBridge(
       rateParams,
-      exchageRates,
+      dbBridgedRates.document,
       exchanges
     )
     const exchangeBridgesRate = exchageBridgedRates[currencyPair]
-    if (exchangeBridgesRate != null && exchangeBridgesRate !== '')
-      return { rate: exchangeBridgesRate, document: exchageBridgedRates }
+    if (exchangeBridgesRate.rate != null) return exchangeBridgesRate
 
-    // Use fallback hardcoded rates if lookups failed
-    const fallbackRates = getFallbackConstantRate(rateParams)
-    const fallbackRate = fallbackRates[currencyPair]
-    if (fallbackRate != null && fallbackRate !== '')
-      return { rate: fallbackRate }
+    // Check if the currencyPair or the inverted has a default rate value.
+    const fallbackRate = getFallbackConstantRate(rateParams)
+    if (fallbackRate.rate != null) return fallbackRate
 
-    const requestedDateTimestamp = new Date(date).getTime()
-    if (Date.now() - lookbackLimit > requestedDateTimestamp) {
-      exchageBridgedRates[currencyPair] = '0'
-      return { document: exchageBridgedRates }
-    }
+    const expiredRate = getExpiredRate(rateParams, fallbackRate.document)
+    if (expiredRate.rate != null) return expiredRate
 
+    // If no rate was found, return a rateError error.
     return {
       error: rateError(
         rateParams,
-        'RATES SERVER: All lookups failed to find exchange rate for this query',
+        'All lookups failed to find exchange rate for this query',
         'not_found',
         400
       )
     }
   } catch (e) {
-    if (e.errorCode === 400) throw e
-    throw rateError(rateParams, e.message)
-  }
-}
-
-export const getExchangeRate = async (
-  rateParams: RateParams,
-  localDb: any
-): Promise<ReturnRate> => {
-  const { date, currencyPair } = rateParams
-  try {
-    const { rate, error, document } = await getRate(rateParams, localDb)
-
-    return {
-      data: {
-        date,
-        exchangeRate: rate
-      },
-      error,
-      document
-    }
-  } catch (e) {
+    // Notify slack about critical errors with the database (like db is down).
     if (e.errorType === 'db_error') {
       postToSlack(
         new Date().toISOString(),
         `RATES SERVER: exchangeRate query failed for ${currencyPair} with error code ${e.errorCode}.  ${e.message}`
       ).catch(e)
     }
-    return { error: e }
+    // Convert the error to rateError in case it's not one already.
+    return {
+      error: e.errorCode != null ? e : rateError(rateParams, e.message)
+    }
   }
+}
+
+export const getRates = async (
+  ratesQuery: RateParams[],
+  localDb
+): Promise<ReturnGetRates> => {
+  const returnedRates: Array<Promise<
+    ReturnGetRate & RateParams
+  >> = ratesQuery.map(async rateParams => {
+    const rateResponse = await getRate(rateParams, localDb)
+    return { ...rateParams, ...rateResponse }
+  })
+
+  const allRates = await Promise.all(returnedRates)
+
+  return allRates.reduce(
+    (
+      result: ReturnGetRates,
+      rateData: ReturnGetRate & RateParams
+    ): ReturnGetRates => {
+      const { documents, results } = result
+      const { rate, date, error, currencyPair, document } = rateData
+      if (document != null) {
+        const { _id } = document
+        documents[_id] =
+          documents[_id] == null ? document : { ...documents[_id], ...document }
+      }
+
+      if (error != null) {
+        logger(error)
+        results.push({ currencyPair, date, error })
+      } else {
+        results.push({ currencyPair, date, exchangeRate: rate })
+      }
+      return { documents, results }
+    },
+    { documents: {}, results: [] }
+  )
 }

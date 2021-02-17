@@ -1,10 +1,14 @@
+import { bns } from 'biggystring'
 import fetch from 'node-fetch'
 
 import CONFIG from '../serverConfig.json'
 
 const { slackWebhookUrl } = CONFIG
+const FIVE_MINUTES = 1000 * 60 * 5
 
-export const log = (...args): void => {
+export const inverseRate = (rate: string): string => bns.div('1', rate, 8, 10)
+
+export const logger = (...args): void => {
   const isoDate = new Date().toISOString()
   let result = `${isoDate} - `
   for (const arg of args) {
@@ -13,7 +17,6 @@ export const log = (...args): void => {
   }
   console.log(result)
 }
-
 /*
  * Returns string value of date "normalized" by floor'ing to nearest
  * hour and translating to UTC time.  Or returns undefined if dateSrc
@@ -35,20 +38,27 @@ export function normalizeDate(dateSrc: string): string | void {
   return dateNorm.toISOString()
 }
 
-let postToSlackText = ''
-let postToSlackTime = 1591837000000 // June 10 2020
-
-export async function postToSlack(date: string, text: string): Promise<void> {
+export const SlackPoster = (
+  lastText = '',
+  lastDate = Date.now() - FIVE_MINUTES
+) => async (date: string, text: string): Promise<void> => {
+  console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+  console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+  console.log('47. date', date)
+  console.log('48. text', text)
+  console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+  console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
   // check if it's been 5 minutes since last identical message was sent to Slack
   if (
-    text === postToSlackText &&
-    Date.now() - postToSlackTime < 1000 * 60 * 5 // 5 minutes
+    slackWebhookUrl == null ||
+    slackWebhookUrl === '' ||
+    (text === lastText && Date.now() - lastDate < FIVE_MINUTES) // 5 minutes
   ) {
     return
   }
   try {
-    postToSlackText = text
-    postToSlackTime = Date.now()
+    lastText = text
+    lastDate = Date.now()
     await fetch(slackWebhookUrl, {
       method: 'POST',
       body: JSON.stringify({ text: `${date} ${text}` })

@@ -1,6 +1,5 @@
-import { bns } from 'biggystring'
-
 import { ProviderFetch } from '../types'
+import { inverseRate } from '../utils'
 import { coincapHistorical } from './coincapHistorical'
 import { coinMarketCapHistorical, coinMarketCapLatest } from './coinMarketCap'
 import { currencyConverter } from './currencyConverter'
@@ -12,8 +11,8 @@ export const providerFetch = (
 
   try {
     // Query provider for rate
-    const response = await provider(rateParams)
-    if (response != null) return response
+    const rate = await provider(rateParams)
+    if (rate != null) return rate
   } catch (e) {}
 
   try {
@@ -23,12 +22,12 @@ export const providerFetch = (
       currencyA: currencyB,
       currencyB: currencyA
     }
-    const response = await provider(invertedParams)
-    if (response != null) return bns.div('1', response, 8, 10)
+    const rate = await provider(invertedParams)
+    if (rate != null) return inverseRate(rate)
   } catch (e) {}
 
   // Return null if both cases fail
-  return ''
+  return null
 }
 
 export const defaultProviders = [

@@ -8,7 +8,7 @@ import {
   ProviderFetch,
   RateParams
 } from '../types'
-import { log } from '../utils'
+import { logger } from '../utils'
 import { fiatMap } from './coinMarketCapFiatMap'
 
 export const asCoinMarketCapStatus = asObject({
@@ -56,7 +56,7 @@ export const fetchCoinMarketCap = (
   asResponse: (response: object, rateParams: RateParams) => string
 ): ProviderFetch => async rateParams => {
   const { currencyA: cryptoCode, currencyB: fiatCode } = rateParams
-  if (fiatMap[fiatCode] == null || fiatMap[cryptoCode] != null) return
+  if (fiatMap[fiatCode] == null || fiatMap[cryptoCode] != null) return null
   if (apiKey !== null) {
     try {
       const queryUrl = `${url}${asQuery(rateParams)}`
@@ -79,11 +79,12 @@ export const fetchCoinMarketCap = (
 
       return asResponse(jsonObj, rateParams)
     } catch (e) {
-      log('ERROR', `url: ${url}`, 'No CoinMarketCap quote', e, rateParams)
+      logger('ERROR', `url: ${url}`, 'No CoinMarketCap quote', e, rateParams)
     }
   } else {
-    log(`Missing apiKey for ${url}`, rateParams)
+    logger(`Missing apiKey for ${url}`, rateParams)
   }
+  return null
 }
 
 export const coinMarketCapLatest = fetchCoinMarketCap(

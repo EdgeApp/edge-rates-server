@@ -3,7 +3,7 @@ import fetch from 'node-fetch'
 
 import CONFIG from '../../serverConfig.json'
 import { ProviderFetch } from '../types'
-import { log } from '../utils'
+import { logger } from '../utils'
 import { fiatMap } from './fiatCurrencyCodes'
 
 const { url: currencyConverterUrl, apiKey } = CONFIG.currencyConverter
@@ -16,7 +16,7 @@ export const asCurrencyConverterResponse = asObject({
 
 export const currencyConverter: ProviderFetch = async rateParams => {
   const { currencyA, currencyB, currencyPair, date } = rateParams
-  if (fiatMap[currencyA] == null || fiatMap[currencyB] == null) return
+  if (fiatMap[currencyA] == null || fiatMap[currencyB] == null) return null
 
   const normalToDate = date.substring(0, 10)
   if (apiKey !== '') {
@@ -44,7 +44,7 @@ export const currencyConverter: ProviderFetch = async rateParams => {
         return rates[currencyPair][normalToDate].toString()
       }
     } catch (e) {
-      log(
+      logger(
         'ERROR',
         `url: ${url.split('&apiKey=')[0]}`,
         'No CurrencyConverter quote',
@@ -53,6 +53,7 @@ export const currencyConverter: ProviderFetch = async rateParams => {
       )
     }
   } else {
-    log(`Missing apiKey for ${currencyConverterUrl}`, rateParams)
+    logger(`Missing apiKey for ${currencyConverterUrl}`, rateParams)
   }
+  return null
 }

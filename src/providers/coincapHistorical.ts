@@ -5,7 +5,7 @@ import fetch from 'node-fetch'
 import CONFIG from '../../serverConfig.json'
 import { RateParams } from '../../src/types'
 import { ProviderFetch } from '../types'
-import { log } from '../utils'
+import { logger } from '../utils'
 
 interface AssetMap {
   [assetSymbol: string]: string
@@ -57,7 +57,7 @@ const updateAssets = (
   try {
     if (Date.now() - lastAssetUpdate < SEVEN_DAYS) throw new Error('too_soon')
 
-    log('CoincapHistorical is updating')
+    logger('CoincapHistorical is updating')
 
     const result = await fetch(url, { method: 'GET', json: true })
     const jsonObj = await result.json()
@@ -76,10 +76,16 @@ const updateAssets = (
     )
     lastAssetUpdate = Date.now()
     assetMap = newAssets
-    log('Updated CoincapHistorical asset list successfully')
+    logger('Updated CoincapHistorical asset list successfully')
   } catch (e) {
     if (e.message !== 'too_soon') {
-      log('ERROR', `url: ${url}`, 'No CoincapHistorical assets', e, rateParams)
+      logger(
+        'ERROR',
+        `url: ${url}`,
+        'No CoincapHistorical assets',
+        e,
+        rateParams
+      )
     }
   } finally {
     lock.release()
@@ -94,7 +100,7 @@ export const coincapHistorical: ProviderFetch = async rateParams => {
   const assets = await assetMap(rateParams)
 
   const { currencyA, currencyB, date } = rateParams
-  if (currencyB !== 'USD' || assets[currencyA] == null) return
+  if (currencyB !== 'USD' || assets[currencyA] == null) return null
   const timestamp = Date.parse(date)
   const url = `${coinCapUrl}/${currencyA}/history?interval=m5&start=${timestamp}&end=${timestamp +
     FIVE_MINUTES}`
@@ -113,6 +119,7 @@ export const coincapHistorical: ProviderFetch = async rateParams => {
     const { data } = asCoincapHistoricalData(jsonObj)
     if (data != null && data.length > 0) return data[0].priceUsd
   } catch (e) {
-    log('ERROR', `url: ${url}`, 'No CoincapHistorical quote', e, rateParams)
+    logger('ERROR', `url: ${url}`, 'No CoincapHistorical quote', e, rateParams)
   }
+  return null
 }
