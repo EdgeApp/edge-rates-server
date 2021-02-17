@@ -1,29 +1,32 @@
 import fetch from 'node-fetch'
 
-import {
-  cryptoCurrencyCodes,
-  fiatCurrencyCodes,
-  ratesServerAddress
-} from '../serverConfig.json'
-import { log, snooze } from './utils'
-
-const endPoint = `${ratesServerAddress}/v1/exchangeRates`
+import { config } from './config'
+import { ServerConfig } from './types'
+import { logger, snooze } from './utils'
 
 const LOOP_DELAY = 1000 * 60 * 5 // Delay 5 minutes
-const allCurrencies = cryptoCurrencyCodes.concat(fiatCurrencyCodes)
-const bridgeCurrency = 'USD'
+
+const fixedCurrency = 'USD'
 
 interface PairBody {
   [currencyPair: string]: string
 }
 
-const ratesEngine = async (): Promise<void> => {
+const ratesEngineInit = async (config: ServerConfig): Promise<void> => {
+  const { cryptoCurrencyCodes, fiatCurrencyCodes, ratesServerAddress } = config
+
+  const endPoint = `${ratesServerAddress}/v1/exchangeRates`
+  const allCurrencies = cryptoCurrencyCodes.concat(fiatCurrencyCodes)
+  return ratesEngine(endPoint, allCurrencies)
+}
+
+const ratesEngine = async (endPoint, allCurrencies): Promise<void> => {
   const currentDate = new Date().toISOString()
   try {
     const data: PairBody = allCurrencies.reduce(
       (body, currencyCode) =>
         Object.assign(body, {
-          [`${currencyCode}_${bridgeCurrency}`]: currentDate
+          [`${currencyCode}_${fixedCurrency}`]: currentDate
         }),
       {}
     )
@@ -33,20 +36,20 @@ const ratesEngine = async (): Promise<void> => {
       body: JSON.stringify(data)
     })
     if (response.ok === true) {
-      log(`Successfully saved new currencyPairs`)
+      logger(`Successfully saved new currencyPairs`)
       const responseObj = await response.json()
-      log('All currency pair results', responseObj)
+      logger('All currency pair results', responseObj)
     } else {
-      log(`Could not save new currencyPairs`)
+      logger(`Could not save new currencyPairs`)
     }
   } catch (e) {
-    log(currentDate)
-    log(e)
+    logger(currentDate)
+    logger(e)
   } finally {
-    log('SNOOZING ***********************************')
+    logger('SNOOZING ***********************************')
     await snooze(LOOP_DELAY)
-    ratesEngine().catch(e => log(e))
+    ratesEngine(endPoint, allCurrencies).catch(e => logger(e))
   }
 }
 
-ratesEngine().catch(e => log(e))
+ratesEngineInit(config).catch(e => logger(e))

@@ -2,8 +2,8 @@ import AwaitLock from 'await-lock'
 import { asArray, asNumber, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
-import CONFIG from '../../serverConfig.json'
 import { RateParams } from '../../src/types'
+import { config } from '../config'
 import { ProviderFetch } from '../types'
 import { logger } from '../utils'
 
@@ -11,7 +11,7 @@ interface AssetMap {
   [assetSymbol: string]: string
 }
 
-const { url: coinCapUrl } = CONFIG.coincapHistorical
+const { url: coinCapUrl } = config.coincapHistorical
 
 const FIVE_MINUTES = 300000 // milliseconds
 const SEVEN_DAYS = 604800000
@@ -56,8 +56,6 @@ const updateAssets = (
 
   try {
     if (Date.now() - lastAssetUpdate < SEVEN_DAYS) throw new Error('too_soon')
-
-    logger('CoincapHistorical is updating')
 
     const result = await fetch(url, { method: 'GET', json: true })
     const jsonObj = await result.json()

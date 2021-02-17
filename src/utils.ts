@@ -1,12 +1,16 @@
 import { bns } from 'biggystring'
 import fetch from 'node-fetch'
 
-import CONFIG from '../serverConfig.json'
+import { config } from './config'
 
-const { slackWebhookUrl } = CONFIG
 const FIVE_MINUTES = 1000 * 60 * 5
 
 export const inverseRate = (rate: string): string => bns.div('1', rate, 8, 10)
+
+export const curry = (fn: any) => (...args: any[]): any =>
+  args.length >= fn.length
+    ? fn(...(args as any))
+    : curry(fn.bind(undefined, ...args))
 
 export const logger = (...args): void => {
   const isoDate = new Date().toISOString()
@@ -40,7 +44,8 @@ export function normalizeDate(dateSrc: string): string | void {
 
 export const SlackPoster = (
   lastText = '',
-  lastDate = Date.now() - FIVE_MINUTES
+  lastDate = Date.now() - FIVE_MINUTES,
+  { slackWebhookUrl } = config
 ) => async (date: string, text: string): Promise<void> => {
   console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
   console.log('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')

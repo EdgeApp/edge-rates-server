@@ -1,7 +1,7 @@
 import { asArray, asNumber, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
-import CONFIG from '../../serverConfig.json'
+import { config } from '../config'
 import {
   asObjectMap,
   ProviderConfig,
@@ -88,7 +88,7 @@ export const fetchCoinMarketCap = (
 }
 
 export const coinMarketCapLatest = fetchCoinMarketCap(
-  CONFIG.coinMarketCapLatest,
+  config.coinMarketCapLatest,
   ({ currencyA, currencyB }) => `?symbol=${currencyA}&convert=${currencyB}`,
   (response, { currencyA, currencyB }) => {
     const { data } = asCoinMarketCapLatestData(response)
@@ -97,7 +97,7 @@ export const coinMarketCapLatest = fetchCoinMarketCap(
 )
 
 export const coinMarketCapHistorical = fetchCoinMarketCap(
-  CONFIG.coinMarketCapHistorical,
+  config.coinMarketCapHistorical,
   ({ currencyA, currencyB, date }) =>
     `?symbol=${currencyA}&convert=${currencyB}&time_end=${date}&count=1`,
   (response, { currencyB }) => {

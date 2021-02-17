@@ -1,19 +1,15 @@
-import CONFIG from '../../serverConfig.json'
 import {
   ErrorType,
-  ProviderFetch,
   RateError,
+  RateGetterFull,
   RateParams,
   RatesDocument,
   ReturnGetRate
 } from '../types'
 import { inverseRate, logger } from '../utils'
+import { getBridgedRate } from './currencyBridge'
 
-const {
-  ratesLookbackLimit,
-  zeroRateCurrencyCodes,
-  fallbackConstantRatePairs
-} = CONFIG
+const MINUTE = 60 * 1000
 
 export const rateError = (
   rateParams: RateParams,
@@ -21,41 +17,6 @@ export const rateError = (
   errorType: ErrorType = 'db_error',
   errorCode: number = 500
 ): RateError => ({ message, errorCode, errorType, ...rateParams })
-
-export const getDbRate = async (
-  rateParams: RateParams,
-  localDb: any
-): Promise<ReturnGetRate> => {
-  const { currencyPair, date } = rateParams
-  try {
-    const ratesDocuments = await localDb.get(date)
-    const rate = getDocumentRate(rateParams, ratesDocuments)
-    return { document: ratesDocuments, ...rate }
-  } catch (e) {
-    if (e.error === 'not_found') {
-      logger(`${currencyPair} does not exist for date: ${date}`)
-      return { document: { _id: date } }
-    } else {
-      throw rateError(rateParams, e.message)
-    }
-  }
-}
-
-export const getZeroRate = (
-  { currencyA, currencyB }: RateParams,
-  zeroRates = zeroRateCurrencyCodes
-): ReturnGetRate =>
-  zeroRates[currencyA] === true || zeroRates[currencyB] === true
-    ? { rate: '0' }
-    : {}
-
-export const getFallbackConstantRate = (
-  rateParams: RateParams
-): ReturnGetRate =>
-  getDocumentRate(rateParams, {
-    _id: rateParams.date,
-    ...fallbackConstantRatePairs
-  })
 
 export const getDocumentRate = (
   { currencyA, currencyB, currencyPair }: RateParams,
@@ -75,11 +36,61 @@ export const getDocumentRate = (
   return {}
 }
 
-export const getExchangesRate = async (
-  rateParams: RateParams,
-  currencyRates: RatesDocument = { _id: rateParams.date },
-  exchanges: ProviderFetch[]
-): Promise<ReturnGetRate> => {
+export const getDbBridgedRate: RateGetterFull = async (
+  { bridgeCurrencies = [] },
+  rateParams,
+  currencyRates
+) => {
+  return getBridgedRate(
+    {
+      bridgeCurrencies,
+      exchanges: [async () => Promise.resolve(null)]
+    },
+    rateParams,
+    currencyRates
+  )
+}
+
+export const getDbRate: RateGetterFull = async ({ localDb }, rateParams) => {
+  const { currencyPair, date } = rateParams
+  try {
+    const ratesDocuments = await localDb.get(date)
+    const dbRate = getDocumentRate(rateParams, ratesDocuments)
+
+    return { document: ratesDocuments, ...dbRate }
+  } catch (e) {
+    if (e.error === 'not_found') {
+      logger(`${currencyPair} does not exist for date: ${date}`)
+      return {}
+    } else {
+      throw rateError(rateParams, e.message)
+    }
+  }
+}
+
+export const getZeroRate: RateGetterFull = (
+  { zeroRateCurrencyCodes = {} },
+  { currencyA, currencyB }
+) =>
+  zeroRateCurrencyCodes[currencyA] === true ||
+  zeroRateCurrencyCodes[currencyB] === true
+    ? { rate: '0' }
+    : {}
+
+export const getFallbackConstantRate: RateGetterFull = (
+  { fallbackConstantRatePairs = {} },
+  rateParams
+) =>
+  getDocumentRate(rateParams, {
+    _id: rateParams.date,
+    ...fallbackConstantRatePairs
+  })
+
+export const getExchangesRate: RateGetterFull = async (
+  { exchanges = [] },
+  rateParams,
+  currencyRates
+) => {
   if (exchanges.length === 0) return { document: currencyRates }
 
   try {
@@ -91,15 +102,19 @@ export const getExchangesRate = async (
       }
   } catch (e) {}
 
-  return getExchangesRate(rateParams, currencyRates, exchanges.slice(1))
+  return getExchangesRate(
+    { exchanges: exchanges.slice(1) },
+    rateParams,
+    currencyRates
+  )
 }
 
-export const getExpiredRate = (
-  { currencyPair, date }: RateParams,
-  currencyRates: RatesDocument = { _id: date },
-  lookbackLimit = ratesLookbackLimit
-): ReturnGetRate => {
-  if (Date.now() - lookbackLimit > new Date(date).getTime()) {
+export const getExpiredRate: RateGetterFull = (
+  { ratesLookbackLimit = MINUTE },
+  { currencyPair, date },
+  currencyRates
+) => {
+  if (Date.now() - ratesLookbackLimit > new Date(date).getTime()) {
     return {
       rate: '0',
       document: {

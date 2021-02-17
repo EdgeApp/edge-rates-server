@@ -1,12 +1,12 @@
 import { asMap, asNumber, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
-import CONFIG from '../../serverConfig.json'
+import { config } from '../config'
 import { ProviderFetch } from '../types'
 import { logger } from '../utils'
 import { fiatMap } from './fiatCurrencyCodes'
 
-const { url: currencyConverterUrl, apiKey } = CONFIG.currencyConverter
+const { url: currencyConverterUrl, apiKey } = config.currencyConverter
 
 export const asCurrencyConverterResponse = asObject({
   status: asOptional(asNumber),

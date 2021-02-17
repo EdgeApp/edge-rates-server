@@ -1,64 +1,16 @@
-import { defaultProviders } from '../providers/providers'
-import { RateParams, ReturnGetRate, ReturnGetRates } from '../types'
+import { RateGetter, RateParams, ReturnGetRate, ReturnGetRates } from '../types'
 import { logger, SlackPoster } from '../utils'
-import { currencyBridge } from './currencyBridge'
-import {
-  getDbRate,
-  getExchangesRate,
-  getExpiredRate,
-  getFallbackConstantRate,
-  getZeroRate,
-  rateError
-} from './rateHelpers'
+import { rateError } from './rateHelpers'
 
 const postToSlack = SlackPoster()
 
-export const getRate = async (
+const getRateRec = async (
   rateParams: RateParams,
-  localDb: any,
-  exchanges = defaultProviders
+  rateGetters: RateGetter[],
+  rateData: ReturnGetRate = {}
 ): Promise<ReturnGetRate> => {
-  const { currencyPair } = rateParams
-
-  try {
-    // Check if one of the currency is a zero rate currency.
-    const zeroRate = getZeroRate(rateParams)
-    if (zeroRate.rate != null) return zeroRate
-
-    // Get all the currency rates for the requested date from the db.
-    // Try to get the currencyPair or the inverted currencyPair rate.
-    const dbRates = await getDbRate(rateParams, localDb)
-    if (dbRates.rate != null) return zeroRate
-
-    // Try to get the rate from the document using bridged currencies.
-    const dbBridgedRates = await currencyBridge(rateParams, dbRates.document)
-    if (dbBridgedRates.rate != null) return dbBridgedRates
-
-    // Try to get the rate from any of the exchanges.
-    const exchangeRate = await getExchangesRate(
-      rateParams,
-      dbBridgedRates.document,
-      exchanges
-    )
-    if (exchangeRate.rate != null) return exchangeRate
-
-    // Try to get the rate from any of the exchanges using bridged currencies.
-    const exchageBridgedRates = await currencyBridge(
-      rateParams,
-      dbBridgedRates.document,
-      exchanges
-    )
-    const exchangeBridgesRate = exchageBridgedRates[currencyPair]
-    if (exchangeBridgesRate.rate != null) return exchangeBridgesRate
-
-    // Check if the currencyPair or the inverted has a default rate value.
-    const fallbackRate = getFallbackConstantRate(rateParams)
-    if (fallbackRate.rate != null) return fallbackRate
-
-    const expiredRate = getExpiredRate(rateParams, fallbackRate.document)
-    if (expiredRate.rate != null) return expiredRate
-
-    // If no rate was found, return a rateError error.
+  // If there are no "rateGetters", return a rateError error.
+  if (rateGetters.length === 0)
     return {
       error: rateError(
         rateParams,
@@ -67,12 +19,21 @@ export const getRate = async (
         400
       )
     }
+
+  try {
+    const newRateData = await rateGetters[0](
+      rateParams,
+      rateData.document ?? { _id: rateParams.date }
+    )
+    if (newRateData.rate != null) return rateData
+
+    return getRateRec(rateParams, rateGetters.slice(0), newRateData)
   } catch (e) {
     // Notify slack about critical errors with the database (like db is down).
     if (e.errorType === 'db_error') {
       postToSlack(
         new Date().toISOString(),
-        `RATES SERVER: exchangeRate query failed for ${currencyPair} with error code ${e.errorCode}.  ${e.message}`
+        `RATES SERVER: exchangeRate query failed for ${rateParams.currencyPair} with error code ${e.errorCode}.  ${e.message}`
       ).catch(e)
     }
     // Convert the error to rateError in case it's not one already.
@@ -84,12 +45,10 @@ export const getRate = async (
 
 export const getRates = async (
   ratesQuery: RateParams[],
-  localDb
+  rateGetters: RateGetter[]
 ): Promise<ReturnGetRates> => {
-  const returnedRates: Array<Promise<
-    ReturnGetRate & RateParams
-  >> = ratesQuery.map(async rateParams => {
-    const rateResponse = await getRate(rateParams, localDb)
+  const returnedRates = ratesQuery.map(async rateParams => {
+    const rateResponse = await getRateRec(rateParams, rateGetters)
     return { ...rateParams, ...rateResponse }
   })
 
@@ -97,11 +56,9 @@ export const getRates = async (
 
   return allRates.reduce(
     (
-      result: ReturnGetRates,
-      rateData: ReturnGetRate & RateParams
+      { documents, results }: ReturnGetRates,
+      { rate, date, error, currencyPair, document }
     ): ReturnGetRates => {
-      const { documents, results } = result
-      const { rate, date, error, currencyPair, document } = rateData
       if (document != null) {
         const { _id } = document
         documents[_id] =
