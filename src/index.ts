@@ -4,10 +4,12 @@
 
 import bodyParser from 'body-parser'
 import { asArray, asObject } from 'cleaners'
+import cluster from 'cluster'
 import cors from 'cors'
 import express from 'express'
 import http from 'http'
 import nano from 'nano'
+import { cpus } from 'os'
 import promisify from 'promisify-node'
 
 import CONFIG from '../serverConfig.json'
@@ -116,11 +118,31 @@ router.use(function(req, res, next) {
 // all of our routes will be prefixed with /api
 app.use('/v1', router)
 
-// START THE SERVER
-// =============================================================================
-const httpServer = http.createServer(app)
+const numCPUs = cpus().length
 
-const { httpPort = 8008 } = CONFIG
-httpServer.listen(CONFIG.httpPort, '127.0.0.1')
+if (cluster.isMaster) {
+  const instanceCount = CONFIG.instanceCount ?? numCPUs
 
-mylog(`Express server listening on port ${httpPort}`)
+  // Fork workers.
+  for (let i = 0; i < instanceCount; i++) {
+    cluster.fork()
+  }
+
+  // Restart workers when they exit
+  cluster.on('exit', (worker, code, signal) => {
+    console.log(
+      `Worker ${worker.process.pid} died with code ${code} and signal ${signal}`
+    )
+    console.log(`Forking new worker process...`)
+    cluster.fork()
+  })
+} else {
+  // START THE SERVER
+  // =============================================================================
+  const httpServer = http.createServer(app)
+
+  const { httpPort = 8008 } = CONFIG
+  httpServer.listen(CONFIG.httpPort, '127.0.0.1')
+
+  mylog(`Express server listening on port ${httpPort}`)
+}

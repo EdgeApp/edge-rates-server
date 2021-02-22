@@ -40,5 +40,6 @@
   "coinMarketCapHistoricalApiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
   "coinMarketCapCurrentApiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
   "slackWebhookUrl": "",
-  "ratesLookbackLimit": 604800000
+  "ratesLookbackLimit": 604800000,
+  "instanceCount": null
 }

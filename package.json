@@ -69,6 +69,7 @@
     "jsonschema": "^1.2.6",
     "nano": "^8.2.2",
     "node-fetch": "^2.6.0",
+    "os": "^0.1.1",
     "promisify-node": "^0.5.0"
   }
 }
