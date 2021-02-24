@@ -1,11 +1,12 @@
 import { readFileSync } from 'fs'
 import { join as joinPath } from 'path'
 
-import { asServerConfig, ServerConfig } from './types'
+import { asServerConfig } from '../types/cleaners'
+import { ServerConfig } from '../types/types'
 
 const configPath = joinPath(
   __dirname,
-  '../',
+  '../../',
   process.env.CONFIG ?? 'serverConfig.json'
 )
 

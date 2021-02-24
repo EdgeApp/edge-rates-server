@@ -1,14 +1,10 @@
 import { asArray, asNumber, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
-import { config } from '../config'
-import {
-  asObjectMap,
-  ProviderConfig,
-  ProviderFetch,
-  RateParams
-} from '../types'
-import { logger } from '../utils'
+import { asObjectMap } from '../types/cleaners'
+import { ProviderConfig, ProviderFetch, RateGetterParams } from '../types/types'
+import { config } from '../utils/config'
+import { logger } from '../utils/utils'
 import { fiatMap } from './coinMarketCapFiatMap'
 
 export const asCoinMarketCapStatus = asObject({
@@ -52,8 +48,8 @@ export const asCoinMarketCapHistoricalData = asObject({
 
 export const fetchCoinMarketCap = (
   { apiKey, url }: ProviderConfig,
-  asQuery: (rateParams: RateParams) => string,
-  asResponse: (response: object, rateParams: RateParams) => string
+  asQuery: (rateParams: RateGetterParams) => string,
+  asResponse: (response: object, rateParams: RateGetterParams) => string
 ): ProviderFetch => async rateParams => {
   const { currencyA: cryptoCode, currencyB: fiatCode } = rateParams
   if (fiatMap[fiatCode] == null || fiatMap[cryptoCode] != null) return null

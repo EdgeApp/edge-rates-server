@@ -1,55 +1,32 @@
 import { bns } from 'biggystring'
 
+import { defaultProviders } from '../providers/providers'
 import {
-  ErrorType,
-  RateError,
   RateGetter,
-  RateParams,
-  RatesDocument,
-  ReturnGetRate
-} from '../types'
-import { inverseRate, logger } from '../utils'
+  RateGetterParams,
+  RateGetterResponse,
+  RatesGetterDocument
+} from '../types/types'
+import { inverseRate } from '../utils/utils'
 
 const MINUTE = 60 * 1000
 
-export const rateError = (
-  rateParams: RateParams,
-  message: string,
-  errorType: ErrorType = 'db_error',
-  errorCode: number = 500
-): RateError => ({ message, errorCode, errorType, ...rateParams })
-
+// Try to get the rate from a db document.
 export const getDocumentRate = (
-  { currencyA, currencyB, currencyPair }: RateParams,
-  currencyRates: RatesDocument
-): ReturnGetRate => {
-  const res: ReturnGetRate = {}
-  const inversePair = `${currencyB}_${currencyA}`
+  { currencyA, currencyB, currencyPair }: RateGetterParams,
+  currencyRates: RatesGetterDocument
+): RateGetterResponse => {
   if (currencyRates[currencyPair] != null) {
-    res.rate = currencyRates[currencyPair]
-  } else if (currencyRates[inversePair] != null) {
-    res.rate = inverseRate(currencyRates[inversePair])
+    return { rate: currencyRates[currencyPair] }
   }
-  return res
+  const inversePair = `${currencyB}_${currencyA}`
+  if (currencyRates[inversePair] != null) {
+    return { rate: inverseRate(currencyRates[inversePair]) }
+  }
+  return {}
 }
 
-export const getDbRate: RateGetter = async ({ localDB }, rateParams) => {
-  const { currencyPair, date } = rateParams
-  try {
-    const ratesDocuments = await localDB.get(date)
-    const dbRate = getDocumentRate(rateParams, ratesDocuments)
-
-    return { document: ratesDocuments, ...dbRate }
-  } catch (e) {
-    if (e.error === 'not_found') {
-      logger(`${currencyPair} does not exist for date: ${date}`)
-      return {}
-    } else {
-      throw rateError(rateParams, e.message)
-    }
-  }
-}
-
+// Check if one of the currency is a zero rate currency.
 export const getZeroRate: RateGetter = (
   { zeroRateCurrencyCodes = {} },
   { currencyA, currencyB }
@@ -59,6 +36,7 @@ export const getZeroRate: RateGetter = (
     ? { rate: '0' }
     : {}
 
+// Check if the currencyPair or the inverted has a default rate value.
 export const getFallbackConstantRate: RateGetter = (
   { fallbackConstantRatePairs = {} },
   rateParams
@@ -68,8 +46,9 @@ export const getFallbackConstantRate: RateGetter = (
     ...fallbackConstantRatePairs
   })
 
+// Try to get the rate from any of the exchanges.
 export const getExchangesRate: RateGetter = async (
-  { exchanges = [] },
+  { exchanges = defaultProviders },
   rateParams,
   currencyRates
 ) => {
@@ -80,7 +59,10 @@ export const getExchangesRate: RateGetter = async (
     if (rate != null)
       return {
         rate,
-        document: { ...currencyRates, [rateParams.currencyPair]: rate }
+        document: {
+          ...(currencyRates ?? { _id: rateParams.currencyPair }),
+          [rateParams.currencyPair]: rate
+        }
       }
   } catch (e) {}
 
@@ -91,6 +73,7 @@ export const getExchangesRate: RateGetter = async (
   )
 }
 
+// If no rate was found, and the request is old, set the rate to '0'.
 export const getExpiredRate: RateGetter = (
   { ratesLookbackLimit = MINUTE },
   { currencyPair, date },
@@ -100,7 +83,7 @@ export const getExpiredRate: RateGetter = (
     return {
       rate: '0',
       document: {
-        ...currencyRates,
+        ...(currencyRates ?? { _id: currencyPair }),
         [currencyPair]: '0'
       }
     }
@@ -108,21 +91,24 @@ export const getExpiredRate: RateGetter = (
   return {}
 }
 
+// Try to get the rate from the db using bridged currencies.
 export const getDbBridgedRate: RateGetter = async (
-  { bridgeCurrencies = [] },
+  { bridgeCurrencies = ['USD'] },
   rateParams,
   currencyRates
-) => {
-  const exchanges = [async () => Promise.resolve(null)]
-  return getBridgedRate(
-    { bridgeCurrencies, exchanges },
+) =>
+  getBridgedRate(
+    {
+      bridgeCurrencies,
+      exchanges: [async () => Promise.resolve(null)]
+    },
     rateParams,
     currencyRates
   )
-}
 
+// Try to get the rate from any of the exchanges using bridged currencies.
 export const getBridgedRate: RateGetter = async (
-  { exchanges = [], bridgeCurrencies = ['USD'] },
+  { exchanges = defaultProviders, bridgeCurrencies = ['USD'] },
   rateParams,
   currencyRates
 ) => {
@@ -130,7 +116,7 @@ export const getBridgedRate: RateGetter = async (
 
   if (exchanges.length === 0) return { document: currencyRates }
 
-  const rates = { ...currencyRates }
+  const rates = { ...(currencyRates ?? { _id: currencyPair }) }
   // If BridgedRate finds a rate, it adds it to the rates document
   const bridgedRate = async (currencyParam, pair): Promise<void> => {
     if (rates[pair] == null)
@@ -157,7 +143,7 @@ export const getBridgedRate: RateGetter = async (
     // If we got both sides, combine them and return
     if (rates[pairA] != null && rates[pairB] != null) {
       rates[currencyPair] = bns.mul(rates[pairA], rates[pairB])
-      return { rate: currencyRates[currencyPair], document: rates }
+      return { rate: rates[currencyPair], document: rates }
     }
   }
   // Call getBridgedRate recursively without the current used exchange ('exchanges[0]')

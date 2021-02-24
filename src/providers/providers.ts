@@ -1,5 +1,5 @@
-import { ProviderFetch } from '../types'
-import { inverseRate } from '../utils'
+import { ProviderFetch } from '../types/types'
+import { inverseRate } from '../utils/utils'
 import { coincapHistorical } from './coincapHistorical'
 import { coinMarketCapHistorical, coinMarketCapLatest } from './coinMarketCap'
 import { currencyConverter } from './currencyConverter'

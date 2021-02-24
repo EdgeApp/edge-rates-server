@@ -1,8 +1,8 @@
 import fetch from 'node-fetch'
 
-import { config } from './config'
-import { ServerConfig } from './types'
-import { logger, snooze } from './utils'
+import { ServerConfig } from './types/types'
+import { config } from './utils/config'
+import { logger, snooze } from './utils/utils'
 
 const LOOP_DELAY = 1000 * 60 * 5 // Delay 5 minutes
 

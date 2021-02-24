@@ -2,10 +2,10 @@ import AwaitLock from 'await-lock'
 import { asArray, asNumber, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
-import { RateParams } from '../../src/types'
-import { config } from '../config'
-import { ProviderFetch } from '../types'
-import { logger } from '../utils'
+import { asMaybeString } from '../types/cleaners'
+import { ProviderFetch, RateGetterParams } from '../types/types'
+import { config } from '../utils/config'
+import { logger } from '../utils/utils'
 
 interface AssetMap {
   [assetSymbol: string]: string
@@ -35,7 +35,14 @@ export const asAssetsQuote = asObject({
   rank: asString,
   symbol: asString,
   name: asString,
-  priceUsd: asString
+  supply: asMaybeString,
+  maxSupply: asMaybeString,
+  marketCapUsd: asMaybeString,
+  volumeUsd24Hr: asMaybeString,
+  priceUsd: asMaybeString,
+  changePercent24Hr: asMaybeString,
+  vwap24Hr: asMaybeString,
+  explorer: asMaybeString
 })
 
 export const asCoincapHistoricalData = asObject({
@@ -46,12 +53,11 @@ export const asCoincapAssetsData = asObject({
   data: asArray(asAssetsQuote)
 })
 
-// TODO - Merge into one function
 const updateAssets = (
   assetMap: AssetMap = {},
   lastAssetUpdate: number = JULY_1ST_2020,
   url: string = `${coinCapUrl}?limit=2000`
-) => async (rateParams: RateParams): Promise<AssetMap> => {
+) => async (rateParams: RateGetterParams): Promise<AssetMap> => {
   await lock.acquireAsync()
 
   try {
@@ -93,7 +99,6 @@ const updateAssets = (
 
 const assetMap = updateAssets()
 
-// TODO - Merge into one function
 export const coincapHistorical: ProviderFetch = async rateParams => {
   const assets = await assetMap(rateParams)
 

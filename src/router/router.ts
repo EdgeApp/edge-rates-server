@@ -1,10 +1,11 @@
-import express from 'express'
+import express, { Router } from 'express'
 
-import { exchangeRate, exchangeRates } from './exchangeRate'
+export const createRouter = (routes: { [path: string]: Router }): Router => {
+  const router = express.Router()
 
-const router = express.Router()
+  for (const path of Object.keys(routes)) {
+    router.use(path, routes[path])
+  }
 
-router.get('/exchangeRate', exchangeRate)
-router.post('/exchangeRates', exchangeRates)
-
-export { router }
+  return router
+}

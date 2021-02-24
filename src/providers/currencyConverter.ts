@@ -1,9 +1,9 @@
 import { asMap, asNumber, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
-import { config } from '../config'
-import { ProviderFetch } from '../types'
-import { logger } from '../utils'
+import { ProviderFetch } from '../types/types'
+import { config } from '../utils/config'
+import { logger } from '../utils/utils'
 import { fiatMap } from './fiatCurrencyCodes'
 
 const { url: currencyConverterUrl, apiKey } = config.currencyConverter
