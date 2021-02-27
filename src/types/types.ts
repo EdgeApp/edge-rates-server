@@ -60,45 +60,42 @@ export interface State<D = {}> {
   [_id: string]: ServerDocument<D>
 }
 
-export interface ProcessorResponse<T, D = {}, E = any> {
-  error?: E
-  documents?: State<D>
-  result?: T
-}
-
-export type Processor<R, E = any> = <T, D>(
-  params: T,
-  initState: State<D> | {}
-) => ProcessorResponse<R, D, E> | Promise<ProcessorResponse<R, D, E>>
-
 export type ProcessorResult<T> = T | { error: any } | undefined
 
-export interface ParallelResult<T, D> {
-  documents: State<D>
-  results: ProcessorResult<T>
+export interface ProcessorResponse<T, D = {}, E = ServerError> {
+  error?: E
+  documents?: State<D>
+  result?: ProcessorResult<T> | Array<ProcessorResult<T>>
 }
 
-export interface ParallelResults<T, D> {
-  documents: State<D>
-  results: Array<ProcessorResult<T>>
-}
-
-export type ProcessorParallelResults<T, D> =
-  | ParallelResult<T, D>
-  | ParallelResults<T, D>
+export type Processor<T, D, R, E = any> = (
+  params: T,
+  state: State<D> | {}
+) => ProcessorResponse<R, D, E> | Promise<ProcessorResponse<R, D, E>>
 
 // ////////////////////////////////////////////// //
 // ////////////// DB Utility Types ////////////// //
 // ////////////////////////////////////////////// //
+export interface InitState<D = {}> {
+  [_id: string]: ServerDocument<D> | {}
+}
 export type DbConfig = ReturnType<typeof asDbConfig>
 
 export interface DbUtilSetting {
   localDB: any
   log?: (...args: any) => void
-  locks?: object
+  locks?: { [lockId: string]: any }
 }
 
-export type DbUtilFunction = (settings: DbUtilSetting, documents: State) => any
+export type DbSaveFunction = <D>(
+  settings: DbUtilSetting,
+  documents: State<D>
+) => void
+
+export type DbLoadFunction = <D>(
+  settings: DbUtilSetting,
+  documents: { [_id: string]: ServerDocument<D> | {} }
+) => Promise<State<D>>
 
 // ///////////////////////////////////////////////// //
 // ////////////// Other Utility Types ////////////// //
@@ -133,12 +130,21 @@ export type RateGetter = (
   document?: RatesGetterDocument
 ) => RateGetterResponse | Promise<RateGetterResponse>
 
-export type RateGetterResult = Partial<ReturnType<typeof asRateGetterResult>>
+export type RateGetterResult = ReturnType<typeof asRateGetterResult>
 
-export type RateProcessor = Processor<RateGetterResult, RateGetterError>
+export type RateProcessor = Processor<
+  RateGetterParams,
+  RatesGetterDocument,
+  RateGetterResult,
+  RateGetterError
+>
+
+export type RatesProcessorState = State<RatesGetterDocument>
+
 export type RateProcessorResponse = ProcessorResponse<
   RateGetterResult,
-  RatesGetterDocument
+  RatesGetterDocument,
+  RateGetterError
 >
 
 // ///////////////////////////////////////////////// //

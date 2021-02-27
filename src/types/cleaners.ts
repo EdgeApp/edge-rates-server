@@ -79,6 +79,12 @@ export const asServerError = asObject({
 // //////////////////////////////////////////////////////////// //
 // //////////// Exchange Rate Processors Cleaners ///////////// //
 // //////////////////////////////////////////////////////////// //
+export const asExchangeRateReq = asObject({
+  currency_pair: asString,
+  date: asOptional(asString)
+})
+export const asExchangeRatesReq = asArray(asExchangeRateReq)
+
 export const asRateGetterParams: Cleaner<RateGetterParams> = (param: any) => {
   const { currency_pair: currencyPair, date } = asExchangeRateReq(param)
   const dateStr = date ?? new Date().toISOString()
@@ -110,13 +116,11 @@ export const asRateGetterParams: Cleaner<RateGetterParams> = (param: any) => {
   }
 }
 
-export const asExchangeRatesReq = asArray(asRateGetterParams)
-
 export const asRatesGettersParams = (
   params: any,
   batchLimit = DEFAULT_CONFIG.exchangesBatchLimit
 ): RateGetterParams[] => {
-  const results = asExchangeRatesReq(params)
+  const results = asArray(asRateGetterParams)(params)
   if (results.length > batchLimit) {
     throw new Error(`Exceeded Limit of ${batchLimit}`)
   }
@@ -129,9 +133,9 @@ export const asRateGetterError = asObject({
 })
 
 export const asRateGetterResult = asObject({
-  date: asOptional(asString),
-  currencyPair: asOptional(asString),
-  exchangeRate: asOptional(asString)
+  date: asString,
+  currency_pair: asString,
+  exchangeRate: asString
 })
 
 export const asCurrencyRates = asMap(asString)
@@ -143,33 +147,31 @@ export const asRateGetterResponse = asObject({
   error: asOptional(asRateGetterError)
 })
 
-export const asRateGetterDocument = (
-  date: string
-): Cleaner<RatesGetterDocument> => initState =>
-  initState[date] != null ? asRatesDocument(initState[date]) : { _id: date }
+export const asRateGetterDocument = ({
+  date
+}: RateGetterParams): Cleaner<RatesGetterDocument> => docs =>
+  docs[date] != null ? asRatesDocument(docs[date]) : { _id: date }
 
 export const asRateProcessorResponse = (
   params: RateGetterParams
-): Cleaner<RateProcessorResponse> => {
-  return response => {
-    const { rate, error, document } = asRateGetterResponse(response)
-    const { date, currencyPair } = params
-    return {
-      result:
-        rate != null ? { date, currencyPair, exchangeRate: rate } : undefined,
-      documents:
-        document != null && Object.keys(document).length > 0
-          ? { [date]: { ...document } }
-          : undefined,
-      error: error != null ? { ...params, ...error } : undefined
-    }
+): Cleaner<RateProcessorResponse> => response => {
+  const { rate, error, document } = asRateGetterResponse(response)
+  const { date, currencyPair, ...rest } = params
+  return {
+    result:
+      rate != null
+        ? { date, currency_pair: currencyPair, exchangeRate: rate }
+        : undefined,
+    documents:
+      document != null && Object.keys(document).length > 0
+        ? { [date]: { ...document } }
+        : undefined,
+    error:
+      error != null
+        ? { date, currency_pair: currencyPair, ...rest, ...error }
+        : undefined
   }
 }
-
-export const asExchangeRateReq = asObject({
-  currency_pair: asString,
-  date: asOptional(asString)
-})
 
 // //////////////////////////////////////////////////// //
 // ////////////// Configuration Cleaners ////////////// //

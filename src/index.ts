@@ -9,5 +9,7 @@ const router = createRouter({})
 const server = createServer(router, config)
 // Start Server
 server.listen(server.get('httpPort'), server.get('httpHost'), () => {
-  logger(`Express server listening on port ${server.get('httpPort')}`)
+  logger(
+    `Express server listening on port ${JSON.stringify(server.get('httpPort'))}`
+  )
 })

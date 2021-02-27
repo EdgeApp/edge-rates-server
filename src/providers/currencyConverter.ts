@@ -33,14 +33,12 @@ export const currencyConverter: ProviderFetch = async rateParams => {
         result.ok === false
       ) {
         throw new Error(
-          `CurrencyConvertor returned with status: ${status ??
-            result.status} and error: ${error}`
+          `CurrencyConvertor returned with status: ${JSON.stringify(
+            status ?? result.status
+          )} and error: ${JSON.stringify(error)}`
         )
       }
-      if (
-        rates[currencyPair] != null &&
-        rates[currencyPair][normalToDate] != null
-      ) {
+      if (rates[currencyPair]?.[normalToDate] != null) {
         return rates[currencyPair][normalToDate].toString()
       }
     } catch (e) {

@@ -69,7 +69,9 @@ const updateAssets = (
 
     if ((error != null && error !== '') || result.ok === false) {
       throw new Error(
-        `CoincapHistorical returned code ${error ?? result.status}`
+        `CoincapHistorical returned code ${JSON.stringify(
+          error ?? result.status
+        )}`
       )
     }
 
@@ -105,8 +107,9 @@ export const coincapHistorical: ProviderFetch = async rateParams => {
   const { currencyA, currencyB, date } = rateParams
   if (currencyB !== 'USD' || assets[currencyA] == null) return null
   const timestamp = Date.parse(date)
-  const url = `${coinCapUrl}/${currencyA}/history?interval=m5&start=${timestamp}&end=${timestamp +
-    FIVE_MINUTES}`
+  const url = `${coinCapUrl}/${currencyA}/history?interval=m5&start=${timestamp}&end=${
+    timestamp + FIVE_MINUTES
+  }`
 
   try {
     const result = await fetch(url, { method: 'GET', json: true })
@@ -115,7 +118,9 @@ export const coincapHistorical: ProviderFetch = async rateParams => {
 
     if ((error != null && error !== '') || result.ok === false) {
       throw new Error(
-        `CoincapHistorical returned code ${error ?? result.status}`
+        `CoincapHistorical returned code ${JSON.stringify(
+          error ?? result.status
+        )}`
       )
     }
 

@@ -48,7 +48,7 @@
 //   return allRates.reduce(
 //     (
 //       { documents, results }: ReturnGetRates,
-//       { rate, date, error, currencyPair, document }
+//       { rate, date, error, currency_pair, document }
 //     ): ReturnGetRates => {
 //       if (document != null) {
 //         const { _id } = document
@@ -57,9 +57,9 @@
 //       }
 
 //       if (error != null) {
-//         results.push({ currencyPair, date, error })
+//         results.push({ currency_pair, date, error })
 //       } else {
-//         results.push({ currencyPair, date, exchangeRate: rate })
+//         results.push({ currency_pair, date, exchangeRate: rate })
 //       }
 //       return { documents, results }
 //     },

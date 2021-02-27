@@ -16,13 +16,13 @@ const ratesEngineInit = async (opts: ServerConfig = config): Promise<void> => {
   const { cryptoCurrencyCodes, fiatCurrencyCodes, ratesServerAddress } = opts
   const endPoint = `${ratesServerAddress}/v1/exchangeRates`
   const allCurrencies = cryptoCurrencyCodes.concat(fiatCurrencyCodes)
-  return ratesEngine(endPoint, allCurrencies)
+  return await ratesEngine(endPoint, allCurrencies)
 }
 
 const ratesEngine = async (endPoint, allCurrencies): Promise<void> => {
   const currentDate = new Date().toISOString()
   try {
-    const data: PairBody = allCurrencies.map(currencyCode => ({
+    const data: PairBody = allCurrencies.map((currencyCode: string) => ({
       currency_pair: `${currencyCode}_${fixedCurrency}`,
       date: currentDate
     }))

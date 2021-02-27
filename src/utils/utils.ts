@@ -1,4 +1,4 @@
-import { bns } from 'biggystring'
+import bns from 'biggystring'
 import fetch from 'node-fetch'
 
 import { SlackerSettings, State } from '../types/types'
@@ -9,7 +9,7 @@ export type Curried<A extends any[], R> = <P extends Partial<A>>(
   ...args: P
 ) => P extends A
   ? R
-  : A extends [...SameLength<P>, ...(infer S)]
+  : A extends [...SameLength<P>, ...infer S]
   ? S extends any[]
     ? Curried<S, R>
     : never
@@ -22,7 +22,7 @@ export type SameLength<T extends any[]> = Extract<
 
 export type Curry = <A extends any[], R>(fn: (...args: A) => R) => Curried<A, R>
 
-export const curry: Curry = <A, R>(fn) => (...args) =>
+export const curry: Curry = <A extends any[]>(fn) => (...args: A) =>
   args.length >= fn.length
     ? fn(...(args as any))
     : curry(fn.bind(undefined, ...(args as any)))
@@ -41,7 +41,7 @@ export const logger = (...args): void => {
  * hour and translating to UTC time.  Or returns undefined if dateSrc
  * is invalid.
  */
-export function normalizeDate(dateSrc: string): string | void {
+export function normalizeDate(dateSrc: string): string | undefined {
   const dateNorm = new Date(dateSrc)
   if (dateNorm.toString() === 'Invalid Date') {
     return undefined
@@ -60,21 +60,23 @@ export function normalizeDate(dateSrc: string): string | void {
 export const inverseRate = (rate: string): string => bns.div('1', rate, 8, 10)
 
 export const snooze = async (ms: number): Promise<void> =>
-  new Promise((resolve: Function) => setTimeout(resolve, ms))
+  await new Promise((resolve: Function) => setTimeout(resolve, ms))
 
 // Merge/Add the documents from origin to destination
 export const mergeDocuments = <T>(
   destination: State<T>,
   origin: State<T>
 ): State<T> =>
-  Object.keys(origin)
-    .map(id => ({
-      [id]:
-        destination[id] == null
-          ? origin[id]
-          : { ...destination[id], ...origin[id] }
-    }))
-    .reduce((result, document) => ({ ...result, ...document }), destination)
+  Object.keys(destination).length === 0
+    ? { ...origin }
+    : Object.keys(origin)
+        .map(id => ({
+          [id]:
+            destination[id] == null
+              ? origin[id]
+              : { ...destination[id], ...origin[id] }
+        }))
+        .reduce((result, document) => ({ ...result, ...document }), destination)
 
 export const slackPoster = async (
   {

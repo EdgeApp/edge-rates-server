@@ -7,10 +7,10 @@ import {
 } from '../../src/providers/coinMarketCap'
 import fixtures from './coinMaketCap.json'
 
-describe('asCoinMarketCapHistoricalResponse', function() {
+describe('asCoinMarketCapHistoricalResponse', function () {
   for (const test in fixtures.asCoinMarketCapHistoricalResponse) {
     const [input, output] = fixtures.asCoinMarketCapHistoricalResponse[test]
-    it(test, function() {
+    it(test, function () {
       if (output === true) {
         const { status } = asCoinMarketCapStatus(input)
         const { data } = asCoinMarketCapHistoricalData(input)

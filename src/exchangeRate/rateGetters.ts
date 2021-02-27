@@ -1,4 +1,4 @@
-import { bns } from 'biggystring'
+import bns from 'biggystring'
 
 import { defaultProviders } from '../providers/providers'
 import {
@@ -31,8 +31,7 @@ export const getZeroRate: RateGetter = (
   { zeroRateCurrencyCodes = {} },
   { currencyA, currencyB }
 ) =>
-  zeroRateCurrencyCodes[currencyA] === true ||
-  zeroRateCurrencyCodes[currencyB] === true
+  zeroRateCurrencyCodes[currencyA] || zeroRateCurrencyCodes[currencyB]
     ? { rate: '0' }
     : {}
 
@@ -66,7 +65,7 @@ export const getExchangesRate: RateGetter = async (
       }
   } catch (e) {}
 
-  return getExchangesRate(
+  return await getExchangesRate(
     { exchanges: exchanges.slice(1) },
     rateParams,
     currencyRates
@@ -97,10 +96,10 @@ export const getDbBridgedRate: RateGetter = async (
   rateParams,
   currencyRates
 ) =>
-  getBridgedRate(
+  await getBridgedRate(
     {
       bridgeCurrencies,
-      exchanges: [async () => Promise.resolve(null)]
+      exchanges: [async () => await Promise.resolve(null)]
     },
     rateParams,
     currencyRates
@@ -120,7 +119,7 @@ export const getBridgedRate: RateGetter = async (
   // If BridgedRate finds a rate, it adds it to the rates document
   const bridgedRate = async (currencyParam, pair): Promise<void> => {
     if (rates[pair] == null)
-      return exchanges[0]({
+      return await exchanges[0]({
         ...rateParams,
         ...currencyParam
       }).then(rate => {

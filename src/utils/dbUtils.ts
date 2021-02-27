@@ -1,13 +1,13 @@
 import AwaitLock from 'await-lock'
 
-import { DbUtilFunction } from '../types/types'
+import { DbLoadFunction, DbSaveFunction } from '../types/types'
 import { logger } from './utils'
 
-export const saveCouchdbDocuments: DbUtilFunction = (
+export const saveCouchdbDocuments: DbSaveFunction = (
   { localDB, log = logger, locks = {} },
   documents
 ) => {
-  const db = localDB?.config?.db ?? ''
+  const db: string = localDB?.config?.db ?? ''
   for (const document of Object.values(documents)) {
     const { _id } = document
     locks[_id] = locks[_id] ?? new AwaitLock()
@@ -19,16 +19,19 @@ export const saveCouchdbDocuments: DbUtilFunction = (
       .catch(e => log(`Error saving document ID: ${_id} to db: ${db}`))
       .finally(() => {
         locks[_id].release()
-        if (locks[_id]._waitingResolvers.length === 0) delete locks[_id]
+        if (locks[_id]._waitingResolvers.length === 0) {
+          const { [_id]: lock, ...rest } = locks
+          locks = rest
+        }
       })
   }
 }
 
-export const loadCouchdbDocuments: DbUtilFunction = async (
+export const loadCouchdbDocuments: DbLoadFunction = async (
   { localDB, log = logger },
   documents
 ) => {
-  const db = localDB?.config?.db ?? ''
+  const db: string = localDB?.config?.db ?? ''
   // Create a "get" promise array using all the documents ids
   const getPromises = Object.keys(documents).map(id =>
     documents[id] != null || Object.keys(documents[id]).length > 0

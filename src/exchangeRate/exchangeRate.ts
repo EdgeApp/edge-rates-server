@@ -1,14 +1,9 @@
+import { Cleaner } from 'cleaners'
 import express from 'express'
 import nano from 'nano'
 import promisify from 'promisify-node'
 
 import { defaultProviders } from '../providers/providers'
-import {
-  cleanRequestMiddleware,
-  loadDocumentsMiddleware,
-  postToSlackMiddleware,
-  saveDocumentsMiddleware
-} from '../router/commons'
 import {
   asRateGetterDocument,
   asRateGetterParams,
@@ -16,16 +11,19 @@ import {
   asRatesGettersParams
 } from '../types/cleaners'
 import {
+  DbLoadFunction,
+  DbSaveFunction,
+  ErrorType,
+  InitState,
   OmitFirstArg,
   RateGetter,
   RateGetterParams,
   RateProcessor,
   RateProcessorResponse,
-  RatesGetterDocument,
+  RatesProcessorState,
   ServerConfig,
-  State
+  ServerError
 } from '../types/types'
-import { config } from '../utils/config'
 import { loadCouchdbDocuments, saveCouchdbDocuments } from '../utils/dbUtils'
 import { processorWaterfall } from '../utils/processor'
 import { curry, slackPoster } from '../utils/utils'
@@ -38,82 +36,143 @@ import {
   getZeroRate
 } from './rateGetters'
 
-// const defaultGetters: RateGetter[] = [
-//   getZeroRate, // Check if one of the currency is a zero rate currency.
-//   getDbBridgedRate, // Try to get the rate from the db using bridged currencies.
-//   getExchangesRate, // Try to get the rate from any of the exchanges.
-//   getBridgedRate, // Try to get the rate from any of the exchanges using bridged currencies.
-//   getFallbackConstantRate, // Check if the currencyPair or the inverted has a default rate value.
-//   getExpiredRate // If no rate was found, and the request is old, set the rate to '0'.
-// ]
+const rateGetters = [
+  getZeroRate,
+  getDbBridgedRate,
+  getExchangesRate,
+  getBridgedRate,
+  getFallbackConstantRate,
+  getExpiredRate
+]
 
-export const getProcessorRate = async (
+export const serverError = <T>(
+  params: T,
+  message: string,
+  errorType: ErrorType = 'server_error',
+  errorCode: number = 500
+): ServerError & T => ({ message, errorCode, errorType, ...params })
+
+export const cleanerProcessor = async <T>(
+  cleaner: Cleaner<T>,
+  params: T
+): Promise<T | { error: ServerError }> =>
+  await Promise.resolve(cleaner(params)).catch(e => ({
+    error: serverError(params, e.message, 'bad_query', 400)
+  }))
+
+export const rateProcessor = async (
   rateGetter: OmitFirstArg<RateGetter>,
   params: RateGetterParams,
-  initState: State<RatesGetterDocument> = {}
+  documents: RatesProcessorState = {}
 ): Promise<RateProcessorResponse> => {
-  const document = asRateGetterDocument(params.date)(initState)
+  const docCleaner = asRateGetterDocument(params)
   const resCleaner = asRateProcessorResponse(params)
 
-  return Promise.resolve(rateGetter(params, document)).then(res =>
-    resCleaner(res)
-  )
+  return await Promise.resolve(rateGetter(params, docCleaner(documents)))
+    .then(res => resCleaner(res))
+    .catch(e => ({ error: e, documents }))
 }
 
+export const loadProcessor = async (
+  load: OmitFirstArg<DbLoadFunction>,
+  params: RateGetterParams | RateGetterParams[],
+  documents: InitState = {}
+): Promise<RateProcessorResponse> => {
+  const queries = Array.isArray(params) ? params : [params]
+  const stateTemplate: InitState = queries.reduce(
+    (docIds, { date }) => ({ [date]: {}, ...docIds }),
+    documents
+  )
+  return (load(stateTemplate) as Promise<RatesProcessorState>)
+    .then(documents => ({ documents }))
+    .catch(e => ({ error: serverError(params, e.message, 'db_error') }))
+}
+
+export const saveProcessor = (
+  save: OmitFirstArg<DbSaveFunction>,
+  _params: RateGetterParams | RateGetterParams[],
+  documents: RatesProcessorState | {}
+): RateProcessorResponse => {
+  save(documents)
+  return { documents }
+}
+
+export const slackProcessor = (
+  slack: (text: string) => Promise<void>,
+  error: ServerError
+): ServerError => {
+  if (error?.errorCode === 500) slack(error.message).catch(e => e)
+  return error
+}
+
+const createLoadFunction = curry(loadCouchdbDocuments)
+const createSaveFunction = curry(saveCouchdbDocuments)
+const createSlackFunction = curry(slackPoster)
+const createRateFunctions = (
+  config: ServerConfig
+): Array<OmitFirstArg<RateGetter>> =>
+  rateGetters.map(getter => curry(getter)(config))
+
+const createCleanerProcessor = curry(cleanerProcessor)
+const createLoadProcessor = curry(loadProcessor)
+const createSaveProcessor = curry(saveProcessor)
+const createSlackProcessor = curry(slackProcessor)
+const createRateProcessor = curry(rateProcessor)
+const createRateProcessors = (
+  funcs: Array<OmitFirstArg<RateGetter>>
+): RateProcessor[] => funcs.map(func => createRateProcessor(func))
+
+const createWaterfullProcessor = curry(processorWaterfall)
+
 export const exchangeRateRouter = (
-  serverConfig: ServerConfig = config
+  serverConfig: ServerConfig
 ): express.Router => {
-  const { dbFullpath, dbName } = serverConfig
+  const config = { ...serverConfig, exchanges: defaultProviders }
+  const { dbFullpath, dbName } = config
 
   const router = express.Router()
   const localDB = promisify(nano(dbFullpath).db.use(dbName))
-  const save = curry(saveCouchdbDocuments)({ localDB })
-  const load = curry(loadCouchdbDocuments)({ localDB })
-  const slacker = curry(slackPoster)(serverConfig)
 
-  // const dbRateProcessor = (_params, doc) => load(doc)
+  const loadProcessor = createLoadProcessor(createLoadFunction({ localDB }))
+  const saveProcessor = createSaveProcessor(createSaveFunction({ localDB }))
+  const slackProcessor = createSlackProcessor(createSlackFunction(config))
+  const rateProcessors = createRateProcessors(createRateFunctions(config))
 
-  const [
+  const [zeroRateProcessor, ...rest] = rateProcessors
+
+  const exchangeRateCleaner = createCleanerProcessor(asRateGetterParams)
+  const exchangeRateProcessor = createWaterfullProcessor([
     zeroRateProcessor,
-    dbBridgedRateProcessor,
-    exchangesRateProcessor,
-    bridgedRateProcessor,
-    fallbackConstantRateProcessor,
-    expiredRateProcessor
-  ]: RateProcessor[] = [
-    getZeroRate,
-    getDbBridgedRate,
-    getExchangesRate,
-    getBridgedRate,
-    getFallbackConstantRate,
-    getExpiredRate
-  ]
-    .map(func => curry(func)({ ...serverConfig, exchanges: defaultProviders }))
-    .map(func => curry(getProcessorRate)(func))
-
-  const ratesProcessor = curry(processorWaterfall)([
-    zeroRateProcessor,
-    dbBridgedRateProcessor,
-    exchangesRateProcessor,
-    bridgedRateProcessor,
-    fallbackConstantRateProcessor,
-    expiredRateProcessor
+    loadProcessor,
+    ...rest,
+    saveProcessor
   ])
 
-  // console.log(ratesProcessor)
+  const exchangeRatesCleaner = createCleanerProcessor(asRatesGettersParams)
+  const exchangeRatesProcessor = createWaterfullProcessor([
+    zeroRateProcessor,
+    loadProcessor,
+    ...rest,
+    saveProcessor
+  ])
 
-  router.get(
-    '/exchangeRate',
-    cleanRequestMiddleware(asRateGetterParams) as express.RequestHandler
-  )
-  router.post(
-    '/exchangeRates',
-    cleanRequestMiddleware(asRatesGettersParams) as express.RequestHandler
-  )
+  router.get('/exchangeRate', (req, res, next) => {
+    exchangeRateCleaner(req.query)
+      .then(exchangeRateProcessor)
+      .then(({ result, error }) =>
+        result != null ? res.json(result) : Promise.reject(error)
+      )
+      .catch(e => next(slackProcessor(e)))
+  })
 
-  router.use(loadDocumentsMiddleware(load) as express.RequestHandler)
-  // router.use(ratesMiddleware(serverConfig) as express.RequestHandler)
-  router.use(saveDocumentsMiddleware(save) as express.RequestHandler)
-  router.use(postToSlackMiddleware(slacker) as express.ErrorRequestHandler)
+  router.post('/exchangeRates', (req, res, next) => {
+    exchangeRatesCleaner(req.body)
+      .then(exchangeRatesProcessor)
+      .then(({ result, error }) =>
+        result != null ? res.json(result) : Promise.reject(error)
+      )
+      .catch(e => next(slackProcessor(e)))
+  })
+
   return router
 }
