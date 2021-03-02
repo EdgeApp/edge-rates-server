@@ -14,6 +14,7 @@ import promisify from 'promisify-node'
 
 import CONFIG from '../serverConfig.json'
 import { asExchangeRateReq, getExchangeRate, ReturnRate } from './rates'
+import { autoReplication } from './util/autoReplication'
 // const REQUIRED_CODES = ['BC1', 'DASH', 'LTC', 'BCH']
 
 const asExchangeRatesReq = asObject({
@@ -121,6 +122,11 @@ app.use('/v1', router)
 const numCPUs = cpus().length
 
 if (cluster.isMaster) {
+  autoReplication(
+    CONFIG.infoServerAddress,
+    'infoServer',
+    CONFIG.infoServerApiKey
+  ).catch(e => console.log(e))
   const instanceCount = CONFIG.instanceCount ?? numCPUs
 
   // Fork workers.

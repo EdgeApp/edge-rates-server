@@ -41,5 +41,7 @@
   "coinMarketCapCurrentApiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
   "slackWebhookUrl": "",
   "ratesLookbackLimit": 604800000,
-  "instanceCount": null
+  "instanceCount": null,
+  "infoServerAddress": "info1.edge.app",
+  "infoServerApiKey": ""
 }
