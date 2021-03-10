@@ -3,13 +3,13 @@ import AwaitLock from 'await-lock'
 import { DbLoadFunction, DbSaveFunction } from '../types/types'
 import { logger } from './utils'
 
-export const saveCouchdbDocuments: DbSaveFunction = (
+export const saveToCouch: DbSaveFunction = (
   { localDB, log = logger, locks = {} },
   documents
 ) => {
   const db: string = localDB?.config?.db ?? ''
   for (const document of Object.values(documents)) {
-    const { _id } = document
+    const { _id }: { _id: string } = document
     locks[_id] = locks[_id] ?? new AwaitLock()
 
     locks[_id]
@@ -27,7 +27,7 @@ export const saveCouchdbDocuments: DbSaveFunction = (
   }
 }
 
-export const loadCouchdbDocuments: DbLoadFunction = async (
+export const loadFromCouch: DbLoadFunction = async (
   { localDB, log = logger },
   documents
 ) => {
@@ -36,14 +36,11 @@ export const loadCouchdbDocuments: DbLoadFunction = async (
   const getPromises = Object.keys(documents).map(id =>
     documents[id] != null || Object.keys(documents[id]).length > 0
       ? { ...documents[id] }
-      : localDB
-          .get(id)
-          .then(document => document)
-          .catch(e => {
-            if (e.error !== 'not_found') throw e
-            log(`Document ID: ${id} does not exist in db: ${db}`)
-            return { _id: id }
-          })
+      : localDB.get(id).catch(e => {
+          if (e.error !== 'not_found') throw e
+          log(`Document ID: ${id} does not exist in db: ${db}`)
+          return { _id: id }
+        })
   )
   // Run all the promises in parallel and then reduce the results into a document map
   return Promise.all(getPromises).then(documents =>

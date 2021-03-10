@@ -11,11 +11,7 @@ import {
 } from 'cleaners'
 
 import { normalizeDate } from '../utils/utils'
-import {
-  RateGetterParams,
-  RateProcessorResponse,
-  RatesGetterDocument
-} from './types'
+import { RateParams, RatesState } from './types'
 
 export const DEFAULT_CONFIG = {
   dbFullpath: 'http://admin:password@localhost:5984',
@@ -40,13 +36,12 @@ export const ERRORS = [
 // ////////////// Utility Cleaners ////////////// //
 // ////////////////////////////////////////////// //
 export const asMaybeString = asOptional(asString, null)
-export const asOptCleaner = <T>(cleaner: Cleaner<T>) => (
-  defaultValue: T
-): Cleaner<T> => asOptional(cleaner, defaultValue)
+export const asDefaultOptional = <T>(cleaner: Cleaner<T>) => (
+  def: T
+): Cleaner<T> => asOptional(cleaner, def)
 
-export const asOptString = asOptCleaner(asString)
-export const asOptNumber = asOptCleaner(asNumber)
-
+export const asOptString = asDefaultOptional(asString)
+export const asOptNumber = asDefaultOptional(asNumber)
 export const asObjectMap = <T>(
   obj: ObjectShape<T>
 ): Cleaner<{ [key: string]: T }> => asMap(asObject(obj))
@@ -54,10 +49,7 @@ export const asObjectMap = <T>(
 export const asMapWithProps = <T, G>(
   map: Cleaner<T>,
   props: ObjectShape<G>
-) => obj => {
-  const result = asMap(map)(obj)
-  return { ...result, ...asObject(props)(obj) }
-}
+) => obj => ({ ...asMap(map)(obj), ...asObject(props)(obj) })
 
 // ////////////////////////////////////////////// //
 // /////////////// Server Cleaners ////////////// //
@@ -85,7 +77,13 @@ export const asExchangeRateReq = asObject({
 })
 export const asExchangeRatesReq = asArray(asExchangeRateReq)
 
-export const asRateGetterParams: Cleaner<RateGetterParams> = (param: any) => {
+export const asRateResponse = asObject({
+  date: asString,
+  currency_pair: asString,
+  exchangeRate: asString
+})
+
+export const asRateParams: Cleaner<RateParams> = (param: any) => {
   const { currency_pair: currencyPair, date } = asExchangeRateReq(param)
   const dateStr = date ?? new Date().toISOString()
 
@@ -116,62 +114,35 @@ export const asRateGetterParams: Cleaner<RateGetterParams> = (param: any) => {
   }
 }
 
-export const asRatesGettersParams = (
+export const asRatesParams = (
   params: any,
   batchLimit = DEFAULT_CONFIG.exchangesBatchLimit
-): RateGetterParams[] => {
-  const results = asArray(asRateGetterParams)(params)
+): RateParams[] => {
+  const results = asArray(asRateParams)(params)
   if (results.length > batchLimit) {
     throw new Error(`Exceeded Limit of ${batchLimit}`)
   }
   return results
 }
 
-export const asRateGetterError = asObject({
-  ...asRateGetterParams,
+export const asCurrencyRates = asMap(asString)
+export const asRatesState = asMapWithProps(asString, { _id: asString })
+
+export const asRateError = asObject({
+  ...asRateParams,
   ...asServerError.shape
 })
 
-export const asRateGetterResult = asObject({
-  date: asString,
-  currency_pair: asString,
-  exchangeRate: asString
-})
-
-export const asCurrencyRates = asMap(asString)
-export const asRatesDocument = asMapWithProps(asString, { _id: asString })
-
 export const asRateGetterResponse = asObject({
   rate: asOptional(asString),
-  document: asOptional(asRatesDocument),
-  error: asOptional(asRateGetterError)
+  document: asOptional(asRatesState),
+  error: asOptional(asRateError)
 })
 
-export const asRateGetterDocument = ({
+export const asRateDocument = ({
   date
-}: RateGetterParams): Cleaner<RatesGetterDocument> => docs =>
-  docs[date] != null ? asRatesDocument(docs[date]) : { _id: date }
-
-export const asRateProcessorResponse = (
-  params: RateGetterParams
-): Cleaner<RateProcessorResponse> => response => {
-  const { rate, error, document } = asRateGetterResponse(response)
-  const { date, currencyPair, ...rest } = params
-  return {
-    result:
-      rate != null
-        ? { date, currency_pair: currencyPair, exchangeRate: rate }
-        : undefined,
-    documents:
-      document != null && Object.keys(document).length > 0
-        ? { [date]: { ...document } }
-        : undefined,
-    error:
-      error != null
-        ? { date, currency_pair: currencyPair, ...rest, ...error }
-        : undefined
-  }
-}
+}: RateParams): Cleaner<RatesState> => docs =>
+  docs[date] != null ? asRatesState(docs[date]) : { _id: date }
 
 // //////////////////////////////////////////////////// //
 // ////////////// Configuration Cleaners ////////////// //

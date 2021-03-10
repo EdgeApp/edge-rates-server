@@ -23,7 +23,8 @@
     "test": "nyc yarn test:mocha --reporter mocha-multi-reporters --reporter-options configFile=./mocha-config.json",
     "test:mocha": "mocha 'test/**/*.ts'",
     "posttest": "nyc report --reporter=cobertura --reporter=html",
-    "lint": "eslint --ext .js,.jsx,.ts,.tsx ."
+    "lint": "eslint --ext .js,.jsx,.ts,.tsx .",
+    "watch": "tsnd --transpile-only src/index.ts"
   },
   "husky": {
     "hooks": {

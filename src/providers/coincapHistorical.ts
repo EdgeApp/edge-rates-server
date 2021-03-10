@@ -3,7 +3,7 @@ import { asArray, asNumber, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { asMaybeString } from '../types/cleaners'
-import { ProviderFetch, RateGetterParams } from '../types/types'
+import { RateGetterParams, RateProvider } from '../types/types'
 import { config } from '../utils/config'
 import { logger } from '../utils/utils'
 
@@ -101,13 +101,15 @@ const updateAssets = (
 
 const assetMap = updateAssets()
 
-export const coincapHistorical: ProviderFetch = async rateParams => {
+export const coincapHistorical: RateProvider = async rateParams => {
   const assets = await assetMap(rateParams)
 
   const { currencyA, currencyB, date } = rateParams
-  if (currencyB !== 'USD' || assets[currencyA] == null) return null
+  const currencyId = assets[currencyA]
+
+  if (currencyB !== 'USD' || currencyId == null) return null
   const timestamp = Date.parse(date)
-  const url = `${coinCapUrl}/${currencyA}/history?interval=m5&start=${timestamp}&end=${
+  const url = `${coinCapUrl}/${currencyId}/history?interval=m5&start=${timestamp}&end=${
     timestamp + FIVE_MINUTES
   }`
 

@@ -1,101 +1,23 @@
-import { Cleaner } from 'cleaners'
+// import { Cleaner } from 'cleaners'
 import express from 'express'
 import nano from 'nano'
 import promisify from 'promisify-node'
 
 import { defaultProviders } from '../providers/providers'
+import { asRateParams, asRatesParams } from '../types/cleaners'
+import { ServerConfig, ServerError } from '../types/types'
+import { loadFromCouch, saveToCouch } from '../utils/dbUtils'
 import {
-  asRateGetterDocument,
-  asRateGetterParams,
-  asRateProcessorResponse,
-  asRatesGettersParams
-} from '../types/cleaners'
-import {
-  DbLoadFunction,
-  DbSaveFunction,
-  ErrorType,
-  InitState,
-  OmitFirstArg,
-  RateGetter,
-  RateGetterParams,
-  RateProcessor,
-  RateProcessorResponse,
-  RatesProcessorState,
-  ServerConfig,
-  ServerError
-} from '../types/types'
-import { loadCouchdbDocuments, saveCouchdbDocuments } from '../utils/dbUtils'
-import { processorWaterfall } from '../utils/processor'
-import { curry, slackPoster } from '../utils/utils'
-import {
-  getBridgedRate,
-  getDbBridgedRate,
-  getExchangesRate,
-  getExpiredRate,
-  getFallbackConstantRate,
-  getZeroRate
-} from './rateGetters'
+  fromCleaner,
+  fromLoad,
+  fromSave,
+  toWaterfall
+} from '../utils/processor'
+import { slackPoster } from '../utils/slack'
+import { compose, curry } from '../utils/utils'
+import { getBridgedRate } from './rateProcessor'
 
-const rateGetters = [
-  getZeroRate,
-  getDbBridgedRate,
-  getExchangesRate,
-  getBridgedRate,
-  getFallbackConstantRate,
-  getExpiredRate
-]
-
-export const serverError = <T>(
-  params: T,
-  message: string,
-  errorType: ErrorType = 'server_error',
-  errorCode: number = 500
-): ServerError & T => ({ message, errorCode, errorType, ...params })
-
-export const cleanerProcessor = async <T>(
-  cleaner: Cleaner<T>,
-  params: T
-): Promise<T | { error: ServerError }> =>
-  await Promise.resolve(cleaner(params)).catch(e => ({
-    error: serverError(params, e.message, 'bad_query', 400)
-  }))
-
-export const rateProcessor = async (
-  rateGetter: OmitFirstArg<RateGetter>,
-  params: RateGetterParams,
-  documents: RatesProcessorState = {}
-): Promise<RateProcessorResponse> => {
-  const docCleaner = asRateGetterDocument(params)
-  const resCleaner = asRateProcessorResponse(params)
-
-  return await Promise.resolve(rateGetter(params, docCleaner(documents)))
-    .then(res => resCleaner(res))
-    .catch(e => ({ error: e, documents }))
-}
-
-export const loadProcessor = async (
-  load: OmitFirstArg<DbLoadFunction>,
-  params: RateGetterParams | RateGetterParams[],
-  documents: InitState = {}
-): Promise<RateProcessorResponse> => {
-  const queries = Array.isArray(params) ? params : [params]
-  const stateTemplate: InitState = queries.reduce(
-    (docIds, { date }) => ({ [date]: {}, ...docIds }),
-    documents
-  )
-  return (load(stateTemplate) as Promise<RatesProcessorState>)
-    .then(documents => ({ documents }))
-    .catch(e => ({ error: serverError(params, e.message, 'db_error') }))
-}
-
-export const saveProcessor = (
-  save: OmitFirstArg<DbSaveFunction>,
-  _params: RateGetterParams | RateGetterParams[],
-  documents: RatesProcessorState | {}
-): RateProcessorResponse => {
-  save(documents)
-  return { documents }
-}
+const rateGetters = [getBridgedRate]
 
 export const slackProcessor = (
   slack: (text: string) => Promise<void>,
@@ -105,24 +27,15 @@ export const slackProcessor = (
   return error
 }
 
-const createLoadFunction = curry(loadCouchdbDocuments)
-const createSaveFunction = curry(saveCouchdbDocuments)
-const createSlackFunction = curry(slackPoster)
-const createRateFunctions = (
-  config: ServerConfig
-): Array<OmitFirstArg<RateGetter>> =>
-  rateGetters.map(getter => curry(getter)(config))
-
-const createCleanerProcessor = curry(cleanerProcessor)
-const createLoadProcessor = curry(loadProcessor)
-const createSaveProcessor = curry(saveProcessor)
-const createSlackProcessor = curry(slackProcessor)
-const createRateProcessor = curry(rateProcessor)
-const createRateProcessors = (
-  funcs: Array<OmitFirstArg<RateGetter>>
-): RateProcessor[] => funcs.map(func => createRateProcessor(func))
-
-const createWaterfullProcessor = curry(processorWaterfall)
+const createWaterfullProcessor = curry(toWaterfall)
+const exchangeRateCleaner = curry(fromCleaner)(asRateParams)
+const exchangeRatesCleaner = curry(fromCleaner)(asRatesParams)
+const createLoadProcessor = compose(curry(fromLoad), curry(loadFromCouch))
+const createSaveProcessor = compose(curry(fromSave), curry(saveToCouch))
+const createSlackProcessor = compose(curry(slackProcessor), curry(slackPoster))
+const createRateProcessors = rateGetters.map((getter: RateGetter) =>
+  compose(curry(getter), curry(rateProcessor))
+)
 
 export const exchangeRateRouter = (
   serverConfig: ServerConfig
@@ -133,22 +46,20 @@ export const exchangeRateRouter = (
   const router = express.Router()
   const localDB = promisify(nano(dbFullpath).db.use(dbName))
 
-  const loadProcessor = createLoadProcessor(createLoadFunction({ localDB }))
-  const saveProcessor = createSaveProcessor(createSaveFunction({ localDB }))
-  const slackProcessor = createSlackProcessor(createSlackFunction(config))
-  const rateProcessors = createRateProcessors(createRateFunctions(config))
+  const loadProcessor = createLoadProcessor({ localDB })
+  const saveProcessor = createSaveProcessor({ localDB })
+  const slackProcessor = createSlackProcessor(config)
+  const rateProcessors = createRateProcessors.map(processor =>
+    processor(config as any)
+  )
 
   const [zeroRateProcessor, ...rest] = rateProcessors
 
-  const exchangeRateCleaner = createCleanerProcessor(asRateGetterParams)
   const exchangeRateProcessor = createWaterfullProcessor([
-    zeroRateProcessor,
-    loadProcessor,
-    ...rest,
+    createWaterfullProcessor([zeroRateProcessor, loadProcessor, ...rest]),
     saveProcessor
   ])
 
-  const exchangeRatesCleaner = createCleanerProcessor(asRatesGettersParams)
   const exchangeRatesProcessor = createWaterfullProcessor([
     zeroRateProcessor,
     loadProcessor,

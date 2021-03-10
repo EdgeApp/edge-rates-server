@@ -5,14 +5,22 @@
     "emitDeclarationOnly": true,
 
     "esModuleInterop": true,
-    "module": "es2015",
+    "module": "commonjs",
     "moduleResolution": "node",
     "jsx": "react",
     "resolveJsonModule": true,
-    "target": "es2015",
+    "target": "es2016",
 
     "strict": true,
     "noImplicitAny": false
+  },
+  "watchOptions": {
+    // Use native file system events for files and directories
+    "watchFile": "useFsEvents",
+    "watchDirectory": "useFsEvents",
+    // Poll files for updates more frequently
+    // when they're updated a lot.
+    "fallbackPolling": "dynamicPriority"
   },
   "exclude": ["node_modules", "lib"]
 }

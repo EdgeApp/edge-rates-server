@@ -4,11 +4,11 @@ import { Document, IdentifiedDocument } from 'nano'
 import {
   asCurrencyRates,
   asDbConfig,
+  asExchangeRateReq,
   asHttpConfig,
   asProviderConfig,
-  asRateGetterError,
-  asRateGetterResponse,
-  asRateGetterResult,
+  asRateError,
+  asRateResponse,
   asServerConfig,
   asServerError,
   ERRORS
@@ -29,15 +29,18 @@ export type ServerConfig = ReturnType<typeof asServerConfig>
 export type HttpConfig = ReturnType<typeof asHttpConfig>
 export type ServerError = ReturnType<typeof asServerError>
 export type ServerDocument<D = {}> = D & (Document | IdentifiedDocument)
+export interface ServerState<D = {}> {
+  [id: string]: ServerDocument<D>
+}
 
 export interface Request extends express.Request {
   params: any
-  documents?: { [id: string]: ServerDocument }
+  state?: ServerState
 }
 
 export interface Response extends express.Response {
-  documents: { [_id: string]: ServerDocument }
-  results: any
+  state: ServerState
+  result: any
 }
 
 export type Middleware = (
@@ -56,21 +59,17 @@ export type ErrorMiddleware = (
 // ///////////////////////////////////////////////////// //
 // ////////////// Processor Utility Types ////////////// //
 // ///////////////////////////////////////////////////// //
-export interface State<D = {}> {
-  [_id: string]: ServerDocument<D>
-}
-
 export type ProcessorResult<T> = T | { error: any } | undefined
 
 export interface ProcessorResponse<T, D = {}, E = ServerError> {
   error?: E
-  documents?: State<D>
+  state?: ServerState<D>
   result?: ProcessorResult<T> | Array<ProcessorResult<T>>
 }
 
 export type Processor<T, D, R, E = any> = (
   params: T,
-  state: State<D> | {}
+  state: ServerState<D> | {}
 ) => ProcessorResponse<R, D, E> | Promise<ProcessorResponse<R, D, E>>
 
 // ////////////////////////////////////////////// //
@@ -89,13 +88,13 @@ export interface DbUtilSetting {
 
 export type DbSaveFunction = <D>(
   settings: DbUtilSetting,
-  documents: State<D>
+  documents: ServerState<D>
 ) => void
 
 export type DbLoadFunction = <D>(
   settings: DbUtilSetting,
-  documents: { [_id: string]: ServerDocument<D> | {} }
-) => Promise<State<D>>
+  documents: ServerState<D>
+) => Promise<ServerState<D>>
 
 // ///////////////////////////////////////////////// //
 // ////////////// Other Utility Types ////////////// //
@@ -106,59 +105,45 @@ export interface SlackerSettings {
   lastDate?: number
 }
 
-// //////////////////////////////////////////////////////////// //
-// ////////////// Exchange Rate Processors Types ////////////// //
-// //////////////////////////////////////////////////////////// //
-export type CurrencyRates = ReturnType<typeof asCurrencyRates>
-export type RateGetterOptions = Partial<ServerConfig & Exchanges>
-export type RateGetterError = ReturnType<typeof asRateGetterError>
-export type RatesGetterDocument = ServerDocument<CurrencyRates>
-export type RateGetterResponse = Partial<
-  ReturnType<typeof asRateGetterResponse>
->
-
-export interface RateGetterParams {
-  currencyA: string
-  currencyB: string
-  currencyPair: string
-  date: string
-}
-
-export type RateGetter = (
-  options: RateGetterOptions,
-  rateParams: RateGetterParams,
-  document?: RatesGetterDocument
-) => RateGetterResponse | Promise<RateGetterResponse>
-
-export type RateGetterResult = ReturnType<typeof asRateGetterResult>
-
-export type RateProcessor = Processor<
-  RateGetterParams,
-  RatesGetterDocument,
-  RateGetterResult,
-  RateGetterError
->
-
-export type RatesProcessorState = State<RatesGetterDocument>
-
-export type RateProcessorResponse = ProcessorResponse<
-  RateGetterResult,
-  RatesGetterDocument,
-  RateGetterError
->
-
 // ///////////////////////////////////////////////// //
 // //////////////// Providers Types //////////////// //
 // ///////////////////////////////////////////////// //
 export type ProviderConfig = ReturnType<typeof asProviderConfig>
 
-export type ProviderFetch = (
-  rateParams: RateGetterParams
-) => Promise<string | null>
-
-export interface Exchanges {
-  exchanges: ProviderFetch[]
+export type RateProvider = (rateParams: RateParams) => Promise<string | null>
+export interface RateProviders {
+  provider: RateProvider
+  providers: RateProvider[]
 }
+
+// //////////////////////////////////////////////////////////// //
+// ////////////// Exchange Rate Processors Types ////////////// //
+// //////////////////////////////////////////////////////////// //
+export type RateRequest = ReturnType<typeof asExchangeRateReq>
+export type RateResponse = ReturnType<typeof asRateResponse>
+export type RateOptions = Partial<ServerConfig & RateProviders>
+export interface RateParams {
+  currencyA: string
+  currencyB: string
+  currencyPair: string
+  date: string
+}
+export type CurrencyRates = ReturnType<typeof asCurrencyRates>
+export type RatesState = ServerDocument<CurrencyRates>
+export type RateError = ReturnType<typeof asRateError>
+
+export type RateProcessor = Processor<
+  RateParams,
+  CurrencyRates,
+  RateResponse,
+  RateError
+>
+
+export type RateProcessorResponse = ProcessorResponse<
+  RateResponse,
+  CurrencyRates,
+  RateError
+>
 
 // //////////////////////////////////////////////////////////// //
 // ////////////// Rate Processors settings Types ////////////// //

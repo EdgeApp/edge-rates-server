@@ -11,6 +11,7 @@ const BodyParseError = {
   errorType: 'bad_query',
   errorCode: 400
 }
+
 const RouteError = {
   message: 'Endpoint not found',
   errorType: 'bad_query',

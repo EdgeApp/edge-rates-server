@@ -1,9 +1,25 @@
 import bns from 'biggystring'
-import fetch from 'node-fetch'
 
-import { SlackerSettings, State } from '../types/types'
+import { State } from '../types/types'
 
-const FIVE_MINUTES = 1000 * 60 * 5
+export type SameLength<T extends any[]> = Extract<
+  { [K in keyof T]: any },
+  any[]
+>
+
+export type FuncArityOne = (args: any) => any
+export type FuncArityN = (...args: any) => any
+
+export type ArrayHead<T extends any[]> = T extends [...infer Head, any]
+  ? Head
+  : never
+
+export type PickLastInTuple<T extends any[]> = T extends [
+  ...ArrayHead<T>,
+  infer Last
+]
+  ? Last
+  : never
 
 export type Curried<A extends any[], R> = <P extends Partial<A>>(
   ...args: P
@@ -15,17 +31,28 @@ export type Curried<A extends any[], R> = <P extends Partial<A>>(
     : never
   : never
 
-export type SameLength<T extends any[]> = Extract<
-  { [K in keyof T]: any },
-  any[]
->
-
 export type Curry = <A extends any[], R>(fn: (...args: A) => R) => Curried<A, R>
+
+export type Pipe = <T extends FuncArityN, R extends FuncArityOne[]>(
+  ...funcs: [T, ...R]
+) => (...args: Parameters<T>) => ReturnType<PickLastInTuple<R>>
+
+export type Compose = <T extends FuncArityOne[], R extends FuncArityN>(
+  ...funcs: [...T, R]
+) => (...args: Parameters<R>) => ReturnType<PickLastInTuple<T>>
 
 export const curry: Curry = <A extends any[]>(fn) => (...args: A) =>
   args.length >= fn.length
     ? fn(...(args as any))
     : curry(fn.bind(undefined, ...(args as any)))
+
+export const pipe: Pipe = (...funcs) =>
+  funcs.reduce((curried, func) => (...args) =>
+    func((curried as FuncArityN)(...args))
+  )
+
+export const compose: Compose = (...funcs) =>
+  funcs.reduce((curried, func) => args => curried(func(args)))
 
 export const logger = (...args): void => {
   const isoDate = new Date().toISOString()
@@ -57,7 +84,8 @@ export function normalizeDate(dateSrc: string): string | undefined {
   return dateNorm.toISOString()
 }
 
-export const inverseRate = (rate: string): string => bns.div('1', rate, 8, 10)
+export const inverseRate = (rate: string): string =>
+  rate === '0' ? '0' : bns.div('1', rate, 8, 10)
 
 export const snooze = async (ms: number): Promise<void> =>
   await new Promise((resolve: Function) => setTimeout(resolve, ms))
@@ -77,34 +105,3 @@ export const mergeDocuments = <T>(
               : { ...destination[id], ...origin[id] }
         }))
         .reduce((result, document) => ({ ...result, ...document }), destination)
-
-export const slackPoster = async (
-  {
-    slackWebhookUrl,
-    lastText = '',
-    lastDate = 1591837000000 // June 10 2020
-  }: SlackerSettings,
-  text: string
-): Promise<void> => {
-  const now = Date.now()
-  // check if it's been 5 minutes since last identical message was sent to Slack
-  if (
-    slackWebhookUrl == null ||
-    slackWebhookUrl === '' ||
-    (text === lastText && now - lastDate < FIVE_MINUTES) // 5 minutes
-  ) {
-    return
-  }
-  try {
-    lastText = text
-    lastDate = now
-    await fetch(slackWebhookUrl, {
-      method: 'POST',
-      body: JSON.stringify({
-        text: `${new Date(now).toISOString()} ${JSON.stringify(text)}`
-      })
-    })
-  } catch (e) {
-    console.log('Could not log DB error to Slack', e)
-  }
-}
