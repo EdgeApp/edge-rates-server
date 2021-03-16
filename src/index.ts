@@ -4,7 +4,14 @@
 
 import bodyParser from 'body-parser'
 import { asArray, asObject } from 'cleaners'
+import cluster from 'cluster'
 import cors from 'cors'
+import {
+  autoReplication,
+  forkChildren,
+  makePeriodicTask,
+  rebuildCouch
+} from 'edge-server-tools'
 import express from 'express'
 import http from 'http'
 import nano from 'nano'
@@ -18,6 +25,7 @@ const asExchangeRatesReq = asObject({
   data: asArray(asExchangeRateReq)
 })
 
+const AUTOREPLICATION_DELAY = 1000 * 60 * 30 // 30 minutes
 const EXCHANGE_RATES_BATCH_LIMIT = 100
 
 // call the packages we need
@@ -116,11 +124,37 @@ router.use(function(req, res, next) {
 // all of our routes will be prefixed with /api
 app.use('/v1', router)
 
-// START THE SERVER
-// =============================================================================
-const httpServer = http.createServer(app)
+async function main(): Promise<void> {
+  const {
+    httpPort = 8008,
+    infoServerAddress,
+    infoServerApiKey,
+    hostname = '127.0.0.1',
+    dbUsername,
+    dbPassword
+  } = CONFIG
+  if (cluster.isMaster) {
+    // rebuildCouch(myCouchSetupData)
+    makePeriodicTask(async () => 
+      await autoReplication(
+        infoServerAddress,
+        'ratesServer',
+        infoServerApiKey,
+        hostname,
+        dbUsername,
+        dbPassword
+      ),
+      AUTOREPLICATION_DELAY
+    )
+    forkChildren()
+  } else {
+  // START THE SERVER
+  // =============================================================================
+  const httpServer = http.createServer(app)
+  httpServer.listen(httpPort, '127.0.0.1')
 
-const { httpPort = 8008 } = CONFIG
-httpServer.listen(CONFIG.httpPort, '127.0.0.1')
+  mylog(`Express server listening on port ${httpPort}`)
+  }
+}
 
-mylog(`Express server listening on port ${httpPort}`)
+main().catch(e => console.log(e))

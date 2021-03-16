@@ -1,5 +1,10 @@
 {
   "dbFullpath": "http://username:password@localhost:5984",
+  "dbUsername": "username",
+  "dbPassword": "password",
+  "infoServerAddress": "info1.edge.app",
+  "infoServerApiKey": "",
+  "hostname": "",
   "httpPort": 8008,
   "bridgeCurrencies": ["USD", "BTC"],
   "cryptoCurrencyCodes": [
