@@ -1,7 +1,12 @@
 {
-  "dbFullpath": "http://username:password@localhost:5984",
+  "couchUri": "http://admin:password@localhost:5984",
   "httpPort": 8008,
-  "bridgeCurrencies": ["USD", "BTC"],
+  "infoServerAddress": "info1.edge.app",
+  "infoServerApiKey": "hex",
+  "bridgeCurrencies": [
+    "USD",
+    "BTC"
+  ],
   "cryptoCurrencyCodes": [
     "BTC",
     "ETH",
@@ -34,7 +39,12 @@
     "UMA",
     "VET"
   ],
-  "fiatCurrencyCodes": ["EUR", "CNY", "JPY", "GBP"],
+  "fiatCurrencyCodes": [
+    "EUR",
+    "CNY",
+    "JPY",
+    "GBP"
+  ],
   "ratesServerAddress": "https://rates1.edge.app",
   "currencyConverterApiKey": "",
   "coinMarketCapHistoricalApiKey": "XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX",
