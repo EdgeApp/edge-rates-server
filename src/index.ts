@@ -4,7 +4,13 @@
 
 import bodyParser from 'body-parser'
 import { asArray, asObject } from 'cleaners'
+import cluster from 'cluster'
 import cors from 'cors'
+import {
+  autoReplication,
+  forkChildren,
+  makePeriodicTask
+} from 'edge-server-tools'
 import express from 'express'
 import http from 'http'
 import nano from 'nano'
@@ -18,6 +24,7 @@ const asExchangeRatesReq = asObject({
   data: asArray(asExchangeRateReq)
 })
 
+const AUTOREPLICATION_DELAY = 1000 * 60 * 30 // 30 minutes
 const EXCHANGE_RATES_BATCH_LIMIT = 100
 
 // call the packages we need
@@ -39,7 +46,7 @@ app.use(cors())
 
 // Nano for CouchDB
 // =============================================================================
-const nanoDb = nano(CONFIG.dbFullpath)
+const nanoDb = nano(CONFIG.couchUri)
 const dbRates = nanoDb.db.use('db_rates')
 promisify(dbRates)
 
@@ -48,7 +55,7 @@ promisify(dbRates)
 const router = express.Router()
 
 // middleware to use for all requests
-router.use(function(req, res, next) {
+router.use(function (req, res, next) {
   // do logging
 
   mylog('Something is happening.')
@@ -59,7 +66,7 @@ router.use(function(req, res, next) {
  * Query params:
  * currency_pair: String with the two currencies separated by an underscore. Ex: "ETH_USD"
  */
-router.get('/exchangeRate', async function(req, res) {
+router.get('/exchangeRate', async function (req, res) {
   const result = await getExchangeRate(req.query, dbRates)
   if (result.data.error != null) {
     return res.status(400).send(result.data.error)
@@ -72,7 +79,7 @@ router.get('/exchangeRate', async function(req, res) {
   res.json(result.data)
 })
 
-router.post('/exchangeRates', async function(req, res) {
+router.post('/exchangeRates', async function (req, res) {
   let queryResult
   try {
     queryResult = asExchangeRatesReq(req.body)
@@ -106,7 +113,7 @@ router.post('/exchangeRates', async function(req, res) {
 })
 
 // middleware to use for all requests
-router.use(function(req, res, next) {
+router.use(function (req, res, next) {
   // do logging
   mylog(dateString() + 'Something is happening.')
   next() // make sure we go to the next routes and don't stop here
@@ -116,11 +123,33 @@ router.use(function(req, res, next) {
 // all of our routes will be prefixed with /api
 app.use('/v1', router)
 
-// START THE SERVER
-// =============================================================================
-const httpServer = http.createServer(app)
+async function main(): Promise<void> {
+  const {
+    couchUri,
+    httpPort = 8008,
+    infoServerAddress,
+    infoServerApiKey
+  } = CONFIG
+  if (cluster.isMaster) {
+    makePeriodicTask(
+      async () =>
+        await autoReplication(
+          infoServerAddress,
+          'ratesServer',
+          infoServerApiKey,
+          couchUri
+        ),
+      AUTOREPLICATION_DELAY
+    )
+    forkChildren()
+  } else {
+    // START THE SERVER
+    // =============================================================================
+    const httpServer = http.createServer(app)
+    httpServer.listen(httpPort, '127.0.0.1')
 
-const { httpPort = 8008 } = CONFIG
-httpServer.listen(CONFIG.httpPort, '127.0.0.1')
+    mylog(`Express server listening on port ${httpPort}`)
+  }
+}
 
-mylog(`Express server listening on port ${httpPort}`)
+main().catch(e => console.log(e))
