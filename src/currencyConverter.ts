@@ -1,10 +1,10 @@
 import { asMap, asNumber } from 'cleaners'
 import fetch from 'node-fetch'
 
-import CONFIG from '../serverConfig.json'
+import { config } from './config'
 import { fiatCurrencyCodes } from './fiatCurrencyCodes'
 
-const apiKey = CONFIG.currencyConverterApiKey
+const apiKey = config.currencyConverterApiKey
 
 const asCurrencyConverterResponse = asMap(asMap(asNumber))
 

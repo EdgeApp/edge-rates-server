@@ -16,7 +16,7 @@ import http from 'http'
 import nano from 'nano'
 import promisify from 'promisify-node'
 
-import CONFIG from '../serverConfig.json'
+import { config } from './config'
 import { asExchangeRateReq, getExchangeRate, ReturnRate } from './rates'
 // const REQUIRED_CODES = ['BC1', 'DASH', 'LTC', 'BCH']
 
@@ -46,7 +46,7 @@ app.use(cors())
 
 // Nano for CouchDB
 // =============================================================================
-const nanoDb = nano(CONFIG.couchUri)
+const nanoDb = nano(config.couchUri)
 const dbRates = nanoDb.db.use('db_rates')
 promisify(dbRates)
 
@@ -55,7 +55,7 @@ promisify(dbRates)
 const router = express.Router()
 
 // middleware to use for all requests
-router.use(function (req, res, next) {
+router.use(function(req, res, next) {
   // do logging
 
   mylog('Something is happening.')
@@ -66,7 +66,7 @@ router.use(function (req, res, next) {
  * Query params:
  * currency_pair: String with the two currencies separated by an underscore. Ex: "ETH_USD"
  */
-router.get('/exchangeRate', async function (req, res) {
+router.get('/exchangeRate', async function(req, res) {
   const result = await getExchangeRate(req.query, dbRates)
   if (result.data.error != null) {
     return res.status(400).send(result.data.error)
@@ -79,7 +79,7 @@ router.get('/exchangeRate', async function (req, res) {
   res.json(result.data)
 })
 
-router.post('/exchangeRates', async function (req, res) {
+router.post('/exchangeRates', async function(req, res) {
   let queryResult
   try {
     queryResult = asExchangeRatesReq(req.body)
@@ -113,7 +113,7 @@ router.post('/exchangeRates', async function (req, res) {
 })
 
 // middleware to use for all requests
-router.use(function (req, res, next) {
+router.use(function(req, res, next) {
   // do logging
   mylog(dateString() + 'Something is happening.')
   next() // make sure we go to the next routes and don't stop here
@@ -123,17 +123,17 @@ router.use(function (req, res, next) {
 // all of our routes will be prefixed with /api
 app.use('/v1', router)
 
-async function main(): Promise<void> {
+function main(): void {
   const {
     couchUri,
     httpPort = 8008,
     infoServerAddress,
     infoServerApiKey
-  } = CONFIG
+  } = config
   if (cluster.isMaster) {
     makePeriodicTask(
       async () =>
-        await autoReplication(
+        autoReplication(
           infoServerAddress,
           'ratesServer',
           infoServerApiKey,
@@ -152,4 +152,4 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch(e => console.log(e))
+main()

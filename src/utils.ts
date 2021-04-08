@@ -1,9 +1,9 @@
 import { validate } from 'jsonschema'
 import fetch from 'node-fetch'
 
-import CONFIG from '../serverConfig.json'
+import { config } from './config'
 
-const { slackWebhookUrl } = CONFIG
+const { slackWebhookUrl } = config
 
 /*
  * Returns string value of date "normalized" by floor'ing to nearest

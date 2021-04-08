@@ -1,8 +1,8 @@
 import { bns } from 'biggystring'
 import fetch from 'node-fetch'
 
-import CONFIG from '../serverConfig.json'
 import { coinMarketCapFiatMap } from './coinMarketCapFiatMap'
+import { config } from './config'
 import { validateObject } from './utils'
 
 export const CmcHistoricalQuote = {
@@ -58,11 +58,11 @@ const _fetchQuote = async (
   date: string,
   log: Function
 ): Promise<string | void> => {
-  if (CONFIG.coinMarketCapHistoricalApiKey !== null) {
+  if (config.coinMarketCapHistoricalApiKey !== null) {
     const options = {
       method: 'GET',
       headers: {
-        'X-CMC_PRO_API_KEY': CONFIG.coinMarketCapHistoricalApiKey
+        'X-CMC_PRO_API_KEY': config.coinMarketCapHistoricalApiKey
       },
       json: true
     }
