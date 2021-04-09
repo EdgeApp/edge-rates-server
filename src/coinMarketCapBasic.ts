@@ -2,8 +2,8 @@ import { bns } from 'biggystring'
 import { asMap, asNumber, asObject } from 'cleaners'
 import fetch from 'node-fetch'
 
-import CONFIG from '../serverConfig.json'
 import { coinMarketCapFiatMap } from './coinMarketCapFiatMap'
+import { config } from './config'
 
 const asCoinMarketCapCurrentResponse = asObject({
   data: asMap(
@@ -18,11 +18,11 @@ const _fetchQuote = async (
   fiatCode: string,
   log: Function
 ): Promise<string | void> => {
-  if (CONFIG.coinMarketCapCurrentApiKey !== null) {
+  if (config.coinMarketCapCurrentApiKey !== null) {
     const options = {
       method: 'GET',
       headers: {
-        'X-CMC_PRO_API_KEY': CONFIG.coinMarketCapCurrentApiKey
+        'X-CMC_PRO_API_KEY': config.coinMarketCapCurrentApiKey
       },
       json: true
     }

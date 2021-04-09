@@ -1,11 +1,9 @@
 import fetch from 'node-fetch'
 
-import {
-  cryptoCurrencyCodes,
-  fiatCurrencyCodes,
-  ratesServerAddress
-} from '../serverConfig.json'
+import { config } from './config'
 import { snooze } from './utils'
+
+const { cryptoCurrencyCodes, fiatCurrencyCodes, ratesServerAddress } = config
 
 const endPoint = `${ratesServerAddress}/v1/exchangeRates`
 

@@ -2,14 +2,14 @@ import { bns } from 'biggystring'
 import { asObject, asOptional, asString } from 'cleaners'
 import nano from 'nano'
 
-import CONFIG from '../serverConfig.json'
 import { coincapHistorical } from './coincap'
 import { coinMarketCapHistorical } from './coinMarketCap'
 import { coinMarketCapCurrent } from './coinMarketCapBasic'
+import { config } from './config'
 import { currencyConverter } from './currencyConverter'
 import { normalizeDate, postToSlack } from './utils'
 
-const { bridgeCurrencies } = CONFIG
+const { bridgeCurrencies } = config
 
 const zeroRateCurrencyCodes = {
   UFO: true,
@@ -121,7 +121,7 @@ const getRate = async (
     }
 
     const requestedDateTimestamp = new Date(date).getTime()
-    if (Date.now() - CONFIG.ratesLookbackLimit > requestedDateTimestamp) {
+    if (Date.now() - config.ratesLookbackLimit > requestedDateTimestamp) {
       existingDocument[currencyPair] = 0
       await localDb.insert(existingDocument).catch(e => {
         if (e.error !== 'conflict') {
