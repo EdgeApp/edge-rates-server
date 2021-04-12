@@ -59,7 +59,7 @@
   },
   "dependencies": {
     "biggystring": "^3.0.2",
-    "cleaner-config": "^0.1.3",
+    "cleaner-config": "^0.1.4",
     "cleaners": "^0.2.0",
     "cors": "^2.8.5",
     "edge-server-tools": "^0.1.0",
