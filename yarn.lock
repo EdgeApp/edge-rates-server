@@ -1719,10 +1719,10 @@ class-utils@^0.3.5:
     isobject "^3.0.0"
     static-extend "^0.1.1"
 
-cleaner-config@^0.1.3:
-  version "0.1.3"
-  resolved "https://registry.yarnpkg.com/cleaner-config/-/cleaner-config-0.1.3.tgz#99a4a7d421d0fa403be9890747780e6f10fba8c6"
-  integrity sha512-jKztmlT80wdSRNtY8vSfRLKRU90zsVPT0BKY4TaZ5zrtvDHpoB8F4Gg917OE3Xf5+f6mvxuJl0tgH2+13s0Hwg==
+cleaner-config@^0.1.4:
+  version "0.1.4"
+  resolved "https://registry.yarnpkg.com/cleaner-config/-/cleaner-config-0.1.4.tgz#258241e28fc6b58b50451574507ab590daf9df05"
+  integrity sha512-LIZtEV4LeAbbqcFiK0QmFlRaI6tLFHWJjZ2BuCeLys3Hsm0QAyJ7I4vBMz91v6waYfwaMFq9jj8vDF2rfgelsQ==
   dependencies:
     cleaners "^0.3.8"
     minimist "^1.2.5"
