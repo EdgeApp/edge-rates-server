@@ -1,11 +1,30 @@
 import { makeConfig } from 'cleaner-config'
 import { asArray, asNumber, asObject, asOptional, asString } from 'cleaners'
 
+// Customization:
+
+const {
+  COUCH_HOSTNAME = 'localhost',
+  COUCH_PASSWORD = 'password',
+  INFO_SERVER_ADDRESS = 'info1.edge.app',
+  INFO_SERVER_API_KEY = '',
+  RATES_SERVER_ADDRESS = 'https://rates1.edge.app',
+  CURRENCY_CONVERTER_API_KEY = '',
+  COIN_MARKET_CAP_API_KEY = '',
+  COIN_MARKET_CAP_HISTORICAL_API_KEY = '',
+  SLACK_WEBHOOK_URL = ''
+} = process.env
+
+// Config:
+
 export const asConfig = asObject({
-  couchUri: asOptional(asString, 'http://admin:password@localhost:5984'),
+  couchUri: asOptional(
+    asString,
+    `http://admin:${COUCH_PASSWORD}@${COUCH_HOSTNAME}:5984`
+  ),
   httpPort: asOptional(asNumber, 8008),
-  infoServerAddress: asOptional(asString, 'info1.edge.app'),
-  infoServerApiKey: asOptional(asString, ''),
+  infoServerAddress: asOptional(asString, INFO_SERVER_ADDRESS),
+  infoServerApiKey: asOptional(asString, INFO_SERVER_API_KEY),
   bridgeCurrencies: asOptional(asArray(asString), ['USD', 'BTC']),
   cryptoCurrencyCodes: asOptional(asArray(asString), [
     'BTC',
@@ -45,11 +64,14 @@ export const asConfig = asObject({
     'JPY',
     'GBP'
   ]),
-  ratesServerAddress: asOptional(asString, 'https://rates1.edge.app'),
-  currencyConverterApiKey: asOptional(asString, ''),
-  coinMarketCapHistoricalApiKey: asOptional(asString, ''),
-  coinMarketCapCurrentApiKey: asOptional(asString, ''),
-  slackWebhookUrl: asOptional(asString, ''),
+  ratesServerAddress: asOptional(asString, RATES_SERVER_ADDRESS),
+  currencyConverterApiKey: asOptional(asString, CURRENCY_CONVERTER_API_KEY),
+  coinMarketCapCurrentApiKey: asOptional(asString, COIN_MARKET_CAP_API_KEY),
+  coinMarketCapHistoricalApiKey: asOptional(
+    asString,
+    COIN_MARKET_CAP_HISTORICAL_API_KEY
+  ),
+  slackWebhookUrl: asOptional(asString, SLACK_WEBHOOK_URL),
   ratesLookbackLimit: asOptional(asNumber, 604800000)
 })
 
