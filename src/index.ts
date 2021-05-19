@@ -1,8 +1,10 @@
 import cluster from 'cluster'
 import {
   autoReplication,
+  CouchSetup,
   forkChildren,
-  makePeriodicTask
+  makePeriodicTask,
+  prepareCouch
 } from 'edge-server-tools'
 import http from 'http'
 
@@ -11,7 +13,9 @@ import { makeServer } from './server'
 
 const AUTOREPLICATION_DELAY = 1000 * 60 * 30 // 30 minutes
 
-function main(): void {
+const couchSetup: CouchSetup = { db_rates: {} }
+
+async function main(): Promise<void> {
   const {
     couchUri,
     httpPort = 8008,
@@ -19,6 +23,10 @@ function main(): void {
     infoServerApiKey
   } = config
   if (cluster.isMaster) {
+    // Make sure all couch databases are created
+    await prepareCouch(couchUri, couchSetup)
+
+    // Periodically configure database replication
     makePeriodicTask(
       async () =>
         autoReplication(
@@ -29,6 +37,8 @@ function main(): void {
         ),
       AUTOREPLICATION_DELAY
     )
+
+    // Fork the child HTTP server processes
     forkChildren()
   } else {
     // START THE SERVER
@@ -41,4 +51,7 @@ function main(): void {
   }
 }
 
-main()
+main().catch(err => {
+  console.error(err)
+  process.exit(1)
+})
