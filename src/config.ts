@@ -8,7 +8,7 @@ const {
   COUCH_PASSWORD = 'password',
   INFO_SERVER_ADDRESS = 'info1.edge.app',
   INFO_SERVER_API_KEY = '',
-  RATES_SERVER_ADDRESS = 'https://rates1.edge.app',
+  RATES_SERVER_ADDRESS,
   CURRENCY_CONVERTER_API_KEY = '',
   COIN_MARKET_CAP_API_KEY = '',
   COIN_MARKET_CAP_HISTORICAL_API_KEY = '',
@@ -64,7 +64,10 @@ export const asConfig = asObject({
     'JPY',
     'GBP'
   ]),
-  ratesServerAddress: asOptional(asString, RATES_SERVER_ADDRESS),
+  ratesServerAddress: asOptional(
+    asString,
+    RATES_SERVER_ADDRESS ?? `http://localhost:${8008}`
+  ),
   currencyConverterApiKey: asOptional(asString, CURRENCY_CONVERTER_API_KEY),
   coinMarketCapCurrentApiKey: asOptional(asString, COIN_MARKET_CAP_API_KEY),
   coinMarketCapHistoricalApiKey: asOptional(
