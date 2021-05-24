@@ -1,9 +1,11 @@
-import { bns } from 'biggystring'
 import { asMap, asNumber, asObject } from 'cleaners'
 import fetch from 'node-fetch'
 
-import { coinMarketCapFiatMap } from './coinMarketCapFiatMap'
 import { config } from './config'
+import { fiatCurrencyCodes } from './fiatCurrencyCodes'
+import { checkConstantCode, NewRates, ReturnRate } from './rates'
+
+// TODO: add ID map
 
 const asCoinMarketCapCurrentResponse = asObject({
   data: asMap(
@@ -13,60 +15,63 @@ const asCoinMarketCapCurrentResponse = asObject({
   )
 })
 
-const _fetchQuote = async (
-  cryptoCode: string,
-  fiatCode: string,
-  log: Function
-): Promise<string | void> => {
-  if (config.coinMarketCapCurrentApiKey !== null) {
-    const options = {
-      method: 'GET',
-      headers: {
-        'X-CMC_PRO_API_KEY': config.coinMarketCapCurrentApiKey
-      },
-      json: true
-    }
-    const url = `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${cryptoCode}&convert=${fiatCode}`
-    try {
-      const result = await fetch(url, options)
-      if (result.status !== 200) {
-        log(`CoinMarketCapBasic returned code ${result.status}`)
-      }
-      const jsonObj = await result.json()
-      asCoinMarketCapCurrentResponse(jsonObj)
-      return jsonObj.data[cryptoCode].quote[fiatCode].price.toString()
-    } catch (e) {
-      log(`No CoinMarketCapBasic quote: ${JSON.stringify(e)}`)
-    }
-  } else {
-    log('Missing config coinMarketCapBasicApiKey')
-  }
-}
-
 const coinMarketCapCurrent = async (
-  currencyA: string,
-  currencyB: string,
-  date: string,
-  log: Function
-): Promise<string> => {
-  let rate = ''
-  if (
-    coinMarketCapFiatMap[currencyB] != null &&
-    coinMarketCapFiatMap[currencyA] == null
-  ) {
-    // Query coinmarketcap if fiat is denominator
-    const response = await _fetchQuote(currencyA, currencyB, log)
-    if (response != null) rate = response
-  } else if (
-    coinMarketCapFiatMap[currencyA] != null &&
-    coinMarketCapFiatMap[currencyB] == null
-  ) {
-    // Invert pair and returned rate if fiat is the numerator
-    const response = await _fetchQuote(currencyB, currencyA, log)
-    if (response != null) rate = bns.div('1', response, 8, 10)
+  requestedRates: ReturnRate[],
+  log: Function,
+  currentTime: string
+): Promise<NewRates> => {
+  const rates = { [currentTime]: {} }
+
+  if (config.coinMarketCapCurrentApiKey == null) {
+    log('No coinMarketCapCurrent API key')
+    return rates
   }
-  // Return null if both codes are fiat, both codes are crypto, or queries fail
-  return rate
+
+  // Gather codes
+  const codesWanted: string[] = []
+  for (const request of requestedRates) {
+    if (request.data.date !== currentTime) continue
+    const fromCurrency = checkConstantCode(
+      request.data.currency_pair.split('_')[0]
+    )
+    if (fiatCurrencyCodes[fromCurrency] == null) {
+      codesWanted.push(fromCurrency)
+    }
+  }
+
+  // Query
+  const options = {
+    method: 'GET',
+    headers: {
+      'X-CMC_PRO_API_KEY': config.coinMarketCapCurrentApiKey
+    },
+    json: true
+  }
+  if (codesWanted.length > 0)
+    try {
+      const codes = codesWanted.join(',')
+      const response = await fetch(
+        `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${codes}&skip_invalid=true`,
+        options
+      )
+      const json = asCoinMarketCapCurrentResponse(await response.json())
+      if (response.status !== 200) {
+        log(
+          `coinMarketCapCurrent returned code ${response.status} for ${codes} at ${currentTime}`
+        )
+        throw new Error(response.statusText)
+      }
+
+      // Create return object
+      for (const code of Object.keys(json.data)) {
+        rates[currentTime][`${code}_USD`] = json.data[
+          code
+        ].quote.USD.price.toString()
+      }
+    } catch (e) {
+      log(`No coinMarketCapCurrent quote: ${JSON.stringify(e)}`)
+    }
+  return rates
 }
 
 export { coinMarketCapCurrent }
