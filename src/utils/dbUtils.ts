@@ -1,6 +1,8 @@
 import AwaitLock from 'await-lock'
 
 import { DbDoc } from '../rates'
+import { config } from './../config'
+import { slackPoster } from './postToSlack'
 import { logger } from './utils'
 
 let LOCK_ID = 0
@@ -23,20 +25,24 @@ export const saveToDb = (
   locks[LOCK_ID].acquireAsync().then(() =>
     localDB
       .bulk({ docs })
-      .then(() =>
-        logger(
-          `Saved document IDs: ${docs
-            .map(doc => doc._id)
-            .join(', ')} to db: ${db}`
-        )
-      )
-      .catch(e =>
-        logger(
-          `Error saving document ID: ${docs
-            .map(doc => doc._id)
-            .join(', ')} to db: ${db}`
-        )
-      )
+      .then(response => {
+        const successArray = response
+          .filter(doc => doc.error == null)
+          .map(doc => doc.id)
+        if (successArray.length > 0)
+          logger(`Saved document IDs: ${successArray.join(', ')} to db: ${db}`)
+
+        const failureArray = response
+          .filter(doc => doc.error != null)
+          .map(doc => `${doc.id}: ${doc.error}`)
+        if (failureArray.length > 0)
+          logger(
+            `Error saving document IDs: ${failureArray.join(', ')} to db: ${db}`
+          )
+      })
+      .catch(e => {
+        slackPoster(config.slackWebhookUrl, e).catch(e)
+      })
       .finally(() => {
         locks[LOCK_ID].release()
         if (locks[LOCK_ID]._waitingResolvers.length === 0) {
@@ -55,7 +61,7 @@ export const getFromDb = async (
     dates.map(date => {
       return localDb.get(date).catch(e => {
         if (e.error !== 'not_found') {
-          throw e
+          slackPoster(config.slackWebhookUrl, e).catch(e)
         } else {
           return {
             _id: date
@@ -64,6 +70,5 @@ export const getFromDb = async (
       })
     })
   )
-  // TODO: Report db errors to slack and continue
   return documents
 }
