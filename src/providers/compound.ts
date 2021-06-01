@@ -2,6 +2,7 @@ import { asArray, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { NewRates, ReturnRate } from './../rates'
+import { logger } from './../utils/utils'
 
 const fixCurrency = (currencyCode: string): string => {
   return currencyCode.toUpperCase()
@@ -20,7 +21,6 @@ const asCompoundResponse = asObject({
 
 const compound = async (
   rateObj: ReturnRate[],
-  log: Function,
   currentTime: string
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }
@@ -44,7 +44,7 @@ const compound = async (
       ] = code.exchange_rate.value
     })
   } catch (e) {
-    log(`No Compound quote: ${JSON.stringify(e)}`)
+    logger(`No Compound quote: ${JSON.stringify(e)}`)
   }
   return rates
 }

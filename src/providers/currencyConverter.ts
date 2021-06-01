@@ -4,6 +4,7 @@ import fetch from 'node-fetch'
 import { config } from './../config'
 import { NewRates, ReturnRate } from './../rates'
 import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
+import { logger } from './../utils/utils'
 
 const apiKey = config.currencyConverterApiKey
 
@@ -15,13 +16,12 @@ const asCurrencyConverterResponse = asObject({
 
 const currencyConverter = async (
   rateObj: ReturnRate[],
-  log: Function,
   currentTime: string
 ): Promise<NewRates> => {
   const rates = {}
 
   if (apiKey == null) {
-    log('No currencyConverter apiKey')
+    logger('No currencyConverter apiKey')
     return rates
   }
 
@@ -64,7 +64,7 @@ const currencyConverter = async (
         (error != null && error !== '') ||
         response.ok === false
       ) {
-        log(
+        logger(
           `currencyConverter returned code ${response.status} for ${codes} at ${date}`
         )
         throw new Error(
@@ -80,7 +80,7 @@ const currencyConverter = async (
         rates[date][pair] = results[pair].val[justDate].toString()
       }
     } catch (e) {
-      log(`Failed to get ${codes} from currencyconverterapi.com`, e)
+      logger(`Failed to get ${codes} from currencyconverterapi.com`, e)
     }
   }
   return rates

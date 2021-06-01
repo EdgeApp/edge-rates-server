@@ -4,6 +4,7 @@ import fetch from 'node-fetch'
 import { config } from './../config'
 import { NewRates, ReturnRate } from './../rates'
 import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
+import { logger } from './../utils/utils'
 
 const appId = config.openExchangeRatesApiKey
 
@@ -13,13 +14,12 @@ const asOpenExchangeRatesResponse = asObject({
 
 const openExchangeRates = async (
   rateObj: ReturnRate[],
-  log: Function,
   currentTime: string
 ): Promise<NewRates> => {
   const rates = {}
 
   if (appId == null) {
-    log('No openExchangeRates appId')
+    logger('No openExchangeRates appId')
     return rates
   }
 
@@ -54,7 +54,7 @@ const openExchangeRates = async (
       )
       const json = asOpenExchangeRatesResponse(await response.json()).rates
       if (response.ok === false) {
-        log(
+        logger(
           `openExchangeRates returned code ${response.status} for ${codes} at ${date}`
         )
         throw new Error(
@@ -70,7 +70,7 @@ const openExchangeRates = async (
         rates[date][`${code}_USD`] = (1 / json[code]).toString()
       }
     } catch (e) {
-      log(`Failed to get ${codes} from openExchangeRates`, e)
+      logger(`Failed to get ${codes} from openExchangeRates`, e)
     }
   }
   return rates
