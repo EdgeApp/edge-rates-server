@@ -1,9 +1,9 @@
 import { asMap, asNumber, asObject } from 'cleaners'
 import fetch from 'node-fetch'
 
-import { config } from './config'
-import { fiatCurrencyCodes } from './fiatCurrencyCodes'
-import { NewRates, ReturnRate } from './rates'
+import { config } from './../config'
+import { NewRates, ReturnRate } from './../rates'
+import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
 
 const appId = config.openExchangeRatesApiKey
 
@@ -26,20 +26,20 @@ const openExchangeRates = async (
   // Gather codes
   const datesAndCodesWanted: { [key: string]: string[] } = {}
   for (const pair of rateObj) {
-    datesAndCodesWanted[pair.data.date] = []
-    const fromCurrency = pair.data.currency_pair.split('_')[0]
-    const toCurrency = pair.data.currency_pair.split('_')[1]
+    datesAndCodesWanted[pair.date] = []
+    const fromCurrency = pair.currency_pair.split('_')[0]
+    const toCurrency = pair.currency_pair.split('_')[1]
     if (
       fiatCurrencyCodes[fromCurrency] === true &&
-      datesAndCodesWanted[pair.data.date].indexOf(fromCurrency) === -1
+      datesAndCodesWanted[pair.date].indexOf(fromCurrency) === -1
     ) {
-      datesAndCodesWanted[pair.data.date].push(fromCurrency)
+      datesAndCodesWanted[pair.date].push(fromCurrency)
     }
     if (
       fiatCurrencyCodes[toCurrency] === true &&
-      datesAndCodesWanted[pair.data.date].indexOf(toCurrency) === -1
+      datesAndCodesWanted[pair.date].indexOf(toCurrency) === -1
     ) {
-      datesAndCodesWanted[pair.data.date].push(toCurrency)
+      datesAndCodesWanted[pair.date].push(toCurrency)
     }
   }
 

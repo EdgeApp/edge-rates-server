@@ -1,9 +1,10 @@
 import { asMap, asNumber, asObject } from 'cleaners'
 import fetch from 'node-fetch'
 
-import { config } from './config'
-import { fiatCurrencyCodes } from './fiatCurrencyCodes'
-import { checkConstantCode, NewRates, ReturnRate } from './rates'
+import { config } from './../config'
+import { NewRates, ReturnRate } from './../rates'
+import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
+import { checkConstantCode } from './../utils/utils'
 
 // TODO: add ID map
 
@@ -30,10 +31,8 @@ const coinMarketCapCurrent = async (
   // Gather codes
   const codesWanted: string[] = []
   for (const request of requestedRates) {
-    if (request.data.date !== currentTime) continue
-    const fromCurrency = checkConstantCode(
-      request.data.currency_pair.split('_')[0]
-    )
+    if (request.date !== currentTime) continue
+    const fromCurrency = checkConstantCode(request.currency_pair.split('_')[0])
     if (fiatCurrencyCodes[fromCurrency] == null) {
       codesWanted.push(fromCurrency)
     }
@@ -54,13 +53,13 @@ const coinMarketCapCurrent = async (
         `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${codes}&skip_invalid=true`,
         options
       )
-      const json = asCoinMarketCapCurrentResponse(await response.json())
       if (response.status !== 200) {
         log(
           `coinMarketCapCurrent returned code ${response.status} for ${codes} at ${currentTime}`
         )
         throw new Error(response.statusText)
       }
+      const json = asCoinMarketCapCurrentResponse(await response.json())
 
       // Create return object
       for (const code of Object.keys(json.data)) {

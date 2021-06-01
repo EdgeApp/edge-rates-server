@@ -1,6 +1,6 @@
 import AwaitLock from 'await-lock'
 
-import { DbDoc, ReturnGetRate } from './rates'
+import { DbDoc } from '../rates'
 
 let LOCK_ID = 0
 
@@ -48,16 +48,11 @@ export const saveToDb = (
 
 export const getFromDb = async (
   localDb: any,
-  rateObj: ReturnGetRate,
+  dates: string[],
   log: Function
-): Promise<ReturnGetRate> => {
-  // Identify unique requested dates
-  const dates: string[] = []
-  for (const pair of rateObj.data) {
-    if (!dates.includes(pair.data.date)) dates.push(pair.data.date)
-  }
+): Promise<DbDoc[]> => {
   // Grab existing db data for requested dates
-  rateObj.documents = await Promise.all(
+  const documents = await Promise.all(
     dates.map(date => {
       return localDb.get(date).catch(e => {
         if (e.error !== 'not_found') {
@@ -71,5 +66,5 @@ export const getFromDb = async (
     })
   )
   // TODO: Report db errors to slack and continue
-  return rateObj
+  return documents
 }

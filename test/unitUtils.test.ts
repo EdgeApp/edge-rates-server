@@ -2,7 +2,7 @@ import { assert } from 'chai'
 import { describe, it } from 'mocha'
 
 import { asRateParam } from '../src/rates'
-import { normalizeDate } from '../src/utils'
+import { normalizeDate } from '../src/utils/utils'
 import fixtures from './unitUtils.json'
 
 for (const test of fixtures.normalizeDate) {

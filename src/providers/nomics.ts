@@ -1,9 +1,10 @@
 import { asArray, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
-import { config } from './config'
-import { fiatCurrencyCodes } from './fiatCurrencyCodes'
-import { checkConstantCode, NewRates, ReturnRate } from './rates'
+import { config } from '../config'
+import { NewRates, ReturnRate } from '../rates'
+import { fiatCurrencyCodes } from '../utils/currencyCodeMaps'
+import { checkConstantCode } from './../utils/utils'
 
 // TODO: add ID map
 
@@ -31,10 +32,8 @@ const nomics = async (
   // Gather codes
   const codesWanted: string[] = []
   for (const request of requestedRates) {
-    if (request.data.date !== currentTime) continue
-    const fromCurrency = checkConstantCode(
-      request.data.currency_pair.split('_')[0]
-    )
+    if (request.date !== currentTime) continue
+    const fromCurrency = checkConstantCode(request.currency_pair.split('_')[0])
     if (fiatCurrencyCodes[fromCurrency] == null) {
       codesWanted.push(fromCurrency)
     }
@@ -47,7 +46,6 @@ const nomics = async (
       const response = await fetch(
         `https://api.nomics.com/v1/currencies/ticker?key=${apiKey}&ids=${ids}&convert=USD`
       )
-      const json = asNomicsResponse(await response.json())
       if (
         response.status === 429 ||
         response.status === 401 ||
@@ -58,6 +56,7 @@ const nomics = async (
         )
         throw new Error(response.statusText)
       }
+      const json = asNomicsResponse(await response.json())
 
       // Create return object
       for (const code of json) {

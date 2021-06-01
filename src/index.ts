@@ -17,7 +17,7 @@ import nano from 'nano'
 import promisify from 'promisify-node'
 
 import { config } from './config'
-import { asExchangeRateReq, getExchangeRate } from './rates'
+import { asExchangeRateReq, getExchangeRates } from './rates'
 // const REQUIRED_CODES = ['BC1', 'DASH', 'LTC', 'BCH']
 
 export const asExchangeRatesReq = asObject({
@@ -78,8 +78,8 @@ router.get('/exchangeRate', async function(req, res) {
     return res.status(400).send(`Missing Request fields.`)
   }
 
-  const result = await getExchangeRate(query.data, dbRates)
-  res.json(result.data[0].data)
+  const result = await getExchangeRates(query.data, dbRates)
+  res.json(result.data[0])
 })
 
 router.post('/exchangeRates', async function(req, res) {
@@ -96,7 +96,7 @@ router.post('/exchangeRates', async function(req, res) {
   }
 
   const requestedRates: Array<ReturnType<typeof asExchangeRateReq>> = query.data
-  const data = await getExchangeRate(requestedRates, dbRates)
+  const data = await getExchangeRates(requestedRates, dbRates)
   res.json({ data: data.data })
 })
 

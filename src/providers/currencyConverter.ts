@@ -1,9 +1,9 @@
 import { asMap, asNumber, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
-import { config } from './config'
-import { fiatCurrencyCodes } from './fiatCurrencyCodes'
-import { NewRates, ReturnRate } from './rates'
+import { config } from './../config'
+import { NewRates, ReturnRate } from './../rates'
+import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
 
 const apiKey = config.currencyConverterApiKey
 
@@ -28,22 +28,22 @@ const currencyConverter = async (
   // Gather codes
   const datesAndCodesWanted: { [key: string]: string[] } = {}
   for (const pair of rateObj) {
-    datesAndCodesWanted[pair.data.date] = []
-    const fromCurrency = pair.data.currency_pair.split('_')[0]
-    const toCurrency = pair.data.currency_pair.split('_')[1]
+    datesAndCodesWanted[pair.date] = []
+    const fromCurrency = pair.currency_pair.split('_')[0]
+    const toCurrency = pair.currency_pair.split('_')[1]
     if (
       fiatCurrencyCodes[fromCurrency] === true &&
       fromCurrency !== 'USD' &&
-      datesAndCodesWanted[pair.data.date].indexOf(`${fromCurrency}_USD`) === -1
+      datesAndCodesWanted[pair.date].indexOf(`${fromCurrency}_USD`) === -1
     ) {
-      datesAndCodesWanted[pair.data.date].push(`${fromCurrency}_USD`)
+      datesAndCodesWanted[pair.date].push(`${fromCurrency}_USD`)
     }
     if (
       fiatCurrencyCodes[toCurrency] === true &&
       fromCurrency !== 'USD' &&
-      datesAndCodesWanted[pair.data.date].indexOf(`USD_${toCurrency}`) === -1
+      datesAndCodesWanted[pair.date].indexOf(`USD_${toCurrency}`) === -1
     ) {
-      datesAndCodesWanted[pair.data.date].push(`USD_${toCurrency}`)
+      datesAndCodesWanted[pair.date].push(`USD_${toCurrency}`)
     }
   }
 

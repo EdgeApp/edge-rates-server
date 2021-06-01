@@ -1,9 +1,10 @@
 import { asArray, asMap, asNumber, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
-import { config } from './config'
-import { fiatCurrencyCodes } from './fiatCurrencyCodes'
-import { checkConstantCode, NewRates, ReturnRate } from './rates'
+import { config } from './../config'
+import { NewRates, ReturnRate } from './../rates'
+import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
+import { checkConstantCode } from './../utils/utils'
 
 // TODO: add ID map
 
@@ -47,15 +48,13 @@ const coinMarketCapHistorical = async (
   // Gather codes
   const datesAndCodesWanted: { [key: string]: string[] } = {}
   for (const pair of rateObj) {
-    const fromCurrency = checkConstantCode(
-      pair.data.currency_pair.split('_')[0]
-    )
+    const fromCurrency = checkConstantCode(pair.currency_pair.split('_')[0])
     if (fiatCurrencyCodes[fromCurrency] == null) {
-      if (datesAndCodesWanted[pair.data.date] == null) {
-        datesAndCodesWanted[pair.data.date] = DEFAULT_CODES
+      if (datesAndCodesWanted[pair.date] == null) {
+        datesAndCodesWanted[pair.date] = DEFAULT_CODES
       }
       if (!DEFAULT_CODES.includes(fromCurrency))
-        datesAndCodesWanted[pair.data.date].push(fromCurrency)
+        datesAndCodesWanted[pair.date].push(fromCurrency)
     }
   }
 
@@ -74,13 +73,13 @@ const coinMarketCapHistorical = async (
         `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical?symbol=${codes}&time_end=${date}&count=1&skip_invalid=true`,
         options
       )
-      const json = asCoinMarketCapHistoricalResponse(await response.json())
       if (response.status !== 200 || response.ok === false) {
         log(
           `coinMarketCapHistorical returned code ${response.status} for ${codes} at ${date}`
         )
         throw new Error(response.statusText)
       }
+      const json = asCoinMarketCapHistoricalResponse(await response.json())
 
       // Create return object
       rates[date] = {}
