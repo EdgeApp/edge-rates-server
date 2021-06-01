@@ -4,6 +4,7 @@ import fetch from 'node-fetch'
 import { config } from './../config'
 import { NewRates, ProviderResponse, ReturnRate } from './../rates'
 import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
+import { logger } from './../utils/utils'
 
 const { uri, apiKey } = config.providers.openExchangeRates
 
@@ -13,8 +14,7 @@ const asOpenExchangeRatesResponse = asObject({
 
 const query = async (
   date: string,
-  codes: string[],
-  log: Function
+  codes: string[]
 ): Promise<ProviderResponse> => {
   const rates = { [date]: {} }
   if (codes.length === 0) return rates
@@ -26,7 +26,7 @@ const query = async (
     )
     const json = asOpenExchangeRatesResponse(await response.json()).rates
     if (response.ok === false) {
-      log(
+      logger(
         `openExchangeRates returned code ${response.status} for ${codes} at ${date}`
       )
       throw new Error(
@@ -41,20 +41,19 @@ const query = async (
       rates[date][`${code}_USD`] = (1 / json[code]).toString()
     })
   } catch (e) {
-    log(`Failed to get ${codes} from openExchangeRates`, e)
+    logger(`Failed to get ${codes} from openExchangeRates`, e)
   }
   return rates
 }
 
 const openExchangeRates = async (
   rateObj: ReturnRate[],
-  log: Function,
   currentTime: string
 ): Promise<NewRates> => {
   const rates = {}
 
   if (apiKey == null) {
-    log('No openExchangeRates appId')
+    logger('No openExchangeRates appId')
     return rates
   }
 
@@ -81,7 +80,7 @@ const openExchangeRates = async (
 
   // Query
   const providers = Object.keys(datesAndCodesWanted).map(async date =>
-    query(date, datesAndCodesWanted[date], log)
+    query(date, datesAndCodesWanted[date])
   )
   try {
     const response = await Promise.all(providers)
@@ -90,7 +89,7 @@ const openExchangeRates = async (
       response.reduce((res, out) => ({ ...res, ...out }), {})
     )
   } catch (e) {
-    log('Failed to query openExchangeRates with error', e.message)
+    logger('Failed to query openExchangeRates with error', e.message)
   }
 
   return rates

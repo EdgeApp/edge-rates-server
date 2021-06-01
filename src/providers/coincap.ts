@@ -8,7 +8,7 @@ import {
   coincapEdgeMap,
   fiatCurrencyCodes
 } from '../utils/currencyCodeMaps'
-import { checkConstantCode } from './../utils/utils'
+import { checkConstantCode, logger } from './../utils/utils'
 
 const { uri } = config.providers.coincap
 
@@ -36,8 +36,7 @@ const asCoincapHistoricalResponse = asObject({
 
 const currentQuery = async (
   date: string,
-  codes: string[],
-  log: Function
+  codes: string[]
 ): Promise<ProviderResponse> => {
   const rates = { [date]: {} }
   const codeString = createUniqueIdString(codes)
@@ -47,7 +46,7 @@ const currentQuery = async (
     const response = await fetch(url, OPTIONS)
     const json = asCoincapCurrentResponse(await response.json())
     if (response.ok === false) {
-      log(
+      logger(
         `coincapCurrent returned code ${response.status} for ${codes} at ${date}`
       )
       throw new Error(response.status)
@@ -58,7 +57,7 @@ const currentQuery = async (
       rates[date][`${code.symbol}_USD`] = code.priceUsd
     })
   } catch (e) {
-    log(`No coincapCurrent quote: ${JSON.stringify(e)}`)
+    logger(`No coincapCurrent quote: ${JSON.stringify(e)}`)
   }
 
   return rates
@@ -66,8 +65,7 @@ const currentQuery = async (
 
 const historicalQuery = async (
   date: string,
-  code: string,
-  log: Function
+  code: string
 ): Promise<ProviderResponse> => {
   const rates = { [date]: {} }
   const timestamp = Date.parse(date)
@@ -81,7 +79,7 @@ const historicalQuery = async (
     )
     const json = asCoincapHistoricalResponse(await response.json())
     if (response.ok === false) {
-      log(
+      logger(
         `coincapHistorical returned code ${response.status} for ${id} at ${date}`
       )
       throw new Error(response.status)
@@ -92,14 +90,13 @@ const historicalQuery = async (
       rates[date][`${code}_USD`] = json.data[0].priceUsd
     })
   } catch (e) {
-    log(`No coincapHistorical quote: ${JSON.stringify(e)}`)
+    logger(`No coincapHistorical quote: ${JSON.stringify(e)}`)
   }
   return rates
 }
 
 const coincap = async (
   rateObj: ReturnRate[],
-  log: Function,
   currentTime: string
 ): Promise<NewRates> => {
   const rates = {}
@@ -120,10 +117,10 @@ const coincap = async (
   const providers: Array<Promise<ProviderResponse>> = []
   Object.keys(datesAndCodesWanted).forEach(date => {
     if (date === currentTime) {
-      providers.push(currentQuery(date, datesAndCodesWanted[date], log))
+      providers.push(currentQuery(date, datesAndCodesWanted[date]))
     } else {
       datesAndCodesWanted[date].forEach(code => {
-        providers.push(historicalQuery(date, code, log))
+        providers.push(historicalQuery(date, code))
       })
     }
   })
@@ -134,7 +131,7 @@ const coincap = async (
       response.reduce((res, out) => ({ ...res, ...out }), {})
     )
   } catch (e) {
-    log('Failed to query coincap with error', e.message)
+    logger('Failed to query coincap with error', e.message)
   }
 
   return rates

@@ -4,7 +4,7 @@ import fetch from 'node-fetch'
 import { config } from './../config'
 import { NewRates, ReturnRate } from './../rates'
 import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
-import { checkConstantCode } from './../utils/utils'
+import { checkConstantCode, logger } from './../utils/utils'
 
 // TODO: add ID map
 
@@ -20,13 +20,12 @@ const asCoinMarketCapCurrentResponse = asObject({
 
 const coinMarketCapCurrent = async (
   requestedRates: ReturnRate[],
-  log: Function,
   currentTime: string
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }
 
   if (apiKey == null) {
-    log('No coinMarketCapCurrent API key')
+    logger('No coinMarketCapCurrent API key')
     return rates
   }
 
@@ -56,7 +55,7 @@ const coinMarketCapCurrent = async (
         options
       )
       if (response.status !== 200) {
-        log(
+        logger(
           `coinMarketCapCurrent returned code ${response.status} for ${codes} at ${currentTime}`
         )
         throw new Error(response.statusText)
@@ -70,7 +69,7 @@ const coinMarketCapCurrent = async (
         ].quote.USD.price.toString()
       })
     } catch (e) {
-      log(`No coinMarketCapCurrent quote: ${JSON.stringify(e)}`)
+      logger(`No coinMarketCapCurrent quote: ${JSON.stringify(e)}`)
     }
   return rates
 }

@@ -4,7 +4,7 @@ import fetch from 'node-fetch'
 import { config } from '../config'
 import { NewRates, ReturnRate } from '../rates'
 import { fiatCurrencyCodes } from '../utils/currencyCodeMaps'
-import { checkConstantCode } from './../utils/utils'
+import { checkConstantCode, logger } from './../utils/utils'
 
 // TODO: add ID map
 
@@ -19,13 +19,12 @@ const asNomicsResponse = asArray(
 
 const nomics = async (
   requestedRates: ReturnRate[],
-  log: Function,
   currentTime: string
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }
 
   if (apiKey == null) {
-    log('No Nomics API key')
+    logger('No Nomics API key')
     return rates
   }
 
@@ -51,7 +50,7 @@ const nomics = async (
         response.status === 401 ||
         response.ok === false
       ) {
-        log(
+        logger(
           `nomics returned code ${response.status} for ${ids} at ${currentTime}`
         )
         throw new Error(response.statusText)
@@ -64,7 +63,7 @@ const nomics = async (
           rates[currentTime][`${code.symbol}_USD`] = code.price
       })
     } catch (e) {
-      log(`No Nomics quote: ${JSON.stringify(e)}`)
+      logger(`No Nomics quote: ${JSON.stringify(e)}`)
     }
   return rates
 }

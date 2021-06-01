@@ -4,7 +4,7 @@ import fetch from 'node-fetch'
 import { config } from './../config'
 import { NewRates, ProviderResponse, ReturnRate } from './../rates'
 import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
-import { checkConstantCode } from './../utils/utils'
+import { checkConstantCode, logger } from './../utils/utils'
 
 // TODO: add ID map
 
@@ -46,8 +46,7 @@ const asCoinMarketCapHistoricalResponse = asObject({
 
 const query = async (
   date: string,
-  codes: string[],
-  log: Function
+  codes: string[]
 ): Promise<ProviderResponse> => {
   const rates = {}
   if (codes.length === 0) return rates
@@ -57,7 +56,7 @@ const query = async (
       OPTIONS
     )
     if (response.status !== 200 || response.ok === false) {
-      log(
+      logger(
         `coinMarketCapHistorical returned code ${response.status} for ${codes} at ${date}`
       )
       throw new Error(response.statusText)
@@ -73,19 +72,18 @@ const query = async (
         ].quotes[0].quote.USD.price.toString()
     })
   } catch (e) {
-    log(`No CoinMarketCapHistorical quote: ${JSON.stringify(e)}`)
+    logger(`No CoinMarketCapHistorical quote: ${JSON.stringify(e)}`)
   }
   return rates
 }
 
 const coinMarketCapHistorical = async (
-  rateObj: ReturnRate[],
-  log: Function
+  rateObj: ReturnRate[]
 ): Promise<NewRates> => {
   const rates = {}
 
   if (apiKey == null) {
-    log('No coinMarketCapHistorical API key')
+    logger('No coinMarketCapHistorical API key')
     return rates
   }
 
@@ -106,7 +104,7 @@ const coinMarketCapHistorical = async (
 
   // Query
   const providers = Object.keys(datesAndCodesWanted).map(async date =>
-    query(date, datesAndCodesWanted[date], log)
+    query(date, datesAndCodesWanted[date])
   )
   try {
     const response = await Promise.all(providers)
@@ -115,7 +113,7 @@ const coinMarketCapHistorical = async (
       response.reduce((res, out) => ({ ...res, ...out }), {})
     )
   } catch (e) {
-    log('Failed to query coinMarketCapHistorical with error', e.message)
+    logger('Failed to query coinMarketCapHistorical with error', e.message)
   }
 
   return rates
