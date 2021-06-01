@@ -96,3 +96,13 @@ export const isNotANumber = (value: string): boolean => {
 
   return false
 }
+
+export const logger = (...args): void => {
+  const isoDate = new Date().toISOString()
+  let result = `${isoDate} - `
+  for (const arg of args) {
+    if (typeof arg === 'string') result += `${arg}, `
+    else result += `\n${JSON.stringify(arg)}`
+  }
+  console.log(result)
+}
