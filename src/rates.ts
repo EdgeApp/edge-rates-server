@@ -2,55 +2,29 @@ import { bns } from 'biggystring'
 import { asObject, asOptional, asString } from 'cleaners'
 import nano from 'nano'
 
-import { coincap } from './coincap'
-// import { coincapHistorical } from './coincap'
-import { coinMarketCapHistorical } from './coinMarketCap'
-import { coinMarketCapCurrent } from './coinMarketCapBasic'
-import { compound } from './compound'
 import { config } from './config'
-import { currencyConverter } from './currencyConverter'
-import { getFromDb, saveToDb } from './dbUtils'
-import { nomics } from './nomics'
-import { openExchangeRates } from './openExchangeRates'
-// import { asExchangeRatesReq } from './index'
-import { normalizeDate } from './utils'
+import { coincap } from './providers/coincap'
+import { coinMarketCapHistorical } from './providers/coinMarketCap'
+import { coinMarketCapCurrent } from './providers/coinMarketCapBasic'
+import { compound } from './providers/compound'
+import { currencyConverter } from './providers/currencyConverter'
+import {
+  fallbackConstantRates,
+  zeroRates
+} from './providers/hardcodedProviders'
+import { nomics } from './providers/nomics'
+import { openExchangeRates } from './providers/openExchangeRates'
+import { getFromDb, saveToDb } from './utils/dbUtils'
+import {
+  checkConstantCode,
+  getNullRateArray,
+  haveEveryRate,
+  invertPair,
+  isNotANumber,
+  normalizeDate
+} from './utils/utils'
 
 const { bridgeCurrencies } = config
-
-const zeroRateCurrencyCodes = {
-  UFO: true,
-  FORK: true
-}
-
-const constantCurrencyCodes = {
-  WETH: 'ETH',
-  WBTC: 'BTC',
-  AYFI: 'YFI',
-  ALINK: 'LINK',
-  ADAI: 'DAI',
-  ABAT: 'BAT',
-  AWETH: 'WETH',
-  AWBTC: 'WBTC',
-  ASNX: 'SNX',
-  AREN: 'REN',
-  AUSDT: 'USDT',
-  AMKR: 'MKR',
-  AMANA: 'MANA',
-  AZRX: 'ZRX',
-  AKNC: 'KNC',
-  AUSDC: 'USDC',
-  ASUSD: 'SUSD',
-  AUNI: 'UNI',
-  ANT: 'ANTV1',
-  REPV2: 'REP'
-}
-
-const fallbackConstantRatePairs = {
-  SAI_USD: '1',
-  DAI_USD: '1',
-  TESTBTC_USD: '0.01',
-  BRZ_BRL: '1'
-}
 
 type ErrorType = 'not_found' | 'conflict' | 'db_error'
 interface RateError extends Error {
@@ -74,90 +48,54 @@ export interface ReturnGetRate {
   documents: DbDoc[]
 }
 
-interface ReturnRateUserResponse {
+export interface ReturnRate {
   currency_pair: string
   date: string
   exchangeRate: string | null
   error?: Error
-}
-export interface ReturnRate {
-  data: ReturnRateUserResponse
 }
 
 export interface NewRates {
   [date: string]: { [pair: string]: string }
 }
 
-const getNullRateArray = (rates: ReturnRate[]): ReturnRate[] => {
-  return rates.filter(rate => rate.data.exchangeRate === null)
-}
-
-const haveEveryRate = (rates: ReturnRate[]): boolean => {
-  return rates.every(rate => rate.data.exchangeRate !== null)
-}
-
-const invertPair = (pair: string): string => {
-  const fromCurrency = pair.split('_')[0]
-  const toCurrency = pair.split('_')[1]
-  return `${toCurrency}_${fromCurrency}`
-}
-
-const zeroRates = (rateObj: ReturnRate[]): NewRates => {
-  const rates = {}
-  for (const pair of rateObj) {
-    if (
-      zeroRateCurrencyCodes[pair.data.currency_pair.split('_')[0]] === true ||
-      zeroRateCurrencyCodes[pair.data.currency_pair.split('_')[1]] === true
-    ) {
-      if (rates[pair.data.date] == null) {
-        rates[pair.data.date] = {}
-      }
-      rates[pair.data.date][pair.data.currency_pair] = '0'
-    }
-  }
-  return rates
-}
-
-const fallbackConstantRates = (rateObj: ReturnRate[]): NewRates => {
-  const rates = {}
-  for (const pair of rateObj) {
-    if (fallbackConstantRatePairs[pair.data.currency_pair] != null) {
-      if (rates[pair.data.date] == null) {
-        rates[pair.data.date] = {}
-      }
-      rates[pair.data.date][pair.data.currency_pair] = '0'
-    }
-    if (
-      fallbackConstantRatePairs[invertPair(pair.data.currency_pair)] != null
-    ) {
-      if (rates[pair.data.date] == null) {
-        rates[pair.data.date] = {}
-      }
-      rates[pair.data.date][pair.data.currency_pair] = '0'
-    }
-  }
-  return rates
-}
-
 const addNewRatesToDocs = (
   newRates: NewRates,
-  rateObj: ReturnGetRate
+  documents: DbDoc[],
+  providerName: string
 ): void => {
   for (const date of Object.keys(newRates)) {
-    const dbIndex = rateObj.documents.findIndex(doc => doc._id === date)
-    for (const pair of Object.keys(newRates[date])) {
-      if (
-        rateObj.documents[dbIndex] != null &&
-        rateObj.documents[dbIndex][pair] == null
-      ) {
-        rateObj.documents[dbIndex][pair] = newRates[date][pair]
-        rateObj.documents[dbIndex].updated = true
+    const rateMap = newRates[date]
+    const dbIndex = documents.findIndex(doc => doc._id === date)
+    if (dbIndex >= 0) {
+      // Create map of inverted pairs and rates
+      const invertedRateMap = {}
+      for (const pair of Object.keys(rateMap)) {
+        const rate = rateMap[pair]
+        // Sanity check value is acceptable and only allow a 0 rate from the zeroRates plugin
+        if (
+          isNotANumber(rate) ||
+          (rate === '0' && providerName !== 'zeroRates')
+        ) {
+          delete rateMap[pair]
+          continue
+        }
+        invertedRateMap[invertPair(pair)] =
+          rate === '0' ? '0' : bns.div('1', rate)
+      }
+
+      // Add new rates and their inverts to the doc and mark updated
+      documents[dbIndex] = {
+        ...documents[dbIndex],
+        ...rateMap,
+        ...invertedRateMap,
+        ...{ updated: true }
       }
     }
   }
 }
 
-const getRate = async (
+const getRatesFromProviders = async (
   rateObj: ReturnGetRate,
   log: Function
 ): Promise<ReturnGetRate> => {
@@ -168,19 +106,20 @@ const getRate = async (
   const rateProviders = [
     zeroRates,
     currencyConverter,
-    openExchangeRates,
     coinMarketCapCurrent,
     coincap,
     coinMarketCapHistorical,
     nomics,
     compound,
-    fallbackConstantRates
+    fallbackConstantRates,
+    openExchangeRates
   ]
 
   for (const provider of rateProviders) {
     addNewRatesToDocs(
       await provider(getNullRateArray(rateObj.data), log, currentTime),
-      rateObj
+      rateObj.documents,
+      provider.name
     )
     currencyBridgeDB(rateObj)
     if (haveEveryRate(rateObj.data)) break
@@ -189,23 +128,21 @@ const getRate = async (
   return rateObj
 }
 
-export const getExchangeRate = async (
+export const getExchangeRates = async (
   query: Array<ReturnType<typeof asExchangeRateReq>>,
   localDb: any
 ): Promise<ReturnGetRate> => {
   try {
+    const dates: string[] = []
     const data = query.map(pair => {
       const { currencyPair, date } = asRateParam(pair)
+      if (!dates.includes(date)) dates.push(date)
       return {
-        data: {
-          currency_pair: currencyPair,
-          date,
-          exchangeRate: null
-        }
+        currency_pair: currencyPair,
+        date,
+        exchangeRate: null
       }
     })
-    const documents: DbDoc[] = []
-    const rateObj = { data, documents }
 
     const log = (...args): void => {
       console.log(`${JSON.stringify(args)}`)
@@ -213,21 +150,18 @@ export const getExchangeRate = async (
       // const p = currencyPair
       // console.log(`${d} ${p} ${JSON.stringify(args)}`)
     }
-    await getFromDb(localDb, rateObj, log)
-    const out = await getRate(rateObj, log)
+    const documents: DbDoc[] = await getFromDb(localDb, dates, log)
+    const out = await getRatesFromProviders({ data, documents }, log)
     saveToDb(localDb, out.documents, log)
     return out
   } catch (e) {
     return {
       data: [
         {
-          data: {
-            // TODO: fix return type
-            currency_pair: '',
-            date: '',
-            exchangeRate: '',
-            error: e
-          }
+          currency_pair: '',
+          date: '',
+          exchangeRate: '',
+          error: e
         }
       ],
       documents: []
@@ -237,107 +171,68 @@ export const getExchangeRate = async (
 
 export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
   for (let i = 0; i < rateObj.data.length; i++) {
-    const rate = rateObj.data[i].data
+    const rate = rateObj.data[i]
     if (rate.exchangeRate !== null) continue
-    const safeRequestedFrom = checkConstantCode(
-      rate.currency_pair.split('_')[0]
-    )
-    const safeRequestedTo = checkConstantCode(rate.currency_pair.split('_')[1])
     const dbIndex = rateObj.documents.findIndex(doc => doc._id === rate.date)
     if (rateObj.documents[dbIndex] == null) continue
+    const from = checkConstantCode(rate.currency_pair.split('_')[0])
+    const to = checkConstantCode(rate.currency_pair.split('_')[1])
+    const doc = rateObj.documents[dbIndex]
     // Check simple combinations first
-    if (
-      rateObj.documents[dbIndex][`${safeRequestedFrom}_${safeRequestedTo}`] !=
-      null
-    ) {
-      rate.exchangeRate =
-        rateObj.documents[dbIndex][`${safeRequestedFrom}_${safeRequestedTo}`]
-      continue
-    }
-    if (
-      rateObj.documents[dbIndex][`${safeRequestedTo}_${safeRequestedFrom}`] !=
-      null
-    ) {
-      rate.exchangeRate = bns.div(
-        '1',
-        rateObj.documents[dbIndex][`${safeRequestedTo}_${safeRequestedFrom}`]
-      )
+    if (doc[`${from}_${to}`] != null) {
+      rate.exchangeRate = doc[`${from}_${to}`]
       continue
     }
 
     // Try using bridge currencies to connect two different rates
     for (const bridgeCurrency of bridgeCurrencies) {
-      if (
-        safeRequestedFrom === bridgeCurrency ||
-        safeRequestedTo === bridgeCurrency
-      ) {
+      if (from === bridgeCurrency || to === bridgeCurrency) {
         continue
       }
       if (
-        rateObj.documents[dbIndex][`${safeRequestedFrom}_${bridgeCurrency}`] !=
-          null &&
-        rateObj.documents[dbIndex][`${safeRequestedTo}_${bridgeCurrency}`] !=
-          null
+        doc[`${from}_${bridgeCurrency}`] != null &&
+        doc[`${to}_${bridgeCurrency}`] != null
       ) {
         rate.exchangeRate = bns.div(
-          rateObj.documents[dbIndex][`${safeRequestedFrom}_${bridgeCurrency}`],
-          rateObj.documents[dbIndex][`${safeRequestedTo}_${bridgeCurrency}`]
+          doc[`${from}_${bridgeCurrency}`],
+          doc[`${to}_${bridgeCurrency}`]
         )
         continue
       }
       if (
-        rateObj.documents[dbIndex][`${bridgeCurrency}_${safeRequestedFrom}`] !=
-          null &&
-        rateObj.documents[dbIndex][`${bridgeCurrency}_${safeRequestedTo}`] !=
-          null
+        doc[`${bridgeCurrency}_${from}`] != null &&
+        doc[`${bridgeCurrency}_${to}`] != null
       ) {
         rate.exchangeRate = bns.div(
-          rateObj.documents[dbIndex][`${bridgeCurrency}_${safeRequestedTo}`],
-          rateObj.documents[dbIndex][`${bridgeCurrency}_${safeRequestedFrom}`]
+          doc[`${bridgeCurrency}_${to}`],
+          doc[`${bridgeCurrency}_${from}`]
         )
         continue
       }
       if (
-        rateObj.documents[dbIndex][`${safeRequestedFrom}_${bridgeCurrency}`] !=
-          null &&
-        rateObj.documents[dbIndex][`${bridgeCurrency}_${safeRequestedTo}`] !=
-          null
+        doc[`${from}_${bridgeCurrency}`] != null &&
+        doc[`${bridgeCurrency}_${to}`] != null
       ) {
         rate.exchangeRate = bns.mul(
-          rateObj.documents[dbIndex][`${safeRequestedFrom}_${bridgeCurrency}`],
-          rateObj.documents[dbIndex][`${bridgeCurrency}_${safeRequestedTo}`]
+          doc[`${from}_${bridgeCurrency}`],
+          doc[`${bridgeCurrency}_${to}`]
         )
         continue
       }
 
       if (
-        rateObj.documents[dbIndex][`${bridgeCurrency}_${safeRequestedFrom}`] !=
-          null &&
-        rateObj.documents[dbIndex][`${safeRequestedTo}_${bridgeCurrency}`] !=
-          null
+        doc[`${bridgeCurrency}_${from}`] != null &&
+        doc[`${to}_${bridgeCurrency}`] != null
       )
         rate.exchangeRate = bns.div(
           '1',
           bns.mul(
-            rateObj.documents[dbIndex][
-              `${bridgeCurrency}_${safeRequestedFrom}`
-            ],
-            rateObj.documents[dbIndex][`${safeRequestedTo}_${bridgeCurrency}`]
+            doc[`${bridgeCurrency}_${from}`],
+            doc[`${to}_${bridgeCurrency}`]
           )
         )
     }
   }
-}
-
-export const checkConstantCode = (code: string): string => {
-  const constantCodes = constantCurrencyCodes
-  const getConstantCode = (): string => {
-    if (constantCodes[code] != null) {
-      return constantCodes[code]
-    }
-    return code
-  }
-  return getConstantCode()
 }
 
 export const asExchangeRateReq = asObject({

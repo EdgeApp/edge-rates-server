@@ -1,7 +1,7 @@
 import { asArray, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
-import { NewRates, ReturnRate } from './rates'
+import { NewRates, ReturnRate } from './../rates'
 
 const fixCurrency = (currencyCode: string): string => {
   return currencyCode.toUpperCase()
