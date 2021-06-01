@@ -1,143 +1,19 @@
-// indexAuth.js
-// BASE SETUP
-// =============================================================================
-
-import bodyParser from 'body-parser'
-import { asArray, asObject } from 'cleaners'
-import cluster from 'cluster'
-import cors from 'cors'
-import {
-  autoReplication,
-  forkChildren,
-  makePeriodicTask
-} from 'edge-server-tools'
-import express from 'express'
-import http from 'http'
-import nano from 'nano'
-import promisify from 'promisify-node'
-
 import { config } from './config'
-import { asExchangeRateReq, getExchangeRates } from './rates'
-// const REQUIRED_CODES = ['BC1', 'DASH', 'LTC', 'BCH']
+import { exchangeRateRouter } from './exchangeRateRouter'
+import { createRouter } from './router'
+import { createServer } from './server'
+import { logger } from './utils/utils'
 
-export const asExchangeRatesReq = asObject({
-  data: asArray(asExchangeRateReq)
+// Create Router
+const router = createRouter({
+  // Create Exchange Rate Router
+  '/v1': exchangeRateRouter(config)
 })
-
-const AUTOREPLICATION_DELAY = 1000 * 60 * 30 // 30 minutes
-const EXCHANGE_RATES_BATCH_LIMIT = 100
-
-// call the packages we need
-const app = express()
-
-const mylog = console.log
-
-function dateString(): string {
-  const date = new Date()
-  return date.toDateString() + ':' + date.toTimeString()
-}
-
-// configure app to use bodyParser()
-// this will let us get the data from a POST
-app.use(bodyParser.urlencoded({ extended: true }))
-app.use(bodyParser.json({ limit: '50mb' }))
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
-app.use(cors())
-
-// Nano for CouchDB
-// =============================================================================
-const nanoDb = nano(config.couchUri)
-const dbRates = nanoDb.db.use('db_rates')
-promisify(dbRates)
-
-// ROUTES FOR OUR API
-// =============================================================================
-const router = express.Router()
-
-// middleware to use for all requests
-router.use(function(req, res, next) {
-  // do logging
-
-  mylog('Something is happening.')
-  next() // make sure we go to the next routes and don't stop here
+// Create Server
+const server = createServer(router, config)
+// Start Server
+server.listen(server.get('httpPort'), server.get('httpHost'), () => {
+  logger(
+    `Express server listening on port ${JSON.stringify(server.get('httpPort'))}`
+  )
 })
-
-/*
- * Query params:
- * currency_pair: String with the two currencies separated by an underscore. Ex: "ETH_USD"
- */
-router.get('/exchangeRate', async function(req, res) {
-  const currencyPair = req.query.currency_pair
-  const date = req.query.date
-  let query
-  try {
-    query = asExchangeRatesReq({
-      data: [{ currency_pair: currencyPair, date }]
-    })
-  } catch (e) {
-    return res.status(400).send(`Missing Request fields.`)
-  }
-
-  const result = await getExchangeRates(query.data, dbRates)
-  res.json(result.data[0])
-})
-
-router.post('/exchangeRates', async function(req, res) {
-  let query
-  try {
-    query = asExchangeRatesReq(req.body)
-  } catch (e) {
-    return res.status(400).send(`Missing Request fields.`)
-  }
-  if (query.data.length > EXCHANGE_RATES_BATCH_LIMIT) {
-    return res
-      .status(400)
-      .send(`Exceeded Limit of ${EXCHANGE_RATES_BATCH_LIMIT}`)
-  }
-
-  const requestedRates: Array<ReturnType<typeof asExchangeRateReq>> = query.data
-  const data = await getExchangeRates(requestedRates, dbRates)
-  res.json({ data: data.data })
-})
-
-// middleware to use for all requests
-router.use(function(req, res, next) {
-  // do logging
-  mylog(dateString() + 'Something is happening.')
-  next() // make sure we go to the next routes and don't stop here
-})
-
-// REGISTER OUR ROUTES -------------------------------
-// all of our routes will be prefixed with /api
-app.use('/v1', router)
-
-function main(): void {
-  const {
-    couchUri,
-    httpPort = 8008,
-    infoServerAddress,
-    infoServerApiKey
-  } = config
-  if (cluster.isMaster) {
-    makePeriodicTask(
-      async () =>
-        autoReplication(
-          infoServerAddress,
-          'ratesServer',
-          infoServerApiKey,
-          couchUri
-        ),
-      AUTOREPLICATION_DELAY
-    )
-    forkChildren()
-  } else {
-    // START THE SERVER
-    // =============================================================================
-    const httpServer = http.createServer(app)
-    httpServer.listen(httpPort, '127.0.0.1')
-
-    mylog(`Express server listening on port ${httpPort}`)
-  }
-}
-
-main()
