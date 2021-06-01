@@ -100,8 +100,7 @@ const addNewRatesToDocs = (
 }
 
 const getRatesFromProviders = async (
-  rateObj: ReturnGetRate,
-  log: Function
+  rateObj: ReturnGetRate
 ): Promise<ReturnGetRate> => {
   const currentTime = normalizeDate(new Date().toISOString())
   if (typeof currentTime !== 'string') throw new Error('malformed date')
@@ -121,7 +120,7 @@ const getRatesFromProviders = async (
 
   for (const provider of rateProviders) {
     addNewRatesToDocs(
-      await provider(getNullRateArray(rateObj.data), log, currentTime),
+      await provider(getNullRateArray(rateObj.data), currentTime),
       rateObj.documents,
       provider.name
     )
@@ -148,15 +147,9 @@ export const getExchangeRates = async (
       }
     })
 
-    const log = (...args): void => {
-      console.log(`${JSON.stringify(args)}`)
-      // const d = new Date().toISOString()
-      // const p = currencyPair
-      // console.log(`${d} ${p} ${JSON.stringify(args)}`)
-    }
-    const documents: DbDoc[] = await getFromDb(localDb, dates, log)
-    const out = await getRatesFromProviders({ data, documents }, log)
-    saveToDb(localDb, out.documents, log)
+    const documents: DbDoc[] = await getFromDb(localDb, dates)
+    const out = await getRatesFromProviders({ data, documents })
+    saveToDb(localDb, out.documents)
     return out
   } catch (e) {
     return {
