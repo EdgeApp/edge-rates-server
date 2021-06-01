@@ -62,10 +62,12 @@
     "biggystring": "^3.0.2",
     "cleaner-config": "^0.1.7",
     "cleaners": "^0.2.0",
+    "compression": "^1.7.4",
     "cors": "^2.8.5",
     "edge-server-tools": "^0.1.0",
     "express": "^4.17.1",
     "jsonschema": "^1.2.6",
+    "morgan": "^1.10.0",
     "nano": "^8.2.2",
     "node-fetch": "^2.6.0",
     "promisify-node": "^0.5.0"
