@@ -4,7 +4,7 @@ import fetch from 'node-fetch'
 import { config } from './../config'
 import { NewRates, RateMap, ReturnRate } from './../rates'
 import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
-import { combineRates } from './../utils/utils'
+import { combineRates, logger } from './../utils/utils'
 
 const { uri, apiKey } = config.providers.currencyConverter
 
@@ -26,11 +26,7 @@ const currencyConverterRateMap = (
     }
   }, {})
 
-const query = async (
-  date: string,
-  codes: string[],
-  log: Function
-): Promise<NewRates> => {
+const query = async (date: string, codes: string[]): Promise<NewRates> => {
   const rates = { [date]: {} }
   if (codes.length === 0) return rates
   const justDate = date.split('T')[0]
@@ -46,7 +42,7 @@ const query = async (
       (error != null && error !== '') ||
       response.ok === false
     ) {
-      log(
+      logger(
         `currencyConverter returned code ${response.status} for ${codes} at ${date}`
       )
       throw new Error(
@@ -59,20 +55,19 @@ const query = async (
     // Create return object
     rates[date] = currencyConverterRateMap(results)
   } catch (e) {
-    log(`Failed to get ${codes} from currencyconverterapi.com`, e)
+    logger(`Failed to get ${codes} from currencyconverterapi.com`, e)
   }
   return rates
 }
 
 const currencyConverter = async (
   rateObj: ReturnRate[],
-  log: Function,
   currentTime: string
 ): Promise<NewRates> => {
   const rates = {}
 
   if (apiKey == null) {
-    log('No currencyConverter apiKey')
+    logger('No currencyConverter apiKey')
     return rates
   }
 
@@ -101,13 +96,13 @@ const currencyConverter = async (
 
   // Query
   const providers = Object.keys(datesAndCodesWanted).map(async date =>
-    query(date, datesAndCodesWanted[date], log)
+    query(date, datesAndCodesWanted[date])
   )
   try {
     const response = await Promise.all(providers)
     combineRates(rates, response)
   } catch (e) {
-    log('Failed to query currencyConverter with error', e.message)
+    logger('Failed to query currencyConverter with error', e.message)
   }
 
   return rates

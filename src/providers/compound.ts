@@ -3,6 +3,7 @@ import fetch from 'node-fetch'
 
 import { config } from '../config'
 import { NewRates, RateMap, ReturnRate } from './../rates'
+import { logger } from './../utils/utils'
 
 const { uri } = config.providers.compound
 
@@ -38,7 +39,6 @@ const compoundRateMap = (
 
 const compound = async (
   rateObj: ReturnRate[],
-  log: Function,
   currentTime: string
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }
@@ -57,7 +57,7 @@ const compound = async (
 
     rates[currentTime] = compoundRateMap(json)
   } catch (e) {
-    log(`No Compound quote: ${JSON.stringify(e)}`)
+    logger(`No Compound quote: ${JSON.stringify(e)}`)
   }
   return rates
 }
