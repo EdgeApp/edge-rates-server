@@ -16,27 +16,29 @@ interface pairQuery {
   date: string
 }
 
-const ratesEngine = async (): Promise<void> => {
+export const ratesEngine = async (): Promise<void> => {
   const currentDate = new Date().toISOString()
   try {
     const data: pairQuery[] = []
     for (const currencyCode of allCurrencies) {
       data.push({
-        currency_pair: `${bridgeCurrency}_${currencyCode}`,
+        currency_pair: `${currencyCode}_${bridgeCurrency}`,
         date: currentDate
       })
     }
-    const response = await fetch(endPoint, {
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      method: 'POST',
-      body: JSON.stringify({ data })
-    })
-    if (response.ok === true) {
-      console.log(`Successfully saved new currencyPairs`)
-    } else {
-      console.log(`Could not save new currencyPairs`)
+    while (data.length > 0) {
+      const response = await fetch(endPoint, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        method: 'POST',
+        body: JSON.stringify({ data: data.splice(0, 100) })
+      })
+      if (response.ok === true) {
+        console.log(`Successfully saved new currencyPairs`)
+      } else {
+        console.log(`Could not save new currencyPairs`)
+      }
     }
   } catch (e) {
     console.log(currentDate)
@@ -47,5 +49,3 @@ const ratesEngine = async (): Promise<void> => {
     ratesEngine().catch(e => console.log(e))
   }
 }
-
-ratesEngine().catch(e => console.log(e))
