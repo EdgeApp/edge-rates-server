@@ -1,7 +1,8 @@
 import AwaitLock from 'await-lock'
 
 import { DbDoc } from '../rates'
-import { logger } from './utils'
+import { config } from './../config'
+import { logger, slackPoster } from './utils'
 
 let LOCK_ID = 0
 
@@ -30,13 +31,14 @@ export const saveToDb = (
             .join(', ')} to db: ${db}`
         )
       )
-      .catch(e =>
+      .catch(e => {
         logger(
           `Error saving document ID: ${docs
             .map(doc => doc._id)
             .join(', ')} to db: ${db}`
         )
-      )
+        slackPoster(config.slackWebhookUrl, e).catch(e)
+      })
       .finally(() => {
         locks[LOCK_ID].release()
         if (locks[LOCK_ID]._waitingResolvers.length === 0) {
@@ -55,7 +57,7 @@ export const getFromDb = async (
     dates.map(date => {
       return localDb.get(date).catch(e => {
         if (e.error !== 'not_found') {
-          throw e
+          slackPoster(config.slackWebhookUrl, e).catch(e)
         } else {
           return {
             _id: date

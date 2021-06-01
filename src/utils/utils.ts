@@ -1,11 +1,8 @@
 import { validate } from 'jsonschema'
 import fetch from 'node-fetch'
 
-import { config } from '../config'
 import { ReturnRate } from '../rates'
 import { constantCurrencyCodes } from './currencyCodeMaps'
-
-const { slackWebhookUrl } = config
 
 /*
  * Returns string value of date "normalized" by floor'ing to nearest
@@ -42,23 +39,31 @@ export function validateObject(object: any, schema: any): boolean {
   }
 }
 
-let postToSlackText = ''
-let postToSlackTime = 1591837000000 // June 10 2020
+const FIVE_MINUTES = 1000 * 60 * 5
+let lastText = ''
+let lastDate = 1591837000000 // June 10 2020
 
-export async function postToSlack(date: string, text: string): Promise<void> {
+export const slackPoster = async (
+  slackWebhookUrl: string,
+  text: string
+): Promise<void> => {
+  const now = Date.now()
   // check if it's been 5 minutes since last identical message was sent to Slack
   if (
-    text === postToSlackText &&
-    Date.now() - postToSlackTime < 1000 * 60 * 5 // 5 minutes
+    slackWebhookUrl == null ||
+    slackWebhookUrl === '' ||
+    (text === lastText && now - lastDate < FIVE_MINUTES) // 5 minutes
   ) {
     return
   }
   try {
-    postToSlackText = text
-    postToSlackTime = Date.now()
+    lastText = text
+    lastDate = now
     await fetch(slackWebhookUrl, {
       method: 'POST',
-      body: JSON.stringify({ text: `${date} ${text}` })
+      body: JSON.stringify({
+        text: `${new Date(now).toISOString()} ${JSON.stringify(text)}`
+      })
     })
   } catch (e) {
     console.log('Could not log DB error to Slack', e)
