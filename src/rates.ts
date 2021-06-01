@@ -2,24 +2,29 @@ import { bns } from 'biggystring'
 import { asObject, asOptional, asString } from 'cleaners'
 import nano from 'nano'
 
-import { coincapHistorical } from './coincap'
-import { coinMarketCapHistorical } from './coinMarketCap'
-import { coinMarketCapCurrent } from './coinMarketCapBasic'
 import { config } from './config'
-import { currencyConverter } from './currencyConverter'
-import { normalizeDate, postToSlack } from './utils'
+import { coincap } from './providers/coincap'
+import { coinMarketCapHistorical } from './providers/coinMarketCap'
+import { coinMarketCapCurrent } from './providers/coinMarketCapBasic'
+import { compound } from './providers/compound'
+import { currencyConverter } from './providers/currencyConverter'
+import {
+  fallbackConstantRates,
+  zeroRates
+} from './providers/hardcodedProviders'
+import { nomics } from './providers/nomics'
+import { openExchangeRates } from './providers/openExchangeRates'
+import { getFromDb, saveToDb } from './utils/dbUtils'
+import {
+  checkConstantCode,
+  getNullRateArray,
+  haveEveryRate,
+  invertPair,
+  isNotANumber,
+  normalizeDate
+} from './utils/utils'
 
 const { bridgeCurrencies } = config
-
-const zeroRateCurrencyCodes = {
-  UFO: true,
-  FORK: true
-}
-
-const fallbackConstantRatePairs = {
-  SAI_USD: 1,
-  DAI_USD: 1
-}
 
 type ErrorType = 'not_found' | 'conflict' | 'db_error'
 interface RateError extends Error {
@@ -27,241 +32,205 @@ interface RateError extends Error {
   errorType?: ErrorType
 }
 
-const rateError = (
-  message: string,
-  errorCode: number = 500,
-  errorType?: ErrorType
-): RateError => Object.assign(new Error(message), { errorCode, errorType })
+// const rateError = (
+//   message: string,
+//   errorCode: number = 500,
+//   errorType?: ErrorType
+// ): RateError => Object.assign(new Error(message), { errorCode, errorType })
 
-interface ReturnGetRate {
-  rate: string
-  document?: any
+export interface DbDoc extends nano.DocumentGetResponse {
+  [pair: string]: any
+  updated?: boolean
 }
 
-const getRate = async (
-  localDb: any,
-  currencyA: string,
-  currencyB: string,
-  currencyPair: string,
-  date: string,
-  log: Function
-): Promise<ReturnGetRate> => {
-  if (
-    zeroRateCurrencyCodes[currencyA] === true ||
-    zeroRateCurrencyCodes[currencyB] === true
-  )
-    return { rate: '0' }
-  try {
-    const dbRate = await getFromDb(localDb, currencyA, currencyB, date, log)
-    if (dbRate != null && dbRate !== '') return { rate: dbRate }
-
-    let existingDocument = await localDb.get(date).catch(e => {
-      if (e.error !== 'not_found') {
-        log(`${currencyPair} does not exist for date: ${date}`)
-      }
-    })
-    if (existingDocument == null) {
-      existingDocument = {
-        _id: date,
-        [currencyPair]: ''
-      }
-    }
-
-    await currencyBridge(
-      () => '',
-      currencyA,
-      currencyB,
-      date,
-      log,
-      existingDocument
-    )
-    const dbBridge = existingDocument[currencyPair]
-    if (dbBridge != null && dbBridge !== '') return { rate: dbBridge }
-
-    const exchanges = [
-      currencyConverter,
-      coinMarketCapCurrent,
-      coincapHistorical,
-      coinMarketCapHistorical
-    ]
-    let bridge = ''
-    for (const exchange of exchanges) {
-      bridge = await exchange(currencyA, currencyB, date, log)
-      if (bridge != null && bridge !== '') {
-        existingDocument[currencyPair] = bridge
-        break
-      }
-
-      await currencyBridge(
-        exchange,
-        currencyA,
-        currencyB,
-        date,
-        log,
-        existingDocument
-      )
-
-      bridge = existingDocument[currencyPair]
-      if (bridge != null && bridge !== '') {
-        break
-      }
-    }
-
-    if (bridge != null && bridge !== '') {
-      return { rate: bridge, document: existingDocument }
-    }
-
-    // Use fallback hardcoded rates if lookups failed
-    if (fallbackConstantRatePairs[`${currencyA}_${currencyB}`] != null) {
-      return fallbackConstantRatePairs[`${currencyA}_${currencyB}`]
-    }
-
-    if (fallbackConstantRatePairs[`${currencyB}_${currencyA}`] != null) {
-      return fallbackConstantRatePairs[`${currencyB}_${currencyA}`]
-    }
-
-    const requestedDateTimestamp = new Date(date).getTime()
-    if (Date.now() - config.ratesLookbackLimit > requestedDateTimestamp) {
-      existingDocument[currencyPair] = 0
-      await localDb.insert(existingDocument).catch(e => {
-        if (e.error !== 'conflict') {
-          throw rateError(
-            `RATES SERVER: Future date received ${date} for currency pair ${currencyA}_${currencyB}. Must send past date.`,
-            400,
-            'conflict'
-          )
-        }
-        log(`DB write error ${JSON.stringify(e)}`)
-      })
-    }
-    throw rateError(
-      `RATES SERVER: All lookups failed to find exchange rate for currencypair ${currencyA}_${currencyB} at date ${date}.`,
-      400,
-      'not_found'
-    )
-  } catch (e) {
-    if (e.errorCode === 400) throw e
-    throw rateError(e.message, 500, 'db_error')
-  }
+export interface ReturnGetRate {
+  data: ReturnRate[]
+  documents: DbDoc[]
 }
 
-interface ReturnRateUserResponse {
-  currency_pair?: string
-  date?: string
-  exchangeRate?: string
+export interface ReturnRate {
+  currency_pair: string
+  date: string
+  exchangeRate: string | null
   error?: Error
 }
-export interface ReturnRate {
-  data: ReturnRateUserResponse
-  document?: any
+
+export interface NewRates {
+  [date: string]: { [pair: string]: string }
 }
 
-export const getExchangeRate = async (
-  query: ReturnType<typeof asExchangeRateReq>,
-  localDb: any
-): Promise<ReturnRate> => {
-  try {
-    const { currencyA, currencyB, currencyPair, date } = asRateParam(query)
-    const log = (...args): void => {
-      const d = new Date().toISOString()
-      const p = currencyPair
-      console.log(`${d} ${p} ${JSON.stringify(args)}`)
-    }
-    const response = await getRate(
-      localDb,
-      currencyA,
-      currencyB,
-      currencyPair,
-      date,
-      log
-    )
+const addNewRatesToDocs = (
+  newRates: NewRates,
+  documents: DbDoc[],
+  providerName: string
+): void => {
+  for (const date of Object.keys(newRates)) {
+    const rateMap = newRates[date]
+    const dbIndex = documents.findIndex(doc => doc._id === date)
+    if (dbIndex >= 0) {
+      // Create map of inverted pairs and rates
+      const invertedRateMap = {}
+      for (const pair of Object.keys(rateMap)) {
+        const rate = rateMap[pair]
+        // Sanity check value is acceptable and only allow a 0 rate from the zeroRates plugin
+        if (
+          isNotANumber(rate) ||
+          (rate === '0' && providerName !== 'zeroRates')
+        ) {
+          delete rateMap[pair]
+          continue
+        }
+        invertedRateMap[invertPair(pair)] =
+          rate === '0' ? '0' : bns.div('1', rate)
+      }
 
-    return {
-      data: {
+      // Add new rates and their inverts to the doc and mark updated
+      documents[dbIndex] = {
+        ...documents[dbIndex],
+        ...rateMap,
+        ...invertedRateMap,
+        ...{ updated: true }
+      }
+    }
+  }
+}
+
+const getRatesFromProviders = async (
+  rateObj: ReturnGetRate,
+  log: Function
+): Promise<ReturnGetRate> => {
+  const currentTime = normalizeDate(new Date().toISOString())
+  if (typeof currentTime !== 'string') throw new Error('malformed date')
+
+  // Retrieve new rates
+  const rateProviders = [
+    zeroRates,
+    currencyConverter,
+    coinMarketCapCurrent,
+    coincap,
+    coinMarketCapHistorical,
+    nomics,
+    compound,
+    fallbackConstantRates,
+    openExchangeRates
+  ]
+
+  for (const provider of rateProviders) {
+    addNewRatesToDocs(
+      await provider(getNullRateArray(rateObj.data), log, currentTime),
+      rateObj.documents,
+      provider.name
+    )
+    currencyBridgeDB(rateObj)
+    if (haveEveryRate(rateObj.data)) break
+  }
+
+  return rateObj
+}
+
+export const getExchangeRates = async (
+  query: Array<ReturnType<typeof asExchangeRateReq>>,
+  localDb: any
+): Promise<ReturnGetRate> => {
+  try {
+    const dates: string[] = []
+    const data = query.map(pair => {
+      const { currencyPair, date } = asRateParam(pair)
+      if (!dates.includes(date)) dates.push(date)
+      return {
         currency_pair: currencyPair,
         date,
-        exchangeRate: response.rate
-      },
-      document: response.document
+        exchangeRate: null
+      }
+    })
+
+    const log = (...args): void => {
+      console.log(`${JSON.stringify(args)}`)
+      // const d = new Date().toISOString()
+      // const p = currencyPair
+      // console.log(`${d} ${p} ${JSON.stringify(args)}`)
     }
+    const documents: DbDoc[] = await getFromDb(localDb, dates, log)
+    const out = await getRatesFromProviders({ data, documents }, log)
+    saveToDb(localDb, out.documents, log)
+    return out
   } catch (e) {
-    if (e.errorType === 'db_error') {
-      postToSlack(
-        new Date().toISOString(),
-        `RATES SERVER: exchangeRate query failed for ${query.currency_pair} with error code ${e.errorCode}.  ${e.message}`
-      ).catch(e)
-    }
     return {
-      data: {
-        currency_pair: query.currency_pair,
-        error: e
-      }
+      data: [
+        {
+          currency_pair: '',
+          date: '',
+          exchangeRate: '',
+          error: e
+        }
+      ],
+      documents: []
     }
   }
 }
 
-type ProviderFetch = (
-  localDb: any,
-  currencyA: string,
-  currencyB: string,
-  date: string,
-  log: Function
-) => Promise<string>
-
-const getFromDb: ProviderFetch = async (
-  localDb,
-  currencyA,
-  currencyB,
-  date,
-  log
-) => {
-  let rate = ''
-  try {
-    const exchangeRate: nano.DocumentGetResponse & {
-      [pair: string]: any
-    } = await localDb.get(date)
-    if (exchangeRate[`${currencyA}_${currencyB}`] != null) {
-      rate = exchangeRate[`${currencyA}_${currencyB}`]
-    } else if (exchangeRate[`${currencyB}_${currencyA}`] != null) {
-      rate = bns.div('1', exchangeRate[`${currencyB}_${currencyA}`], 8, 10)
+export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
+  for (let i = 0; i < rateObj.data.length; i++) {
+    const rate = rateObj.data[i]
+    if (rate.exchangeRate !== null) continue
+    const dbIndex = rateObj.documents.findIndex(doc => doc._id === rate.date)
+    if (rateObj.documents[dbIndex] == null) continue
+    const from = checkConstantCode(rate.currency_pair.split('_')[0])
+    const to = checkConstantCode(rate.currency_pair.split('_')[1])
+    const doc = rateObj.documents[dbIndex]
+    // Check simple combinations first
+    if (doc[`${from}_${to}`] != null) {
+      rate.exchangeRate = doc[`${from}_${to}`]
+      continue
     }
-  } catch (e) {
-    if (e.error !== 'not_found') {
-      log(`DB read error ${JSON.stringify(e)}`)
-      throw e
-    }
-  }
-  return rate
-}
 
-export const currencyBridge = async (
-  getExchangeRate: Function,
-  currencyA: string,
-  currencyB: string,
-  date: string,
-  log: Function,
-  currencyRates: nano.DocumentGetResponse
-): Promise<void> => {
-  for (const currency of bridgeCurrencies) {
-    const pair1 = `${currencyA}_${currency}`
-    const pair2 = `${currency}_${currencyB}`
-    if (currencyA === currency || currencyB === currency) continue
-    try {
-      const currACurr =
-        currencyRates[pair1] ??
-        (await getExchangeRate(currencyA, currency, date, log))
-      if (currACurr !== '') Object.assign(currencyRates, { [pair1]: currACurr })
-      const currCurrB =
-        currencyRates[pair2] ??
-        (await getExchangeRate(currency, currencyB, date, log))
-      if (currCurrB !== '') Object.assign(currencyRates, { [pair2]: currCurrB })
-      if (currACurr !== '' && currCurrB !== '') {
-        const rate = (parseFloat(currACurr) * parseFloat(currCurrB)).toString()
-        Object.assign(currencyRates, { [`${currencyA}_${currencyB}`]: rate })
-        return
+    // Try using bridge currencies to connect two different rates
+    for (const bridgeCurrency of bridgeCurrencies) {
+      if (from === bridgeCurrency || to === bridgeCurrency) {
+        continue
       }
-    } catch (e) {
-      console.log(e)
+      if (
+        doc[`${from}_${bridgeCurrency}`] != null &&
+        doc[`${to}_${bridgeCurrency}`] != null
+      ) {
+        rate.exchangeRate = bns.div(
+          doc[`${from}_${bridgeCurrency}`],
+          doc[`${to}_${bridgeCurrency}`]
+        )
+        continue
+      }
+      if (
+        doc[`${bridgeCurrency}_${from}`] != null &&
+        doc[`${bridgeCurrency}_${to}`] != null
+      ) {
+        rate.exchangeRate = bns.div(
+          doc[`${bridgeCurrency}_${to}`],
+          doc[`${bridgeCurrency}_${from}`]
+        )
+        continue
+      }
+      if (
+        doc[`${from}_${bridgeCurrency}`] != null &&
+        doc[`${bridgeCurrency}_${to}`] != null
+      ) {
+        rate.exchangeRate = bns.mul(
+          doc[`${from}_${bridgeCurrency}`],
+          doc[`${bridgeCurrency}_${to}`]
+        )
+        continue
+      }
+
+      if (
+        doc[`${bridgeCurrency}_${from}`] != null &&
+        doc[`${to}_${bridgeCurrency}`] != null
+      )
+        rate.exchangeRate = bns.div(
+          '1',
+          bns.mul(
+            doc[`${bridgeCurrency}_${from}`],
+            doc[`${to}_${bridgeCurrency}`]
+          )
+        )
     }
   }
 }
@@ -272,8 +241,6 @@ export const asExchangeRateReq = asObject({
 })
 
 interface RateParamReturn {
-  currencyA: string
-  currencyB: string
   currencyPair: string
   date: string
 }
@@ -298,8 +265,6 @@ export const asRateParam = (param: any): RateParamReturn => {
         'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_USD"'
       )
     }
-    const currencyA = currencyTokens[0]
-    const currencyB = currencyTokens[1]
     const parsedDate = normalizeDate(dateStr)
     if (parsedDate == null) {
       throw new Error(
@@ -309,7 +274,7 @@ export const asRateParam = (param: any): RateParamReturn => {
     if (Date.parse(parsedDate) > Date.now()) {
       throw new Error('Future date received. Must send past date.')
     }
-    return { currencyPair, currencyA, currencyB, date: parsedDate }
+    return { currencyPair, date: parsedDate }
   } catch (e) {
     e.errorCode = 400
     throw e

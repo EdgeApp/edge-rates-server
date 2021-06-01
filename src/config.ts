@@ -12,7 +12,9 @@ const {
   CURRENCY_CONVERTER_API_KEY = '',
   COIN_MARKET_CAP_API_KEY = '',
   COIN_MARKET_CAP_HISTORICAL_API_KEY = '',
-  SLACK_WEBHOOK_URL = ''
+  SLACK_WEBHOOK_URL = '',
+  OPEN_EXCHANGE_RATES_API_KEY,
+  NOMICS_API_KEY
 } = process.env
 
 // Config:
@@ -72,6 +74,8 @@ export const asConfig = asObject({
     COIN_MARKET_CAP_HISTORICAL_API_KEY
   ),
   slackWebhookUrl: asOptional(asString, SLACK_WEBHOOK_URL),
+  openExchangeRatesApiKey: asOptional(asString, OPEN_EXCHANGE_RATES_API_KEY),
+  nomicsApiKey: asOptional(asString, NOMICS_API_KEY),
   ratesLookbackLimit: asOptional(asNumber, 604800000)
 })
 
