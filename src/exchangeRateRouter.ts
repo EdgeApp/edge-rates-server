@@ -9,14 +9,11 @@ import promisify from 'promisify-node'
 
 import { asConfig } from './config'
 import { asExchangeRateReq, getExchangeRates } from './rates'
-// const REQUIRED_CODES = ['BC1', 'DASH', 'LTC', 'BCH']
+import { EXCHANGE_RATES_BATCH_LIMIT } from './utils/constants'
 
 export const asExchangeRatesReq = asObject({
   data: asArray(asExchangeRateReq)
 })
-
-// const AUTOREPLICATION_DELAY = 1000 * 60 * 30 // 30 minutes
-const EXCHANGE_RATES_BATCH_LIMIT = 100
 
 export const exchangeRateRouter = (
   config: ReturnType<typeof asConfig>

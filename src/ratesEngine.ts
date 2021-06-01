@@ -1,13 +1,13 @@
 import fetch from 'node-fetch'
 
 import { config } from './config'
+import { ONE_MINUTE } from './utils/constants'
 import { snooze } from './utils/utils'
 
 const { cryptoCurrencyCodes, fiatCurrencyCodes, ratesServerAddress } = config
 
 const endPoint = `${ratesServerAddress}/v1/exchangeRates`
 
-const LOOP_DELAY = 1000 * 60 * 10 // Delay 10 minutes
 const allCurrencies = cryptoCurrencyCodes.concat(fiatCurrencyCodes)
 const bridgeCurrency = 'USD'
 
@@ -43,7 +43,7 @@ const ratesEngine = async (): Promise<void> => {
     console.log(e)
   } finally {
     console.log('SNOOZING ***********************************')
-    await snooze(LOOP_DELAY)
+    await snooze(ONE_MINUTE)
     ratesEngine().catch(e => console.log(e))
   }
 }

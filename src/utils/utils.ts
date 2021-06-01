@@ -2,6 +2,7 @@ import { validate } from 'jsonschema'
 import fetch from 'node-fetch'
 
 import { ReturnRate } from '../rates'
+import { FIVE_MINUTES } from './constants'
 import { constantCurrencyCodes } from './currencyCodeMaps'
 
 /*
@@ -14,12 +15,6 @@ export function normalizeDate(dateSrc: string): string | void {
   if (dateNorm.toString() === 'Invalid Date') {
     return undefined
   }
-  // round down to nearest 10 minutes
-  let minutes = dateNorm.getMinutes()
-  if (minutes > 0) {
-    minutes -= minutes % 10
-  }
-  dateNorm.setMinutes(minutes)
   dateNorm.setSeconds(0)
   dateNorm.setMilliseconds(0)
   return dateNorm.toISOString()
@@ -39,7 +34,6 @@ export function validateObject(object: any, schema: any): boolean {
   }
 }
 
-const FIVE_MINUTES = 1000 * 60 * 5
 let lastText = ''
 let lastDate = 1591837000000 // June 10 2020
 
