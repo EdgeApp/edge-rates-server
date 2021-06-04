@@ -3,20 +3,38 @@ import fetch from 'node-fetch'
 
 import { config } from './../config'
 import { NewRates, ReturnRate } from './../rates'
-import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
+import {
+  coinmarketcapDefaultMap,
+  coinmarketcapEdgeMap,
+  fiatCurrencyCodes
+} from './../utils/currencyCodeMaps'
 import { checkConstantCode, logger } from './../utils/utils'
 
-// TODO: add ID map
-
-/* 
-Setting default codes simplifies return object handling. CMC returns a slightly different
-object if only one currency is requested. They ignore unrecognized codes so
-this ensures the response will have at least two accepted currency codes.
+/*
+Setting default codes simplifies return object handling. CMC returns a slightly
+different object if only one currency is requested. This ensures the response
+will have at least two accepted currency codes.
 */
 
 const DEFAULT_CODES = ['BTC', 'ETH']
 
+const CODE_MAP = { ...coinmarketcapDefaultMap, ...coinmarketcapEdgeMap }
+
+const createUniqueIdString = (requestedCodes: string[]): string => {
+  return requestedCodes
+    .filter(code => CODE_MAP[code] != null)
+    .map(code => CODE_MAP[code])
+    .join(',')
+}
+
+const invertCodeMapKey = (id: number): string | void => {
+  for (const code of Object.keys(CODE_MAP)) {
+    if (CODE_MAP[code] === id) return code
+  }
+}
+
 const coinMarketCapPrice = asObject({
+  id: asNumber,
   symbol: asString,
   quotes: asArray(
     asObject({
@@ -67,9 +85,9 @@ const coinMarketCapHistorical = async (
   }
   for (const date in datesAndCodesWanted) {
     try {
-      const codes = datesAndCodesWanted[date].join(',')
+      const codes = createUniqueIdString(datesAndCodesWanted[date])
       const response = await fetch(
-        `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical?symbol=${codes}&time_end=${date}&count=1&skip_invalid=true`,
+        `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical?id=${codes}&time_end=${date}&count=1&skip_invalid=true`,
         options
       )
       if (response.status !== 200 || response.ok === false) {
@@ -79,13 +97,15 @@ const coinMarketCapHistorical = async (
         throw new Error(response.statusText)
       }
       const json = asCoinMarketCapHistoricalResponse(await response.json())
+      console.log('102. json', JSON.stringify(json))
 
       // Create return object
       rates[date] = {}
-      for (const code of Object.keys(json.data)) {
-        if (json.data[code].quotes.length > 0)
+      for (const id of Object.keys(json.data)) {
+        const code = invertCodeMapKey(json.data[id].id)
+        if (code != null && json.data[id].quotes.length > 0)
           rates[date][`${code}_USD`] = json.data[
-            code
+            id
           ].quotes[0].quote.USD.price.toString()
       }
     } catch (e) {

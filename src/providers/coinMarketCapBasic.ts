@@ -3,14 +3,32 @@ import fetch from 'node-fetch'
 
 import { config } from './../config'
 import { NewRates, ReturnRate } from './../rates'
-import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
+import {
+  coinmarketcapDefaultMap,
+  coinmarketcapEdgeMap,
+  fiatCurrencyCodes
+} from './../utils/currencyCodeMaps'
 import { checkConstantCode, logger } from './../utils/utils'
 
-// TODO: add ID map
+const CODE_MAP = { ...coinmarketcapDefaultMap, ...coinmarketcapEdgeMap }
+
+const createUniqueIdString = (requestedCodes: string[]): string => {
+  return requestedCodes
+    .filter(code => CODE_MAP[code] != null)
+    .map(code => CODE_MAP[code])
+    .join(',')
+}
+
+const invertCodeMapKey = (id: number): string | void => {
+  for (const code of Object.keys(CODE_MAP)) {
+    if (CODE_MAP[code] === id) return code
+  }
+}
 
 const asCoinMarketCapCurrentResponse = asObject({
   data: asMap(
     asObject({
+      id: asNumber,
       quote: asMap(asObject({ price: asNumber }))
     })
   )
@@ -47,9 +65,9 @@ const coinMarketCapCurrent = async (
   }
   if (codesWanted.length > 0)
     try {
-      const codes = codesWanted.join(',')
+      const codes = createUniqueIdString(codesWanted)
       const response = await fetch(
-        `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${codes}&skip_invalid=true`,
+        `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?id=${codes}`,
         options
       )
       if (response.status !== 200) {
@@ -61,10 +79,12 @@ const coinMarketCapCurrent = async (
       const json = asCoinMarketCapCurrentResponse(await response.json())
 
       // Create return object
-      for (const code of Object.keys(json.data)) {
-        rates[currentTime][`${code}_USD`] = json.data[
-          code
-        ].quote.USD.price.toString()
+      for (const id of Object.keys(json.data)) {
+        const code = invertCodeMapKey(json.data[id].id)
+        if (code != null)
+          rates[currentTime][`${code}_USD`] = json.data[
+            id
+          ].quote.USD.price.toString()
       }
     } catch (e) {
       logger(`No coinMarketCapCurrent quote: ${JSON.stringify(e)}`)
