@@ -3,10 +3,15 @@ import fetch from 'node-fetch'
 
 import { config } from '../config'
 import { NewRates, ReturnRate } from '../rates'
-import { fiatCurrencyCodes } from '../utils/currencyCodeMaps'
+import { fiatCurrencyCodes, nomicsEdgeMap } from '../utils/currencyCodeMaps'
 import { checkConstantCode, logger } from './../utils/utils'
 
-// TODO: add ID map
+/*
+Nomics generally uses currency codes as unique IDs and in case of conflict they
+just add numbers to the end. For this reason we only need to be sure that Edge
+supported currencies are mapped out and don't need to map out the rest and can
+just pass currency codes.
+*/
 
 const apiKey = config.nomicsApiKey
 
@@ -16,6 +21,8 @@ const asNomicsResponse = asArray(
     symbol: asString
   })
 )
+
+const overrideCode = (code: string): string => nomicsEdgeMap[code] ?? code
 
 const nomics = async (
   requestedRates: ReturnRate[],
@@ -32,7 +39,9 @@ const nomics = async (
   const codesWanted: string[] = []
   for (const request of requestedRates) {
     if (request.date !== currentTime) continue
-    const fromCurrency = checkConstantCode(request.currency_pair.split('_')[0])
+    const fromCurrency = overrideCode(
+      checkConstantCode(request.currency_pair.split('_')[0])
+    )
     if (fiatCurrencyCodes[fromCurrency] == null) {
       codesWanted.push(fromCurrency)
     }
