@@ -27,7 +27,7 @@ export const asConfig = asObject({
   httpPort: asOptional(asNumber, 8008),
   infoServerAddress: asOptional(asString, INFO_SERVER_ADDRESS),
   infoServerApiKey: asOptional(asString, INFO_SERVER_API_KEY),
-  bridgeCurrencies: asOptional(asArray(asString), ['USD', 'BTC']),
+  bridgeCurrencies: asOptional(asArray(asString), ['iso:USD', 'BTC']),
   cryptoCurrencyCodes: asOptional(asArray(asString), [
     'BTC',
     'ETH',
@@ -61,10 +61,10 @@ export const asConfig = asObject({
     'VET'
   ]),
   fiatCurrencyCodes: asOptional(asArray(asString), [
-    'EUR',
-    'CNY',
-    'JPY',
-    'GBP'
+    'iso:EUR',
+    'iso:CNY',
+    'iso:JPY',
+    'iso:GBP'
   ]),
   ratesServerAddress: asOptional(asString, RATES_SERVER_ADDRESS),
   currencyConverterApiKey: asOptional(asString, CURRENCY_CONVERTER_API_KEY),

@@ -82,7 +82,7 @@ const coinMarketCapCurrent = async (
       for (const id of Object.keys(json.data)) {
         const code = invertCodeMapKey(json.data[id].id)
         if (code != null)
-          rates[currentTime][`${code}_USD`] = json.data[
+          rates[currentTime][`${code}_iso:USD`] = json.data[
             id
           ].quote.USD.price.toString()
       }

@@ -104,7 +104,7 @@ const coinMarketCapHistorical = async (
       for (const id of Object.keys(json.data)) {
         const code = invertCodeMapKey(json.data[id].id)
         if (code != null && json.data[id].quotes.length > 0)
-          rates[date][`${code}_USD`] = json.data[
+          rates[date][`${code}_iso:USD`] = json.data[
             id
           ].quotes[0].quote.USD.price.toString()
       }

@@ -9,7 +9,7 @@ const { cryptoCurrencyCodes, fiatCurrencyCodes, ratesServerAddress } = config
 const endPoint = `${ratesServerAddress}/v1/exchangeRates`
 
 const allCurrencies = cryptoCurrencyCodes.concat(fiatCurrencyCodes)
-const bridgeCurrency = 'USD'
+const bridgeCurrency = 'iso:USD'
 
 interface pairQuery {
   currency_pair: string

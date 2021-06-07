@@ -33,14 +33,14 @@ const currencyConverter = async (
     const toCurrency = pair.currency_pair.split('_')[1]
     if (
       fiatCurrencyCodes[fromCurrency] === true &&
-      fromCurrency !== 'USD' &&
+      fromCurrency !== 'iso:USD' &&
       datesAndCodesWanted[pair.date].indexOf(`${fromCurrency}_USD`) === -1
     ) {
       datesAndCodesWanted[pair.date].push(`${fromCurrency}_USD`)
     }
     if (
       fiatCurrencyCodes[toCurrency] === true &&
-      fromCurrency !== 'USD' &&
+      fromCurrency !== 'iso:USD' &&
       datesAndCodesWanted[pair.date].indexOf(`USD_${toCurrency}`) === -1
     ) {
       datesAndCodesWanted[pair.date].push(`USD_${toCurrency}`)
@@ -50,7 +50,7 @@ const currencyConverter = async (
   // Query
   for (const date in datesAndCodesWanted) {
     if (datesAndCodesWanted[date].length === 0) continue
-    const codes = datesAndCodesWanted[date].join(',')
+    const codes = datesAndCodesWanted[date].join(',').replace(/iso:/gi, '')
     const justDate = date.split('T')[0]
     try {
       const response = await fetch(
@@ -77,7 +77,10 @@ const currencyConverter = async (
       // Create return object
       rates[date] = {}
       for (const pair of Object.keys(results)) {
-        rates[date][pair] = results[pair].val[justDate].toString()
+        const codes = pair.split('_')
+        rates[date][`iso:${codes[0]}_iso:${codes[1]}`] = results[pair].val[
+          justDate
+        ].toString()
       }
     } catch (e) {
       logger(`Failed to get ${codes} from currencyconverterapi.com`, e)

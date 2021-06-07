@@ -69,7 +69,7 @@ const nomics = async (
       // Create return object
       for (const code of json) {
         if (code.price != null)
-          rates[currentTime][`${code.symbol}_USD`] = code.price
+          rates[currentTime][`${code.symbol}_iso:USD`] = code.price
       }
     } catch (e) {
       logger(`No Nomics quote: ${JSON.stringify(e)}`)

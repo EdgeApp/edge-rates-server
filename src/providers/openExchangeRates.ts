@@ -46,7 +46,7 @@ const openExchangeRates = async (
   // Query
   for (const date in datesAndCodesWanted) {
     if (datesAndCodesWanted[date].length === 0) continue
-    const codes = datesAndCodesWanted[date].join(',')
+    const codes = datesAndCodesWanted[date].join(',').replace(/iso:/gi, '')
     const justDate = date.split('T')[0]
     try {
       const response = await fetch(
@@ -67,7 +67,7 @@ const openExchangeRates = async (
       // Create return object
       rates[date] = {}
       for (const code of Object.keys(json)) {
-        rates[date][`${code}_USD`] = (1 / json[code]).toString()
+        rates[date][`iso:${code}_iso:USD`] = (1 / json[code]).toString()
       }
     } catch (e) {
       logger(`Failed to get ${codes} from openExchangeRates`, e)
