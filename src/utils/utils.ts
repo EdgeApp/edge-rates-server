@@ -3,7 +3,7 @@ import fetch from 'node-fetch'
 
 import { ReturnRate } from '../rates'
 import { FIVE_MINUTES } from './constants'
-import { constantCurrencyCodes } from './currencyCodeMaps'
+import { constantCurrencyCodes, fiatCurrencyCodes } from './currencyCodeMaps'
 
 /*
  * Returns string value of date "normalized" by floor'ing to nearest
@@ -105,3 +105,6 @@ export const logger = (...args): void => {
   }
   console.log(result)
 }
+
+export const isFiatCode = (code: string): boolean =>
+  fiatCurrencyCodes[code] ?? false

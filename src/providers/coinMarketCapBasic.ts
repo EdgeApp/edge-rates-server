@@ -5,10 +5,9 @@ import { config } from './../config'
 import { NewRates, ReturnRate } from './../rates'
 import {
   coinmarketcapDefaultMap,
-  coinmarketcapEdgeMap,
-  fiatCurrencyCodes
+  coinmarketcapEdgeMap
 } from './../utils/currencyCodeMaps'
-import { checkConstantCode, logger } from './../utils/utils'
+import { checkConstantCode, isFiatCode, logger } from './../utils/utils'
 
 const CODE_MAP = { ...coinmarketcapDefaultMap, ...coinmarketcapEdgeMap }
 
@@ -50,7 +49,7 @@ const coinMarketCapCurrent = async (
   for (const request of requestedRates) {
     if (request.date !== currentTime) continue
     const fromCurrency = checkConstantCode(request.currency_pair.split('_')[0])
-    if (fiatCurrencyCodes[fromCurrency] == null) {
+    if (!isFiatCode(fromCurrency)) {
       codesWanted.push(fromCurrency)
     }
   }

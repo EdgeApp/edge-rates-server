@@ -3,8 +3,7 @@ import fetch from 'node-fetch'
 
 import { config } from './../config'
 import { NewRates, ReturnRate } from './../rates'
-import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
-import { logger } from './../utils/utils'
+import { isFiatCode, logger } from './../utils/utils'
 
 const apiKey = config.currencyConverterApiKey
 
@@ -32,14 +31,14 @@ const currencyConverter = async (
     const fromCurrency = pair.currency_pair.split('_')[0]
     const toCurrency = pair.currency_pair.split('_')[1]
     if (
-      fiatCurrencyCodes[fromCurrency] === true &&
+      isFiatCode(fromCurrency) &&
       fromCurrency !== 'iso:USD' &&
       datesAndCodesWanted[pair.date].indexOf(`${fromCurrency}_USD`) === -1
     ) {
       datesAndCodesWanted[pair.date].push(`${fromCurrency}_USD`)
     }
     if (
-      fiatCurrencyCodes[toCurrency] === true &&
+      isFiatCode(toCurrency) &&
       fromCurrency !== 'iso:USD' &&
       datesAndCodesWanted[pair.date].indexOf(`USD_${toCurrency}`) === -1
     ) {

@@ -3,8 +3,7 @@ import fetch from 'node-fetch'
 
 import { config } from './../config'
 import { NewRates, ReturnRate } from './../rates'
-import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
-import { logger } from './../utils/utils'
+import { isFiatCode, logger } from './../utils/utils'
 
 const appId = config.openExchangeRatesApiKey
 
@@ -30,13 +29,13 @@ const openExchangeRates = async (
     const fromCurrency = pair.currency_pair.split('_')[0]
     const toCurrency = pair.currency_pair.split('_')[1]
     if (
-      fiatCurrencyCodes[fromCurrency] === true &&
+      isFiatCode(fromCurrency) &&
       datesAndCodesWanted[pair.date].indexOf(fromCurrency) === -1
     ) {
       datesAndCodesWanted[pair.date].push(fromCurrency)
     }
     if (
-      fiatCurrencyCodes[toCurrency] === true &&
+      isFiatCode(toCurrency) &&
       datesAndCodesWanted[pair.date].indexOf(toCurrency) === -1
     ) {
       datesAndCodesWanted[pair.date].push(toCurrency)

@@ -3,8 +3,8 @@ import fetch from 'node-fetch'
 
 import { config } from '../config'
 import { NewRates, ReturnRate } from '../rates'
-import { fiatCurrencyCodes, nomicsEdgeMap } from '../utils/currencyCodeMaps'
-import { checkConstantCode, logger } from './../utils/utils'
+import { nomicsEdgeMap } from '../utils/currencyCodeMaps'
+import { checkConstantCode, isFiatCode, logger } from './../utils/utils'
 
 /*
 Nomics generally uses currency codes as unique IDs and in case of conflict they
@@ -42,7 +42,7 @@ const nomics = async (
     const fromCurrency = overrideCode(
       checkConstantCode(request.currency_pair.split('_')[0])
     )
-    if (fiatCurrencyCodes[fromCurrency] == null) {
+    if (!isFiatCode(fromCurrency)) {
       codesWanted.push(fromCurrency)
     }
   }

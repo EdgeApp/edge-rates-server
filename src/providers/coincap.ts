@@ -2,12 +2,8 @@ import { asArray, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { NewRates, ReturnRate } from '../rates'
-import {
-  coincapDefaultMap,
-  coincapEdgeMap,
-  fiatCurrencyCodes
-} from '../utils/currencyCodeMaps'
-import { checkConstantCode, logger } from './../utils/utils'
+import { coincapDefaultMap, coincapEdgeMap } from '../utils/currencyCodeMaps'
+import { checkConstantCode, isFiatCode, logger } from './../utils/utils'
 
 const ONE_MINUTE = 1000 * 60
 const OPTIONS = {
@@ -41,7 +37,7 @@ const coincap = async (
   const datesAndCodesWanted: { [key: string]: string[] } = {}
   for (const pair of rateObj) {
     const fromCurrency = checkConstantCode(pair.currency_pair.split('_')[0])
-    if (fiatCurrencyCodes[fromCurrency] == null) {
+    if (!isFiatCode(fromCurrency)) {
       if (datesAndCodesWanted[pair.date] == null) {
         datesAndCodesWanted[pair.date] = []
       }
