@@ -8,7 +8,7 @@ import { checkConstantCode } from './../utils/utils'
 
 // TODO: add ID map
 
-const apiKey = config.nomicsApiKey
+const { nomicsBaseUrl, nomicsApiKey } = config
 
 const asNomicsResponse = asArray(
   asObject({
@@ -24,7 +24,7 @@ const nomics = async (
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }
 
-  if (apiKey == null) {
+  if (nomicsApiKey == null) {
     log('No Nomics API key')
     return rates
   }
@@ -44,7 +44,7 @@ const nomics = async (
     try {
       const ids = codesWanted.join(',')
       const response = await fetch(
-        `https://api.nomics.com/v1/currencies/ticker?key=${apiKey}&ids=${ids}&convert=USD`
+        `${nomicsBaseUrl}/v1/currencies/ticker?key=${nomicsApiKey}&ids=${ids}&convert=USD`
       )
       if (
         response.status === 429 ||

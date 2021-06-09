@@ -8,6 +8,8 @@ import { checkConstantCode } from './../utils/utils'
 
 // TODO: add ID map
 
+const { coinMarketCapBaseUrl, coinMarketCapCurrentApiKey } = config
+
 const asCoinMarketCapCurrentResponse = asObject({
   data: asMap(
     asObject({
@@ -23,7 +25,7 @@ const coinMarketCapCurrent = async (
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }
 
-  if (config.coinMarketCapCurrentApiKey == null) {
+  if (coinMarketCapCurrentApiKey == null) {
     log('No coinMarketCapCurrent API key')
     return rates
   }
@@ -42,7 +44,7 @@ const coinMarketCapCurrent = async (
   const options = {
     method: 'GET',
     headers: {
-      'X-CMC_PRO_API_KEY': config.coinMarketCapCurrentApiKey
+      'X-CMC_PRO_API_KEY': coinMarketCapCurrentApiKey
     },
     json: true
   }
@@ -50,7 +52,7 @@ const coinMarketCapCurrent = async (
     try {
       const codes = codesWanted.join(',')
       const response = await fetch(
-        `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=${codes}&skip_invalid=true`,
+        `${coinMarketCapBaseUrl}/v1/cryptocurrency/quotes/latest?symbol=${codes}&skip_invalid=true`,
         options
       )
       if (response.status !== 200) {

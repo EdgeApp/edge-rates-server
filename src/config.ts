@@ -68,14 +68,29 @@ export const asConfig = asObject({
   ]),
   ratesServerAddress: asOptional(asString, RATES_SERVER_ADDRESS),
   currencyConverterApiKey: asOptional(asString, CURRENCY_CONVERTER_API_KEY),
+  currencyConverterBaseUrl: asOptional(asString, 'https://api.currconv.com'),
   coinMarketCapCurrentApiKey: asOptional(asString, COIN_MARKET_CAP_API_KEY),
   coinMarketCapHistoricalApiKey: asOptional(
     asString,
     COIN_MARKET_CAP_HISTORICAL_API_KEY
   ),
+  coinMarketCapBaseUrl: asOptional(
+    asString,
+    'https://pro-api.coinmarketcap.com'
+  ),
   slackWebhookUrl: asOptional(asString, SLACK_WEBHOOK_URL),
   openExchangeRatesApiKey: asOptional(asString, OPEN_EXCHANGE_RATES_API_KEY),
+  openExchangeRatesBaseUrl: asOptional(
+    asString,
+    'https://openexchangerates.org'
+  ),
   nomicsApiKey: asOptional(asString, NOMICS_API_KEY),
+  nomicsBaseUrl: asOptional(asString, 'https://api.nomics.com'),
+  coincapBaseUrl: asOptional(asString, 'https://api.coincap.io'),
+  compoundBaseUrl: asOptional(
+    asString,
+    'https://api.compound.finance/api/v2/ctoken'
+  ),
   ratesLookbackLimit: asOptional(asNumber, 604800000)
 })
 
