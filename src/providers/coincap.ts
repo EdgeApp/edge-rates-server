@@ -1,6 +1,7 @@
 import { asArray, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
+import { config } from '../config'
 import { NewRates, ReturnRate } from '../rates'
 import {
   coincapDefaultMap,
@@ -8,6 +9,8 @@ import {
   fiatCurrencyCodes
 } from '../utils/currencyCodeMaps'
 import { checkConstantCode } from './../utils/utils'
+
+const { coincapBaseUrl } = config
 
 const ONE_MINUTE = 1000 * 60
 const OPTIONS = {
@@ -58,7 +61,7 @@ const coincap = async (
         // Latest data endpoint accepts bulk requests
         const codes = createUniqueIdString(datesAndCodesWanted[date])
         if (codes === '') continue
-        const url = `https://api.coincap.io/v2/assets?ids=${codes}`
+        const url = `${coincapBaseUrl}/v2/assets?ids=${codes}`
         try {
           const response = await fetch(url, OPTIONS)
           const json = asCoincapCurrentResponse(await response.json())
@@ -84,7 +87,7 @@ const coincap = async (
           if (id === '') continue
           try {
             const response = await fetch(
-              `https://api.coincap.io/v2/assets/${id}/history?interval=m1&start=${timestamp}&end=${timestamp +
+              `${coincapBaseUrl}/v2/assets/${id}/history?interval=m1&start=${timestamp}&end=${timestamp +
                 ONE_MINUTE}`,
               OPTIONS
             )
