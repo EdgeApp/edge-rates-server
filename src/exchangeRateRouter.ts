@@ -44,7 +44,7 @@ export const exchangeRateRouter = (
       return res.status(400).send(`Missing Request fields.`)
     }
 
-    const result = await getExchangeRates(query.data, dbRates)
+    const result = await getExchangeRates(query.data, dbRates, req.assetMaps)
     res.json(result.data[0])
   })
 
@@ -63,7 +63,7 @@ export const exchangeRateRouter = (
 
     const requestedRates: Array<ReturnType<typeof asExchangeRateReq>> =
       query.data
-    const data = await getExchangeRates(requestedRates, dbRates)
+    const data = await getExchangeRates(requestedRates, dbRates, req.assetMaps)
     res.json({ data: data.data })
   })
 

@@ -15,12 +15,14 @@ const OPTIONS = {
   method: 'GET',
   json: true
 }
-const CODE_MAP = { ...coincapDefaultMap, ...coincapEdgeMap }
 
-const createUniqueIdString = (requestedCodes: string[]): string => {
+const createUniqueIdString = (
+  requestedCodes: string[],
+  codeMap: AssetMap
+): string => {
   return requestedCodes
-    .filter(code => CODE_MAP[code] != null)
-    .map(code => CODE_MAP[code])
+    .filter(code => codeMap[code] != null)
+    .map(code => codeMap[code])
     .join(',')
 }
 
@@ -34,9 +36,15 @@ const asCoincapHistoricalResponse = asObject({
 
 const coincap = async (
   rateObj: ReturnRate[],
-  currentTime: string
+  currentTime: string,
+  assetMaps: { [provider: string]: AssetMap }
 ): Promise<NewRates> => {
   const rates = {}
+  const assetMap = {
+    ...coincapDefaultMap,
+    ...coincapEdgeMap,
+    ...assetMaps.coincapAssets
+  }
 
   // Gather codes
   const datesAndCodesWanted: { [key: string]: string[] } = {}
@@ -56,7 +64,7 @@ const coincap = async (
 
       if (date === currentTime) {
         // Latest data endpoint accepts bulk requests
-        const codes = createUniqueIdString(datesAndCodesWanted[date])
+        const codes = createUniqueIdString(datesAndCodesWanted[date], assetMap)
         if (codes === '') continue
         const url = `https://api.coincap.io/v2/assets?ids=${codes}`
         try {
@@ -80,7 +88,7 @@ const coincap = async (
         // Historical data endpoint is limited to one currency at a time
         for (const code of datesAndCodesWanted[date]) {
           const timestamp = Date.parse(date)
-          const id = createUniqueIdString([code])
+          const id = createUniqueIdString([code], assetMap)
           if (id === '') continue
           try {
             const response = await fetch(

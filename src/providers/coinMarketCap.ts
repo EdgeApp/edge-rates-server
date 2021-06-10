@@ -19,8 +19,6 @@ will have at least two accepted currency codes.
 
 const DEFAULT_CODES = ['BTC', 'ETH']
 
-const CODE_MAP = { ...coinmarketcapDefaultMap, ...coinmarketcapEdgeMap }
-
 const OPTIONS = {
   method: 'GET',
   headers: {
@@ -29,16 +27,22 @@ const OPTIONS = {
   json: true
 }
 
-export const createUniqueIdString = (requestedCodes: string[]): string => {
+export const createUniqueIdString = (
+  requestedCodes: string[],
+  assetMap: AssetMap
+): string => {
   return requestedCodes
-    .filter(code => CODE_MAP[code] != null)
-    .map(code => CODE_MAP[code])
+    .filter(code => assetMap[code] != null)
+    .map(code => assetMap[code])
     .join(',')
 }
 
-export const invertCodeMapKey = (id: string): string | void => {
-  for (const code of Object.keys(CODE_MAP)) {
-    if (CODE_MAP[code] === id) return code
+export const invertCodeMapKey = (
+  id: string,
+  assetMap: AssetMap
+): string | void => {
+  for (const code of Object.keys(assetMap)) {
+    if (assetMap[code] === id) return code
   }
 }
 
@@ -62,9 +66,16 @@ const asCoinMarketCapHistoricalResponse = asObject({
 })
 
 const coinMarketCapHistorical = async (
-  rateObj: ReturnRate[]
+  rateObj: ReturnRate[],
+  currentTime: string,
+  assetMaps: { [provider: string]: AssetMap }
 ): Promise<NewRates> => {
   const rates = {}
+  const assetMap = {
+    ...coinmarketcapDefaultMap,
+    ...coinmarketcapEdgeMap,
+    ...assetMaps.coinMarketCapAssets
+  }
 
   if (config.coinMarketCapHistoricalApiKey == null) {
     logger('No coinMarketCapHistorical API key')
@@ -87,7 +98,7 @@ const coinMarketCapHistorical = async (
   // Query
   for (const date in datesAndCodesWanted) {
     try {
-      const codes = createUniqueIdString(datesAndCodesWanted[date])
+      const codes = createUniqueIdString(datesAndCodesWanted[date], assetMap)
       const response = await fetch(
         `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical?id=${codes}&time_end=${date}&count=1&skip_invalid=true`,
         OPTIONS
@@ -103,7 +114,7 @@ const coinMarketCapHistorical = async (
       // Create return object
       rates[date] = {}
       for (const id of Object.keys(json.data)) {
-        const code = invertCodeMapKey(json.data[id].id.toString())
+        const code = invertCodeMapKey(json.data[id].id.toString(), assetMap)
         if (code != null && json.data[id].quotes.length > 0)
           rates[date][`${code}_USD`] = json.data[
             id

@@ -4,13 +4,13 @@ import fetch from 'node-fetch'
 import { config } from './../config'
 import { NewRates, ReturnRate } from './../rates'
 import {
+  AssetMap,
   coinmarketcapDefaultMap,
   coinmarketcapEdgeMap,
   fiatCurrencyCodes
 } from './../utils/currencyCodeMaps'
 import { checkConstantCode, logger } from './../utils/utils'
-
-const CODE_MAP = { ...coinmarketcapDefaultMap, ...coinmarketcapEdgeMap }
+import { createUniqueIdString, invertCodeMapKey } from './coinMarketCap'
 
 const asCoinMarketCapCurrentResponse = asObject({
   data: asMap(
@@ -23,10 +23,15 @@ const asCoinMarketCapCurrentResponse = asObject({
 
 const coinMarketCapCurrent = async (
   requestedRates: ReturnRate[],
-  currentTime: string
+  currentTime: string,
+  assetMaps: { [provider: string]: AssetMap }
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }
-
+  const assetMap = {
+    ...coinmarketcapDefaultMap,
+    ...coinmarketcapEdgeMap,
+    ...assetMaps.coinMarketCapAssets
+  }
   if (config.coinMarketCapCurrentApiKey == null) {
     logger('No coinMarketCapCurrent API key')
     return rates
@@ -52,7 +57,7 @@ const coinMarketCapCurrent = async (
   }
   if (codesWanted.length > 0)
     try {
-      const codes = createUniqueIdString(codesWanted)
+      const codes = createUniqueIdString(codesWanted, assetMap)
       const response = await fetch(
         `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?id=${codes}`,
         options
@@ -67,7 +72,7 @@ const coinMarketCapCurrent = async (
 
       // Create return object
       for (const id of Object.keys(json.data)) {
-        const code = invertCodeMapKey(json.data[id].id)
+        const code = invertCodeMapKey(json.data[id].id.toString(), assetMap)
         if (code != null)
           rates[currentTime][`${code}_USD`] = json.data[
             id
