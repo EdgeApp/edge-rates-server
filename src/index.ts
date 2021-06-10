@@ -3,6 +3,7 @@ import { exchangeRateRouter } from './exchangeRateRouter'
 import { ratesEngine } from './ratesEngine'
 import { createRouter } from './router'
 import { createServer } from './server'
+import { uniqueIdEngine } from './uniqueIdEngine'
 import { logger } from './utils/utils'
 
 // Create Router
@@ -20,3 +21,4 @@ server.listen(server.get('httpPort'), server.get('httpHost'), () => {
 })
 
 ratesEngine().catch(e => console.log(e))
+uniqueIdEngine().catch(e => console.log(e))
