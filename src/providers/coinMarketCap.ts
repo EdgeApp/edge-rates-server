@@ -29,14 +29,14 @@ const OPTIONS = {
   json: true
 }
 
-const createUniqueIdString = (requestedCodes: string[]): string => {
+export const createUniqueIdString = (requestedCodes: string[]): string => {
   return requestedCodes
     .filter(code => CODE_MAP[code] != null)
     .map(code => CODE_MAP[code])
     .join(',')
 }
 
-const invertCodeMapKey = (id: number): string | void => {
+export const invertCodeMapKey = (id: string): string | void => {
   for (const code of Object.keys(CODE_MAP)) {
     if (CODE_MAP[code] === id) return code
   }
@@ -103,7 +103,7 @@ const coinMarketCapHistorical = async (
       // Create return object
       rates[date] = {}
       for (const id of Object.keys(json.data)) {
-        const code = invertCodeMapKey(json.data[id].id)
+        const code = invertCodeMapKey(json.data[id].id.toString())
         if (code != null && json.data[id].quotes.length > 0)
           rates[date][`${code}_USD`] = json.data[
             id

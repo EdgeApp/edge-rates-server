@@ -12,19 +12,6 @@ import { checkConstantCode, logger } from './../utils/utils'
 
 const CODE_MAP = { ...coinmarketcapDefaultMap, ...coinmarketcapEdgeMap }
 
-const createUniqueIdString = (requestedCodes: string[]): string => {
-  return requestedCodes
-    .filter(code => CODE_MAP[code] != null)
-    .map(code => CODE_MAP[code])
-    .join(',')
-}
-
-const invertCodeMapKey = (id: number): string | void => {
-  for (const code of Object.keys(CODE_MAP)) {
-    if (CODE_MAP[code] === id) return code
-  }
-}
-
 const asCoinMarketCapCurrentResponse = asObject({
   data: asMap(
     asObject({
