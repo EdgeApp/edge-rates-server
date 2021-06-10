@@ -4,6 +4,7 @@ import fetch from 'node-fetch'
 import { config } from './../config'
 import { NewRates, ReturnRate } from './../rates'
 import {
+  AssetMap,
   coinmarketcapDefaultMap,
   coinmarketcapEdgeMap,
   fiatCurrencyCodes
@@ -19,6 +20,14 @@ will have at least two accepted currency codes.
 const DEFAULT_CODES = ['BTC', 'ETH']
 
 const CODE_MAP = { ...coinmarketcapDefaultMap, ...coinmarketcapEdgeMap }
+
+const OPTIONS = {
+  method: 'GET',
+  headers: {
+    'X-CMC_PRO_API_KEY': config.coinMarketCapHistoricalApiKey
+  },
+  json: true
+}
 
 const createUniqueIdString = (requestedCodes: string[]): string => {
   return requestedCodes
@@ -76,19 +85,12 @@ const coinMarketCapHistorical = async (
   }
 
   // Query
-  const options = {
-    method: 'GET',
-    headers: {
-      'X-CMC_PRO_API_KEY': config.coinMarketCapHistoricalApiKey
-    },
-    json: true
-  }
   for (const date in datesAndCodesWanted) {
     try {
       const codes = createUniqueIdString(datesAndCodesWanted[date])
       const response = await fetch(
         `https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/historical?id=${codes}&time_end=${date}&count=1&skip_invalid=true`,
-        options
+        OPTIONS
       )
       if (response.status !== 200 || response.ok === false) {
         logger(
@@ -97,7 +99,6 @@ const coinMarketCapHistorical = async (
         throw new Error(response.statusText)
       }
       const json = asCoinMarketCapHistoricalResponse(await response.json())
-      console.log('102. json', JSON.stringify(json))
 
       // Create return object
       rates[date] = {}
@@ -115,4 +116,26 @@ const coinMarketCapHistorical = async (
   return rates
 }
 
-export { coinMarketCapHistorical }
+const asCoinMarketCapAssetResponse = asObject({
+  data: asArray(asObject({ id: asNumber, symbol: asString }))
+})
+
+const coinMarketCapAssets = async (): Promise<AssetMap> => {
+  const assets: { [code: string]: string } = {}
+  const response = await fetch(
+    'https://pro-api.coinmarketcap.com/v1/cryptocurrency/map?limit=5000',
+    OPTIONS
+  )
+  if (response.ok === false) {
+    throw new Error(response.status)
+  }
+  const json = asCoinMarketCapAssetResponse(await response.json()).data
+
+  for (const obj of json) {
+    if (assets[obj.symbol] == null) assets[obj.symbol] = obj.id.toString()
+  }
+
+  return assets
+}
+
+export { coinMarketCapHistorical, coinMarketCapAssets }

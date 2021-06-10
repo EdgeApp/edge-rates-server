@@ -1,3 +1,7 @@
+export interface AssetMap {
+  [currencyCode: string]: string
+}
+
 // Currencies pegged to underlying asset
 export const constantCurrencyCodes = {
   WETH: 'ETH',
