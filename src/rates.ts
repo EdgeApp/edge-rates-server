@@ -6,6 +6,7 @@ import { config } from './config'
 import { coincap } from './providers/coincap'
 import { coinMarketCapHistorical } from './providers/coinMarketCap'
 import { coinMarketCapCurrent } from './providers/coinMarketCapBasic'
+import { coinmonitor } from './providers/coinmonitor'
 import { compound } from './providers/compound'
 import { currencyConverter } from './providers/currencyConverter'
 import {
@@ -14,6 +15,7 @@ import {
 } from './providers/hardcodedProviders'
 import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
+import { wazirx } from './providers/wazirx'
 import { getFromDb, saveToDb } from './utils/dbUtils'
 import {
   checkConstantCode,
@@ -104,6 +106,8 @@ const getRatesFromProviders = async (
   // Retrieve new rates
   const rateProviders = [
     zeroRates,
+    coinmonitor,
+    wazirx,
     currencyConverter,
     coinMarketCapCurrent,
     coincap,
