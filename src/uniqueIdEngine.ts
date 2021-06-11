@@ -23,12 +23,18 @@ export const uniqueIdEngine = async (): Promise<void> => {
       // Sanity check that successful return object isn't empty
       if (Object.keys(currentAssetMap).length === 0)
         throw new Error('Empty return object')
-      const existingAssetMap = await getFromDb(dbUniqueIds, [provider.name])
+      const existingAssetMaps = await getFromDb(dbUniqueIds, [
+        provider.name,
+        `${provider.name}_EdgeDefaultCurrencyCodes`
+      ])
+      const oldAssetMap = existingAssetMaps[0]
+      const edgePreferredAssetMap = existingAssetMaps[1]
       saveToDb(dbUniqueIds, [
         {
-          _id: provider.name,
-          _rev: existingAssetMap[0]._rev ?? undefined,
           ...currentAssetMap,
+          ...edgePreferredAssetMap,
+          _id: provider.name,
+          _rev: oldAssetMap._rev ?? undefined,
           updated: true
         }
       ])
