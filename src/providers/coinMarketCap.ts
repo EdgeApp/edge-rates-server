@@ -50,13 +50,15 @@ const coinMarketCapHistorical = async (
   // Gather codes
   const datesAndCodesWanted: { [key: string]: string[] } = {}
   for (const pair of rateObj) {
+    if (datesAndCodesWanted[pair.date] == null) {
+      datesAndCodesWanted[pair.date] = DEFAULT_CODES
+    }
     const fromCurrency = checkConstantCode(pair.currency_pair.split('_')[0])
-    if (fiatCurrencyCodes[fromCurrency] == null) {
-      if (datesAndCodesWanted[pair.date] == null) {
-        datesAndCodesWanted[pair.date] = DEFAULT_CODES
-      }
-      if (!DEFAULT_CODES.includes(fromCurrency))
-        datesAndCodesWanted[pair.date].push(fromCurrency)
+    if (
+      fiatCurrencyCodes[fromCurrency] == null &&
+      !DEFAULT_CODES.includes(fromCurrency)
+    ) {
+      datesAndCodesWanted[pair.date].push(fromCurrency)
     }
   }
 

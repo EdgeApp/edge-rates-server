@@ -44,11 +44,11 @@ const coincap = async (
   // Gather codes
   const datesAndCodesWanted: { [key: string]: string[] } = {}
   for (const pair of rateObj) {
+    if (datesAndCodesWanted[pair.date] == null) {
+      datesAndCodesWanted[pair.date] = []
+    }
     const fromCurrency = checkConstantCode(pair.currency_pair.split('_')[0])
     if (fiatCurrencyCodes[fromCurrency] == null) {
-      if (datesAndCodesWanted[pair.date] == null) {
-        datesAndCodesWanted[pair.date] = []
-      }
       datesAndCodesWanted[pair.date].push(fromCurrency)
     }
 
