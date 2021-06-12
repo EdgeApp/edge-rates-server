@@ -26,7 +26,8 @@ const openExchangeRates = async (
   // Gather codes
   const datesAndCodesWanted: { [key: string]: string[] } = {}
   for (const pair of rateObj) {
-    datesAndCodesWanted[pair.date] = []
+    if (datesAndCodesWanted[pair.date] == null)
+      datesAndCodesWanted[pair.date] = []
     const fromCurrency = pair.currency_pair.split('_')[0]
     const toCurrency = pair.currency_pair.split('_')[1]
     if (
