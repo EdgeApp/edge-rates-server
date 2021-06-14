@@ -10,7 +10,7 @@ import {
 } from '../utils/currencyCodeMaps'
 import { checkConstantCode } from './../utils/utils'
 
-const { coincapBaseUrl } = config
+const { uri } = config.providers.coincap
 
 const ONE_MINUTE = 1000 * 60
 const OPTIONS = {
@@ -42,7 +42,7 @@ const currentQuery = async (
   const rates = { [date]: {} }
   const codeString = createUniqueIdString(codes)
   if (codeString === '') return rates
-  const url = `${coincapBaseUrl}/v2/assets?ids=${codes}`
+  const url = `${uri}/v2/assets?ids=${codes}`
   try {
     const response = await fetch(url, OPTIONS)
     const json = asCoincapCurrentResponse(await response.json())
@@ -75,7 +75,7 @@ const historicalQuery = async (
   if (id === '') return rates
   try {
     const response = await fetch(
-      `${coincapBaseUrl}/v2/assets/${id}/history?interval=m1&start=${timestamp}&end=${timestamp +
+      `${uri}/v2/assets/${id}/history?interval=m1&start=${timestamp}&end=${timestamp +
         ONE_MINUTE}`,
       OPTIONS
     )

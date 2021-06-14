@@ -14,14 +14,14 @@ object if only one currency is requested. They ignore unrecognized codes so
 this ensures the response will have at least two accepted currency codes.
 */
 
-const { coinMarketCapBaseUrl, coinMarketCapHistoricalApiKey } = config
+const { uri, apiKey } = config.providers.coinMarketCapHistorical
 
 const DEFAULT_CODES = ['BTC', 'ETH']
 
 const OPTIONS = {
   method: 'GET',
   headers: {
-    'X-CMC_PRO_API_KEY': coinMarketCapHistoricalApiKey
+    'X-CMC_PRO_API_KEY': apiKey
   },
   json: true
 }
@@ -53,7 +53,7 @@ const query = async (
   if (codes.length === 0) return rates
   try {
     const response = await fetch(
-      `${coinMarketCapBaseUrl}/v1/cryptocurrency/quotes/historical?symbol=${codes}&time_end=${date}&count=1&skip_invalid=true`,
+      `${uri}/v1/cryptocurrency/quotes/historical?symbol=${codes}&time_end=${date}&count=1&skip_invalid=true`,
       OPTIONS
     )
     if (response.status !== 200 || response.ok === false) {
@@ -84,7 +84,7 @@ const coinMarketCapHistorical = async (
 ): Promise<NewRates> => {
   const rates = {}
 
-  if (coinMarketCapHistoricalApiKey == null) {
+  if (apiKey == null) {
     log('No coinMarketCapHistorical API key')
     return rates
   }
