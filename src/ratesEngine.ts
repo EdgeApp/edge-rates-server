@@ -7,7 +7,7 @@ const { cryptoCurrencyCodes, fiatCurrencyCodes, ratesServerAddress } = config
 
 const endPoint = `${ratesServerAddress}/v1/exchangeRates`
 
-const LOOP_DELAY = 1000 * 60 * 10 // Delay 10 minutes
+const LOOP_DELAY = 1000 * 60 // Delay 1 minutes
 const allCurrencies = cryptoCurrencyCodes.concat(fiatCurrencyCodes)
 const bridgeCurrency = 'USD'
 
