@@ -13,12 +13,6 @@ export function normalizeDate(dateSrc: string): string | void {
   if (dateNorm.toString() === 'Invalid Date') {
     return undefined
   }
-  // round down to nearest 10 minutes
-  let minutes = dateNorm.getMinutes()
-  if (minutes > 0) {
-    minutes -= minutes % 10
-  }
-  dateNorm.setMinutes(minutes)
   dateNorm.setSeconds(0)
   dateNorm.setMilliseconds(0)
   return dateNorm.toISOString()
