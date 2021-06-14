@@ -8,7 +8,7 @@ const {
   COUCH_PASSWORD = 'password',
   INFO_SERVER_ADDRESS = 'info1.edge.app',
   INFO_SERVER_API_KEY = '',
-  RATES_SERVER_ADDRESS = 'https://rates1.edge.app',
+  RATES_SERVER_ADDRESS = 'http://127.0.0.1:8087',
   CURRENCY_CONVERTER_API_KEY = '',
   COIN_MARKET_CAP_API_KEY = '',
   COIN_MARKET_CAP_HISTORICAL_API_KEY = '',
