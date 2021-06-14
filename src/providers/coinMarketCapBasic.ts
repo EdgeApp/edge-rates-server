@@ -64,11 +64,11 @@ const coinMarketCapCurrent = async (
       const json = asCoinMarketCapCurrentResponse(await response.json())
 
       // Create return object
-      for (const code of Object.keys(json.data)) {
+      Object.keys(json.data).forEach(code => {
         rates[currentTime][`${code}_USD`] = json.data[
           code
         ].quote.USD.price.toString()
-      }
+      })
     } catch (e) {
       log(`No coinMarketCapCurrent quote: ${JSON.stringify(e)}`)
     }

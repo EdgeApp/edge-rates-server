@@ -45,9 +45,9 @@ const query = async (
 
     // Create return object
     rates[date] = {}
-    for (const pair of Object.keys(results)) {
+    Object.keys(results).forEach(pair => {
       rates[date][pair] = results[pair].val[justDate].toString()
-    }
+    })
   } catch (e) {
     log(`Failed to get ${codes} from currencyconverterapi.com`, e)
   }
