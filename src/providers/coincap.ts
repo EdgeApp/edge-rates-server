@@ -54,8 +54,8 @@ const currentQuery = async (
     }
 
     // Add to return object
-    json.data.forEach(obj => {
-      rates[date][`${obj.symbol}_USD`] = obj.priceUsd
+    json.data.forEach(code => {
+      rates[date][`${code.symbol}_USD`] = code.priceUsd
     })
   } catch (e) {
     log(`No coincapCurrent quote: ${JSON.stringify(e)}`)
@@ -88,9 +88,9 @@ const historicalQuery = async (
     }
 
     // Add to return object
-    if (json.data.length > 0) {
+    json.data.forEach(code => {
       rates[date][`${code}_USD`] = json.data[0].priceUsd
-    }
+    })
   } catch (e) {
     log(`No coincapHistorical quote: ${JSON.stringify(e)}`)
   }

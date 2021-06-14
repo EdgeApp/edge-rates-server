@@ -37,9 +37,9 @@ const query = async (
     }
 
     // Create return object
-    for (const code of Object.keys(json)) {
+    Object.keys(json).forEach(code => {
       rates[date][`${code}_USD`] = (1 / json[code]).toString()
-    }
+    })
   } catch (e) {
     log(`Failed to get ${codes} from openExchangeRates`, e)
   }

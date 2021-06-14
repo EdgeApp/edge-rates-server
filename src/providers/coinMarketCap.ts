@@ -66,12 +66,12 @@ const query = async (
 
     // Create return object
     rates[date] = {}
-    for (const code of Object.keys(json.data)) {
+    Object.keys(json.data).forEach(code => {
       if (json.data[code].quotes.length > 0)
         rates[date][`${code}_USD`] = json.data[
           code
         ].quotes[0].quote.USD.price.toString()
-    }
+    })
   } catch (e) {
     log(`No CoinMarketCapHistorical quote: ${JSON.stringify(e)}`)
   }
