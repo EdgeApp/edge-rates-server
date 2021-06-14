@@ -85,7 +85,7 @@ const addNewRatesToDocs = (
           continue
         }
         invertedRateMap[invertPair(pair)] =
-          rate === '0' ? '0' : bns.div('1', rate)
+          rate === '0' ? '0' : bns.div('1', rate, 8)
       }
 
       // Add new rates and their inverts to the doc and mark updated
@@ -199,7 +199,8 @@ export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
       ) {
         rate.exchangeRate = bns.div(
           doc[`${from}_${bridgeCurrency}`],
-          doc[`${to}_${bridgeCurrency}`]
+          doc[`${to}_${bridgeCurrency}`],
+          8
         )
         continue
       }
@@ -209,7 +210,8 @@ export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
       ) {
         rate.exchangeRate = bns.div(
           doc[`${bridgeCurrency}_${to}`],
-          doc[`${bridgeCurrency}_${from}`]
+          doc[`${bridgeCurrency}_${from}`],
+          8
         )
         continue
       }
@@ -233,7 +235,8 @@ export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
           bns.mul(
             doc[`${bridgeCurrency}_${from}`],
             doc[`${to}_${bridgeCurrency}`]
-          )
+          ),
+          8
         )
     }
   }
