@@ -2,7 +2,7 @@ import { asArray, asMap, asNumber, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { NewRates, ReturnRate } from './../rates'
+import { NewRates, ProviderResponse, ReturnRate } from './../rates'
 import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
 import { checkConstantCode } from './../utils/utils'
 
@@ -17,6 +17,14 @@ this ensures the response will have at least two accepted currency codes.
 const { coinMarketCapBaseUrl, coinMarketCapHistoricalApiKey } = config
 
 const DEFAULT_CODES = ['BTC', 'ETH']
+
+const OPTIONS = {
+  method: 'GET',
+  headers: {
+    'X-CMC_PRO_API_KEY': coinMarketCapHistoricalApiKey
+  },
+  json: true
+}
 
 const coinMarketCapPrice = asObject({
   symbol: asString,
@@ -35,6 +43,40 @@ const coinMarketCapPrice = asObject({
 const asCoinMarketCapHistoricalResponse = asObject({
   data: asMap(coinMarketCapPrice)
 })
+
+const query = async (
+  date: string,
+  codes: string[],
+  log: Function
+): Promise<ProviderResponse> => {
+  const rates = {}
+  if (codes.length === 0) return rates
+  try {
+    const response = await fetch(
+      `${coinMarketCapBaseUrl}/v1/cryptocurrency/quotes/historical?symbol=${codes}&time_end=${date}&count=1&skip_invalid=true`,
+      OPTIONS
+    )
+    if (response.status !== 200 || response.ok === false) {
+      log(
+        `coinMarketCapHistorical returned code ${response.status} for ${codes} at ${date}`
+      )
+      throw new Error(response.statusText)
+    }
+    const json = asCoinMarketCapHistoricalResponse(await response.json())
+
+    // Create return object
+    rates[date] = {}
+    for (const code of Object.keys(json.data)) {
+      if (json.data[code].quotes.length > 0)
+        rates[date][`${code}_USD`] = json.data[
+          code
+        ].quotes[0].quote.USD.price.toString()
+    }
+  } catch (e) {
+    log(`No CoinMarketCapHistorical quote: ${JSON.stringify(e)}`)
+  }
+  return rates
+}
 
 const coinMarketCapHistorical = async (
   rateObj: ReturnRate[],
@@ -63,40 +105,19 @@ const coinMarketCapHistorical = async (
   }
 
   // Query
-  const options = {
-    method: 'GET',
-    headers: {
-      'X-CMC_PRO_API_KEY': coinMarketCapHistoricalApiKey
-    },
-    json: true
+  const providers = Object.keys(datesAndCodesWanted).map(async date =>
+    query(date, datesAndCodesWanted[date], log)
+  )
+  try {
+    const response = await Promise.all(providers)
+    Object.assign(
+      rates,
+      response.reduce((res, out) => ({ ...res, ...out }), {})
+    )
+  } catch (e) {
+    log('Failed to query coinMarketCapHistorical with error', e.message)
   }
-  for (const date in datesAndCodesWanted) {
-    try {
-      const codes = datesAndCodesWanted[date].join(',')
-      const response = await fetch(
-        `${coinMarketCapBaseUrl}/v1/cryptocurrency/quotes/historical?symbol=${codes}&time_end=${date}&count=1&skip_invalid=true`,
-        options
-      )
-      if (response.status !== 200 || response.ok === false) {
-        log(
-          `coinMarketCapHistorical returned code ${response.status} for ${codes} at ${date}`
-        )
-        throw new Error(response.statusText)
-      }
-      const json = asCoinMarketCapHistoricalResponse(await response.json())
 
-      // Create return object
-      rates[date] = {}
-      for (const code of Object.keys(json.data)) {
-        if (json.data[code].quotes.length > 0)
-          rates[date][`${code}_USD`] = json.data[
-            code
-          ].quotes[0].quote.USD.price.toString()
-      }
-    } catch (e) {
-      log(`No CoinMarketCapHistorical quote: ${JSON.stringify(e)}`)
-    }
-  }
   return rates
 }
 
