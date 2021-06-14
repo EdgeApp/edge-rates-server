@@ -5,7 +5,7 @@ import { config } from './../config'
 import { NewRates, ProviderResponse, ReturnRate } from './../rates'
 import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
 
-const { openExchangeRatesBaseUrl, openExchangeRatesApiKey } = config
+const { uri, apiKey } = config.providers.openExchangeRates
 
 const asOpenExchangeRatesResponse = asObject({
   rates: asMap(asNumber)
@@ -22,7 +22,7 @@ const query = async (
   const justDate = date.split('T')[0]
   try {
     const response = await fetch(
-      `${openExchangeRatesBaseUrl}/api/historical/${justDate}.json?app_id=${openExchangeRatesApiKey}&base=USD&symbols=${codeString}`
+      `${uri}/api/historical/${justDate}.json?app_id=${apiKey}&base=USD&symbols=${codeString}`
     )
     const json = asOpenExchangeRatesResponse(await response.json()).rates
     if (response.ok === false) {
@@ -53,7 +53,7 @@ const openExchangeRates = async (
 ): Promise<NewRates> => {
   const rates = {}
 
-  if (openExchangeRatesApiKey == null) {
+  if (apiKey == null) {
     log('No openExchangeRates appId')
     return rates
   }

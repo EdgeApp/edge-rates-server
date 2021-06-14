@@ -5,7 +5,7 @@ import { config } from './../config'
 import { NewRates, ProviderResponse, ReturnRate } from './../rates'
 import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
 
-const { currencyConverterBaseUrl, currencyConverterApiKey } = config
+const { uri, apiKey } = config.providers.currencyConverter
 
 const asCurrencyConverterResponse = asObject({
   status: asOptional(asNumber),
@@ -23,7 +23,7 @@ const query = async (
   const justDate = date.split('T')[0]
   try {
     const response = await fetch(
-      `${currencyConverterBaseUrl}/api/v7/convert?q=${codes}&date=${justDate}&apiKey=${currencyConverterApiKey}`
+      `${uri}/api/v7/convert?q=${codes}&date=${justDate}&apiKey=${apiKey}`
     )
     const { status, error, results } = asCurrencyConverterResponse(
       await response.json()
@@ -61,7 +61,7 @@ const currencyConverter = async (
 ): Promise<NewRates> => {
   const rates = {}
 
-  if (currencyConverterApiKey == null) {
+  if (apiKey == null) {
     log('No currencyConverter apiKey')
     return rates
   }

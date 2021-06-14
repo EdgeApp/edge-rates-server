@@ -4,7 +4,7 @@ import fetch from 'node-fetch'
 import { config } from '../config'
 import { NewRates, ReturnRate } from './../rates'
 
-const { compoundBaseUrl } = config
+const { uri } = config.providers.compound
 
 const fixCurrency = (currencyCode: string): string => {
   return currencyCode.toUpperCase()
@@ -30,7 +30,7 @@ const compound = async (
 
   // Query
   try {
-    const response = await fetch(compoundBaseUrl)
+    const response = await fetch(uri)
     if (response.status !== 200 || response.ok === false)
       throw new Error(
         `Compound returned with status: ${JSON.stringify(
