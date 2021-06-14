@@ -2,7 +2,7 @@ import { asMap, asNumber, asObject } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { NewRates, ReturnRate } from './../rates'
+import { NewRates, ProviderResponse, ReturnRate } from './../rates'
 import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
 
 const { openExchangeRatesBaseUrl, openExchangeRatesApiKey } = config
@@ -10,6 +10,41 @@ const { openExchangeRatesBaseUrl, openExchangeRatesApiKey } = config
 const asOpenExchangeRatesResponse = asObject({
   rates: asMap(asNumber)
 })
+
+const query = async (
+  date: string,
+  codes: string[],
+  log: Function
+): Promise<ProviderResponse> => {
+  const rates = { [date]: {} }
+  if (codes.length === 0) return rates
+  const codeString = codes.join(',')
+  const justDate = date.split('T')[0]
+  try {
+    const response = await fetch(
+      `${openExchangeRatesBaseUrl}/api/historical/${justDate}.json?app_id=${openExchangeRatesApiKey}&base=USD&symbols=${codeString}`
+    )
+    const json = asOpenExchangeRatesResponse(await response.json()).rates
+    if (response.ok === false) {
+      log(
+        `openExchangeRates returned code ${response.status} for ${codes} at ${date}`
+      )
+      throw new Error(
+        `openExchangeRates returned with status: ${JSON.stringify(
+          status ?? response.status
+        )} and error: ${JSON.stringify(response.statusText)}`
+      )
+    }
+
+    // Create return object
+    for (const code of Object.keys(json)) {
+      rates[date][`${code}_USD`] = (1 / json[code]).toString()
+    }
+  } catch (e) {
+    log(`Failed to get ${codes} from openExchangeRates`, e)
+  }
+  return rates
+}
 
 const openExchangeRates = async (
   rateObj: ReturnRate[],
@@ -45,35 +80,19 @@ const openExchangeRates = async (
   }
 
   // Query
-  for (const date in datesAndCodesWanted) {
-    if (datesAndCodesWanted[date].length === 0) continue
-    const codes = datesAndCodesWanted[date].join(',')
-    const justDate = date.split('T')[0]
-    try {
-      const response = await fetch(
-        `${openExchangeRatesBaseUrl}/api/historical/${justDate}.json?app_id=${openExchangeRatesApiKey}&base=USD&symbols=${codes}`
-      )
-      const json = asOpenExchangeRatesResponse(await response.json()).rates
-      if (response.ok === false) {
-        log(
-          `openExchangeRates returned code ${response.status} for ${codes} at ${date}`
-        )
-        throw new Error(
-          `openExchangeRates returned with status: ${JSON.stringify(
-            status ?? response.status
-          )} and error: ${JSON.stringify(response.statusText)}`
-        )
-      }
-
-      // Create return object
-      rates[date] = {}
-      for (const code of Object.keys(json)) {
-        rates[date][`${code}_USD`] = (1 / json[code]).toString()
-      }
-    } catch (e) {
-      log(`Failed to get ${codes} from openExchangeRates`, e)
-    }
+  const providers = Object.keys(datesAndCodesWanted).map(async date =>
+    query(date, datesAndCodesWanted[date], log)
+  )
+  try {
+    const response = await Promise.all(providers)
+    Object.assign(
+      rates,
+      response.reduce((res, out) => ({ ...res, ...out }), {})
+    )
+  } catch (e) {
+    log('Failed to query openExchangeRates with error', e.message)
   }
+
   return rates
 }
 

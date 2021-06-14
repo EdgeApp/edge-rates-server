@@ -59,6 +59,10 @@ export interface NewRates {
   [date: string]: { [pair: string]: string }
 }
 
+export interface ProviderResponse {
+  [date: string]: { [pair: string]: string }
+}
+
 const addNewRatesToDocs = (
   newRates: NewRates,
   documents: DbDoc[],
