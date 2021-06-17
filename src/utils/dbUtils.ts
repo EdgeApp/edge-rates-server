@@ -60,22 +60,25 @@ export const saveToDb = (
 }
 
 export const getFromDb = async (
-  localDb: any,
+  localDb: nano.DocumentScope<DbDoc>,
   dates: string[]
 ): Promise<DbDoc[]> => {
   // Grab existing db data for requested dates
-  const documents = await Promise.all(
-    dates.map(date => {
-      return localDb.get(date).catch(e => {
-        if (e.error !== 'not_found') {
-          slackPoster(config.slackWebhookUrl, e).catch(e)
-        } else {
-          return {
-            _id: date
-          }
-        }
-      })
-    })
-  )
-  return documents
+  const response = await localDb.fetch({ keys: dates }).catch(e => {
+    if (e.error !== 'not_found') {
+      slackPoster(config.slackWebhookUrl, e).catch(e)
+    }
+  })
+  if (response == null)
+    return dates.map(date => ({
+      _id: date
+    }))
+  return response.rows.map(element => {
+    if ('error' in element || element.doc == null)
+      return {
+        _id: element.key
+      }
+
+    return element.doc
+  })
 }
