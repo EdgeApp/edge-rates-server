@@ -30,7 +30,7 @@ const compound = async (
 
   // Query
   try {
-    const response = await fetch(uri)
+    const response = await fetch(`${uri}/api/v2/ctoken`)
     if (response.status !== 200 || response.ok === false)
       throw new Error(
         `Compound returned with status: ${JSON.stringify(

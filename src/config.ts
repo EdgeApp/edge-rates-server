@@ -93,7 +93,7 @@ export const asConfig = asObject({
       apiKey: asOptional(asString, NOMICS_API_KEY)
     }),
     compound: asObject({
-      uri: asOptional(asString, 'https://api.compound.finance/api/v2/ctoken')
+      uri: asOptional(asString, 'https://api.compound.finance')
     })
   }),
   ratesLookbackLimit: asOptional(asNumber, 604800000)
