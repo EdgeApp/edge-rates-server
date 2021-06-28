@@ -21,6 +21,7 @@
     "start": "node -r sucrase/register src/index.ts",
     "precommit": "lint-staged && yarn test && yarn prepare",
     "prepare": "configure && npm-run-all clean -p build.*",
+    "dockerize": "docker build --tag edge-rates-server .",
     "test": "mocha -r sucrase/register 'test/**/*.test.ts'",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx ."
   },
