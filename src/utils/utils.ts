@@ -2,7 +2,7 @@ import { validate } from 'jsonschema'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { ReturnRate } from '../rates'
+import { NewRates, ReturnRate } from '../rates'
 import { constantCurrencyCodes } from './currencyCodeMaps'
 
 const { slackWebhookUrl } = config
@@ -95,4 +95,18 @@ export const isNotANumber = (value: string): boolean => {
     return true
 
   return false
+}
+
+export const combineRates = (
+  currentRates: NewRates,
+  incomingRates: NewRates[]
+): NewRates => {
+  incomingRates.forEach(response => {
+    Object.keys(response).forEach(date => {
+      if (currentRates[date] == null) currentRates[date] = {}
+      Object.assign(currentRates[date], response[date])
+    })
+  })
+
+  return currentRates
 }

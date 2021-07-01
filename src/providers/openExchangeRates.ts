@@ -4,6 +4,7 @@ import fetch from 'node-fetch'
 import { config } from './../config'
 import { NewRates, RateMap, ReturnRate } from './../rates'
 import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
+import { combineRates } from './../utils/utils'
 
 const { uri, apiKey } = config.providers.openExchangeRates
 
@@ -93,10 +94,7 @@ const openExchangeRates = async (
   )
   try {
     const response = await Promise.all(providers)
-    Object.assign(
-      rates,
-      response.reduce((res, out) => ({ ...res, ...out }), {})
-    )
+    combineRates(rates, response)
   } catch (e) {
     log('Failed to query openExchangeRates with error', e.message)
   }

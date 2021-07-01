@@ -8,7 +8,7 @@ import {
   coincapEdgeMap,
   fiatCurrencyCodes
 } from '../utils/currencyCodeMaps'
-import { checkConstantCode } from './../utils/utils'
+import { checkConstantCode, combineRates } from './../utils/utils'
 
 const { uri } = config.providers.coincap
 
@@ -135,10 +135,7 @@ const coincap = async (
   })
   try {
     const response = await Promise.all(providers)
-    Object.assign(
-      rates,
-      response.reduce((res, out) => ({ ...res, ...out }), {})
-    )
+    combineRates(rates, response)
   } catch (e) {
     log('Failed to query coincap with error', e.message)
   }

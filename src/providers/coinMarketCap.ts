@@ -4,7 +4,7 @@ import fetch from 'node-fetch'
 import { config } from './../config'
 import { NewRates, RateMap, ReturnRate } from './../rates'
 import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
-import { checkConstantCode } from './../utils/utils'
+import { checkConstantCode, combineRates } from './../utils/utils'
 
 // TODO: add ID map
 
@@ -116,10 +116,7 @@ const coinMarketCapHistorical = async (
   )
   try {
     const response = await Promise.all(providers)
-    Object.assign(
-      rates,
-      response.reduce((res, out) => ({ ...res, ...out }), {})
-    )
+    combineRates(rates, response)
   } catch (e) {
     log('Failed to query coinMarketCapHistorical with error', e.message)
   }
