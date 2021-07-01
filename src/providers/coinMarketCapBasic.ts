@@ -2,7 +2,7 @@ import { asMap, asNumber, asObject } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { NewRates, ReturnRate } from './../rates'
+import { NewRates, RateMap, ReturnRate } from './../rates'
 import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
 import { checkConstantCode } from './../utils/utils'
 
@@ -17,6 +17,16 @@ const asCoinMarketCapCurrentResponse = asObject({
     })
   )
 })
+
+const coinMarketCapRateMap = (
+  results: ReturnType<typeof asCoinMarketCapCurrentResponse>
+): RateMap =>
+  Object.keys(results.data).reduce((out, code) => {
+    return {
+      ...out,
+      [`${code}_USD`]: results.data[code].quote.USD.price.toString()
+    }
+  }, {})
 
 const coinMarketCapCurrent = async (
   requestedRates: ReturnRate[],
@@ -64,11 +74,7 @@ const coinMarketCapCurrent = async (
       const json = asCoinMarketCapCurrentResponse(await response.json())
 
       // Create return object
-      Object.keys(json.data).forEach(code => {
-        rates[currentTime][`${code}_USD`] = json.data[
-          code
-        ].quote.USD.price.toString()
-      })
+      rates[currentTime] = coinMarketCapRateMap(json)
     } catch (e) {
       log(`No coinMarketCapCurrent quote: ${JSON.stringify(e)}`)
     }

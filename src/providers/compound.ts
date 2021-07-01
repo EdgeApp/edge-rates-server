@@ -2,7 +2,7 @@ import { asArray, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { NewRates, ReturnRate } from './../rates'
+import { NewRates, RateMap, ReturnRate } from './../rates'
 
 const { uri } = config.providers.compound
 
@@ -20,6 +20,21 @@ const asCompoundResponse = asObject({
   ),
   error: asOptional(asString)
 })
+
+const compoundRateMap = (
+  response: ReturnType<typeof asCompoundResponse>
+): RateMap =>
+  response.cToken.reduce((out, code) => {
+    const {
+      symbol,
+      underlying_symbol: underlyingSymbol,
+      exchange_rate: { value }
+    } = code
+    return {
+      ...out,
+      [`${fixCurrency(symbol)}_${fixCurrency(underlyingSymbol)}`]: value
+    }
+  }, {})
 
 const compound = async (
   rateObj: ReturnRate[],
@@ -40,12 +55,7 @@ const compound = async (
     const json = asCompoundResponse(await response.json())
     if (json.error != null) throw new Error(json.error)
 
-    // Create return object
-    json.cToken.forEach(code => {
-      rates[currentTime][
-        `${fixCurrency(code.symbol)}_${fixCurrency(code.underlying_symbol)}`
-      ] = code.exchange_rate.value
-    })
+    rates[currentTime] = compoundRateMap(json)
   } catch (e) {
     log(`No Compound quote: ${JSON.stringify(e)}`)
   }

@@ -2,7 +2,7 @@ import { asArray, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { NewRates, ReturnRate } from '../rates'
+import { NewRates, RateMap, ReturnRate } from '../rates'
 import { fiatCurrencyCodes } from '../utils/currencyCodeMaps'
 import { checkConstantCode } from './../utils/utils'
 
@@ -16,6 +16,14 @@ const asNomicsResponse = asArray(
     symbol: asString
   })
 )
+
+const nomicsRateMap = (results: ReturnType<typeof asNomicsResponse>): RateMap =>
+  results.reduce((out, code) => {
+    return {
+      ...out,
+      [`${code.symbol}_USD`]: code.price
+    }
+  }, {})
 
 const nomics = async (
   requestedRates: ReturnRate[],
@@ -59,10 +67,7 @@ const nomics = async (
       const json = asNomicsResponse(await response.json())
 
       // Create return object
-      json.forEach(code => {
-        if (code.price != null)
-          rates[currentTime][`${code.symbol}_USD`] = code.price
-      })
+      rates[currentTime] = nomicsRateMap(json)
     } catch (e) {
       log(`No Nomics quote: ${JSON.stringify(e)}`)
     }

@@ -7,11 +7,23 @@ import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
 
 const { uri, apiKey } = config.providers.currencyConverter
 
+const asCurrencyConvertorResults = asMap(asObject({ val: asMap(asNumber) }))
+
 const asCurrencyConverterResponse = asObject({
   status: asOptional(asNumber),
   error: asOptional(asString),
-  results: asMap(asObject({ val: asMap(asNumber) }))
+  results: asCurrencyConvertorResults
 })
+
+const currencyConverterRateMap = (
+  results: ReturnType<typeof asCurrencyConvertorResults>
+): RateMap =>
+  Object.keys(results).reduce((out, code) => {
+    return {
+      ...out,
+      [code]: Object.values(results[code].val)[0].toString()
+    }
+  }, {})
 
 const query = async (
   date: string,
@@ -44,10 +56,7 @@ const query = async (
     }
 
     // Create return object
-    rates[date] = {}
-    Object.keys(results).forEach(pair => {
-      rates[date][pair] = results[pair].val[justDate].toString()
-    })
+    rates[date] = currencyConverterRateMap(results)
   } catch (e) {
     log(`Failed to get ${codes} from currencyconverterapi.com`, e)
   }

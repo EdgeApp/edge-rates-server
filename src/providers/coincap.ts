@@ -34,6 +34,16 @@ const asCoincapHistoricalResponse = asObject({
   data: asArray(asObject({ priceUsd: asString }))
 })
 
+const coinCapCurrentRateMap = (
+  results: ReturnType<typeof asCoincapCurrentResponse>
+): RateMap =>
+  results.data.reduce((out, code) => {
+    return {
+      ...out,
+      [`${code.symbol}_USD`]: code.priceUsd
+    }
+  }, {})
+
 const currentQuery = async (
   date: string,
   codes: string[],
@@ -54,9 +64,7 @@ const currentQuery = async (
     }
 
     // Add to return object
-    json.data.forEach(code => {
-      rates[date][`${code.symbol}_USD`] = code.priceUsd
-    })
+    rates[date] = coinCapCurrentRateMap(json)
   } catch (e) {
     log(`No coincapCurrent quote: ${JSON.stringify(e)}`)
   }

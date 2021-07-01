@@ -11,6 +11,16 @@ const asOpenExchangeRatesResponse = asObject({
   rates: asMap(asNumber)
 })
 
+const openExchangeRatesRateMap = (
+  results: ReturnType<typeof asOpenExchangeRatesResponse>
+): RateMap =>
+  Object.keys(results.rates).reduce((out, code) => {
+    return {
+      ...out,
+      [`${code}_USD`]: (1 / results.rates[code]).toString()
+    }
+  }, {})
+
 const query = async (
   date: string,
   codes: string[],
@@ -24,7 +34,7 @@ const query = async (
     const response = await fetch(
       `${uri}/api/historical/${justDate}.json?app_id=${apiKey}&base=USD&symbols=${codeString}`
     )
-    const json = asOpenExchangeRatesResponse(await response.json()).rates
+    const json = asOpenExchangeRatesResponse(await response.json())
     if (response.ok === false) {
       log(
         `openExchangeRates returned code ${response.status} for ${codes} at ${date}`
@@ -37,9 +47,7 @@ const query = async (
     }
 
     // Create return object
-    Object.keys(json).forEach(code => {
-      rates[date][`${code}_USD`] = (1 / json[code]).toString()
-    })
+    rates[date] = openExchangeRatesRateMap(json)
   } catch (e) {
     log(`Failed to get ${codes} from openExchangeRates`, e)
   }

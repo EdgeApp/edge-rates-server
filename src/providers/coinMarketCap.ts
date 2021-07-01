@@ -44,6 +44,18 @@ const asCoinMarketCapHistoricalResponse = asObject({
   data: asMap(coinMarketCapPrice)
 })
 
+const coinMarketCapHistoricalRateMap = (
+  results: ReturnType<typeof asCoinMarketCapHistoricalResponse>
+): RateMap =>
+  Object.keys(results.data)
+    .filter(code => results.data[code].quotes.length > 0)
+    .reduce((out, code) => {
+      return {
+        ...out,
+        [`${code}_USD`]: results.data[code].quotes[0].quote.USD.price.toString()
+      }
+    }, {})
+
 const query = async (
   date: string,
   codes: string[],
@@ -65,13 +77,7 @@ const query = async (
     const json = asCoinMarketCapHistoricalResponse(await response.json())
 
     // Create return object
-    rates[date] = {}
-    Object.keys(json.data).forEach(code => {
-      if (json.data[code].quotes.length > 0)
-        rates[date][`${code}_USD`] = json.data[
-          code
-        ].quotes[0].quote.USD.price.toString()
-    })
+    rates[date] = coinMarketCapHistoricalRateMap(json)
   } catch (e) {
     log(`No CoinMarketCapHistorical quote: ${JSON.stringify(e)}`)
   }
