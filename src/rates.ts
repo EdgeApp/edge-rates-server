@@ -55,12 +55,12 @@ export interface ReturnRate {
   error?: Error
 }
 
-export interface NewRates {
-  [date: string]: { [pair: string]: string }
+export interface RateMap {
+  [pair: string]: string
 }
 
-export interface ProviderResponse {
-  [date: string]: { [pair: string]: string }
+export interface NewRates {
+  [date: string]: RateMap
 }
 
 const addNewRatesToDocs = (

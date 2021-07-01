@@ -2,7 +2,7 @@ import { asArray, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { NewRates, ProviderResponse, ReturnRate } from '../rates'
+import { NewRates, RateMap, ReturnRate } from '../rates'
 import {
   coincapDefaultMap,
   coincapEdgeMap,
@@ -38,7 +38,7 @@ const currentQuery = async (
   date: string,
   codes: string[],
   log: Function
-): Promise<ProviderResponse> => {
+): Promise<NewRates> => {
   const rates = { [date]: {} }
   const codeString = createUniqueIdString(codes)
   if (codeString === '') return rates
@@ -68,7 +68,7 @@ const historicalQuery = async (
   date: string,
   code: string,
   log: Function
-): Promise<ProviderResponse> => {
+): Promise<NewRates> => {
   const rates = { [date]: {} }
   const timestamp = Date.parse(date)
   const id = createUniqueIdString([code])
@@ -115,7 +115,7 @@ const coincap = async (
   }
 
   // Query
-  const providers: Array<Promise<ProviderResponse>> = []
+  const providers: Array<Promise<NewRates>> = []
   Object.keys(datesAndCodesWanted).forEach(date => {
     if (date === currentTime) {
       providers.push(currentQuery(date, datesAndCodesWanted[date], log))

@@ -2,7 +2,7 @@ import { asMap, asNumber, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { NewRates, ProviderResponse, ReturnRate } from './../rates'
+import { NewRates, RateMap, ReturnRate } from './../rates'
 import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
 
 const { uri, apiKey } = config.providers.currencyConverter
@@ -17,7 +17,7 @@ const query = async (
   date: string,
   codes: string[],
   log: Function
-): Promise<ProviderResponse> => {
+): Promise<NewRates> => {
   const rates = { [date]: {} }
   if (codes.length === 0) return rates
   const justDate = date.split('T')[0]
