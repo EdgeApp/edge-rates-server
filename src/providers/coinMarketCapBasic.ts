@@ -3,12 +3,16 @@ import fetch from 'node-fetch'
 
 import { config } from './../config'
 import { NewRates, RateMap, ReturnRate } from './../rates'
-import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
-import { checkConstantCode, logger } from './../utils/utils'
+import { checkConstantCode, isFiatCode, logger, subIso } from './../utils/utils'
 
 // TODO: add ID map
 
-const { uri, apiKey } = config.providers.coinMarketCapCurrent
+const {
+  providers: {
+    coinMarketCapCurrent: { uri, apiKey }
+  },
+  defaultFiatCode: DEFAULT_FIAT
+} = config
 
 const asCoinMarketCapCurrentResponse = asObject({
   data: asMap(
@@ -24,7 +28,9 @@ const coinMarketCapRateMap = (
   Object.keys(results.data).reduce((out, code) => {
     return {
       ...out,
-      [`${code}_USD`]: results.data[code].quote.USD.price.toString()
+      [`${code}_${DEFAULT_FIAT}`]: results.data[code].quote[
+        subIso(DEFAULT_FIAT)
+      ].price.toString()
     }
   }, {})
 
@@ -44,7 +50,7 @@ const coinMarketCapCurrent = async (
   for (const request of requestedRates) {
     if (request.date !== currentTime) continue
     const fromCurrency = checkConstantCode(request.currency_pair.split('_')[0])
-    if (fiatCurrencyCodes[fromCurrency] == null) {
+    if (!isFiatCode(fromCurrency)) {
       codesWanted.push(fromCurrency)
     }
   }
@@ -61,7 +67,9 @@ const coinMarketCapCurrent = async (
     try {
       const codes = codesWanted.join(',')
       const response = await fetch(
-        `${uri}/v1/cryptocurrency/quotes/latest?symbol=${codes}&skip_invalid=true`,
+        `${uri}/v1/cryptocurrency/quotes/latest?symbol=${codes}&skip_invalid=true&convert=${subIso(
+          DEFAULT_FIAT
+        )}`,
         options
       )
       if (response.status !== 200) {
