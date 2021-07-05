@@ -2,7 +2,8 @@ import { asArray, asMap, asNumber, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { NewRates, RateMap, ReturnRate } from './../rates'
+import { AssetMap, NewRates, RateMap, ReturnRate } from './../rates'
+import { coinmarketcapEdgeMap } from './../utils/currencyCodeMaps.json'
 import {
   checkConstantCode,
   combineRates,
@@ -10,14 +11,11 @@ import {
   logger,
   subIso
 } from './../utils/utils'
-import { AssetMap, NewRates, ProviderResponse, ReturnRate } from './../rates'
 
-// TODO: add ID map
-
-/* 
-Setting default codes simplifies return object handling. CMC returns a slightly different
-object if only one currency is requested. They ignore unrecognized codes so
-this ensures the response will have at least two accepted currency codes.
+/*
+Setting default codes simplifies return object handling. CMC returns a slightly
+different object if only one currency is requested. This ensures the response
+will have at least two accepted currency codes.
 */
 
 const {
@@ -29,6 +27,25 @@ const {
 
 const DEFAULT_CODES = ['BTC', 'ETH']
 
+export const createUniqueIdString = (
+  requestedCodes: string[],
+  assetMap: AssetMap
+): string => {
+  return requestedCodes
+    .filter(code => assetMap[code] != null)
+    .map(code => assetMap[code])
+    .join(',')
+}
+
+export const invertCodeMapKey = (
+  id: string,
+  assetMap: AssetMap
+): string | void => {
+  for (const code of Object.keys(assetMap)) {
+    if (assetMap[code] === id) return code
+  }
+}
+
 const OPTIONS = {
   method: 'GET',
   headers: {
@@ -38,6 +55,7 @@ const OPTIONS = {
 }
 
 const coinMarketCapPrice = asObject({
+  id: asNumber,
   symbol: asString,
   quotes: asArray(
     asObject({
@@ -56,11 +74,14 @@ const asCoinMarketCapHistoricalResponse = asObject({
 })
 
 const coinMarketCapHistoricalRateMap = (
-  results: ReturnType<typeof asCoinMarketCapHistoricalResponse>
+  results: ReturnType<typeof asCoinMarketCapHistoricalResponse>,
+  assetMap: AssetMap
 ): RateMap =>
   Object.keys(results.data)
     .filter(code => results.data[code].quotes.length > 0)
-    .reduce((out, code) => {
+    .reduce((out, id) => {
+      const code = invertCodeMapKey(id, assetMap)
+      if (code == null) return { ...out }
       return {
         ...out,
         [`${code}_${DEFAULT_FIAT}`]: results.data[code].quotes[0].quote[
@@ -69,12 +90,17 @@ const coinMarketCapHistoricalRateMap = (
       }
     }, {})
 
-const query = async (date: string, codes: string[]): Promise<NewRates> => {
+const query = async (
+  date: string,
+  codes: string[],
+  assetMap: AssetMap
+): Promise<NewRates> => {
   const rates = {}
   if (codes.length === 0) return rates
+  const ids = createUniqueIdString(codes, assetMap)
   try {
     const response = await fetch(
-      `${uri}/v1/cryptocurrency/quotes/historical?symbol=${codes}&time_end=${date}&count=1&skip_invalid=true&convert=${subIso(
+      `${uri}/v1/cryptocurrency/quotes/historical?symbol=${ids}&time_end=${date}&count=1&skip_invalid=true&convert=${subIso(
         DEFAULT_FIAT
       )}`,
       OPTIONS
@@ -88,7 +114,7 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
     const json = asCoinMarketCapHistoricalResponse(await response.json())
 
     // Create return object
-    rates[date] = coinMarketCapHistoricalRateMap(json)
+    rates[date] = coinMarketCapHistoricalRateMap(json, assetMap)
   } catch (e) {
     logger(`No CoinMarketCapHistorical quote: ${JSON.stringify(e)}`)
   }
@@ -96,9 +122,15 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
 }
 
 const coinMarketCapHistorical = async (
-  rateObj: ReturnRate[]
+  rateObj: ReturnRate[],
+  currentTime: string,
+  assetMaps: { [provider: string]: AssetMap }
 ): Promise<NewRates> => {
   const rates = {}
+  const assetMap = {
+    ...coinmarketcapEdgeMap,
+    ...assetMaps.coinMarketCapAssets
+  }
 
   if (apiKey == null) {
     logger('No coinMarketCapHistorical API key')
@@ -119,7 +151,7 @@ const coinMarketCapHistorical = async (
 
   // Query
   const providers = Object.keys(datesAndCodesWanted).map(async date =>
-    query(date, datesAndCodesWanted[date])
+    query(date, datesAndCodesWanted[date], assetMap)
   )
   try {
     const response = await Promise.all(providers)

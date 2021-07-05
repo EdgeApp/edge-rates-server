@@ -3,8 +3,11 @@ import compression from 'compression'
 import cors from 'cors'
 import express from 'express'
 import morgan from 'morgan'
+import nano from 'nano'
+import promisify from 'promisify-node'
 
 import { asConfig } from './config'
+import { assetMaps } from './uniqueIdEngine'
 
 interface HttpConfig {
   httpHost: string
@@ -30,6 +33,10 @@ export const createServer = (
   router: express.Router,
   config: ReturnType<typeof asConfig>
 ): express.Application => {
+  const nanoDb = nano(config.couchUri)
+  const dbUniqueIds = nanoDb.db.use('db_uniqueids')
+  promisify(dbUniqueIds)
+
   const app = express()
   // Gzip compression
   app.use(compression())
@@ -46,6 +53,11 @@ export const createServer = (
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
   // Allow cors
   app.use(cors())
+  // Retrieve unique IDs
+  app.use((req, res, next) => {
+    req.assetMaps = assetMaps
+    next()
+  })
   // Add router to the app
   app.use(router)
   // 404 Error Route
