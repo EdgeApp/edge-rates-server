@@ -1,9 +1,9 @@
-import { invertPair } from '../utils/utils'
+import { addIso, invertPair } from '../utils/utils'
 import { NewRates, ReturnRate } from './../rates'
 import {
   fallbackConstantRatePairs,
   zeroRateCurrencyCodes
-} from './../utils/currencyCodeMaps'
+} from './../utils/currencyCodeMaps.json'
 
 export const zeroRates = (rateObj: ReturnRate[]): NewRates => {
   const rates = {}
@@ -21,22 +21,31 @@ export const zeroRates = (rateObj: ReturnRate[]): NewRates => {
   return rates
 }
 
+const constantRates = Object.keys(fallbackConstantRatePairs).reduce(
+  (res, pair) => ({
+    ...res,
+    [`${pair.split('_')[0]}_${addIso(
+      pair.split('_')[1]
+    )}`]: fallbackConstantRatePairs[pair]
+  }),
+  {}
+)
+
 export const fallbackConstantRates = (rateObj: ReturnRate[]): NewRates => {
   const rates = {}
   for (const pair of rateObj) {
-    if (fallbackConstantRatePairs[pair.currency_pair] != null) {
+    if (constantRates[pair.currency_pair] != null) {
       if (rates[pair.date] == null) {
         rates[pair.date] = {}
       }
-      rates[pair.date][pair.currency_pair] =
-        fallbackConstantRatePairs[pair.currency_pair]
+      rates[pair.date][pair.currency_pair] = constantRates[pair.currency_pair]
     }
-    if (fallbackConstantRatePairs[invertPair(pair.currency_pair)] != null) {
+    if (constantRates[invertPair(pair.currency_pair)] != null) {
       if (rates[pair.date] == null) {
         rates[pair.date] = {}
       }
       rates[pair.date][pair.currency_pair] =
-        fallbackConstantRatePairs[invertPair(pair.currency_pair)]
+        constantRates[invertPair(pair.currency_pair)]
     }
   }
   return rates
