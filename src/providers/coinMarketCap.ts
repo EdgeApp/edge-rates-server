@@ -10,6 +10,7 @@ import {
   logger,
   subIso
 } from './../utils/utils'
+import { AssetMap, NewRates, ProviderResponse, ReturnRate } from './../rates'
 
 // TODO: add ID map
 
@@ -130,4 +131,26 @@ const coinMarketCapHistorical = async (
   return rates
 }
 
-export { coinMarketCapHistorical }
+const asCoinMarketCapAssetResponse = asObject({
+  data: asArray(asObject({ id: asNumber, symbol: asString }))
+})
+
+const coinMarketCapAssets = async (): Promise<AssetMap> => {
+  const assets: { [code: string]: string } = {}
+  const response = await fetch(
+    'https://pro-api.coinmarketcap.com/v1/cryptocurrency/map?limit=5000',
+    OPTIONS
+  )
+  if (response.ok === false) {
+    throw new Error(response.status)
+  }
+  const json = asCoinMarketCapAssetResponse(await response.json()).data
+
+  for (const obj of json) {
+    if (assets[obj.symbol] == null) assets[obj.symbol] = obj.id.toString()
+  }
+
+  return assets
+}
+
+export { coinMarketCapHistorical, coinMarketCapAssets }
