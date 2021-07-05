@@ -262,7 +262,7 @@ export const asRateParam = (param: any): RateParamReturn => {
     const currencyTokens = currencyPair.split('_')
     if (currencyTokens.length !== 2) {
       throw new Error(
-        'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_USD"'
+        'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_iso:USD"'
       )
     }
     const parsedDate = normalizeDate(dateStr)
