@@ -127,7 +127,7 @@
               "currency_pair": "USDBTC",
               "date": "2011-10-05T14:40:00.000Z"
            },
-           "output": "currency_pair query param malformed.  should be [curA]_[curB], ex: \"ETH_USD\""
+           "output": "currency_pair query param malformed.  should be [curA]_[curB], ex: \"ETH_iso:USD\""
         },
         {
            "input": {
