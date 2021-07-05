@@ -3,10 +3,14 @@ import fetch from 'node-fetch'
 
 import { config } from './../config'
 import { NewRates, RateMap, ReturnRate } from './../rates'
-import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
-import { combineRates, logger } from './../utils/utils'
+import { combineRates, isFiatCode, logger, subIso } from './../utils/utils'
 
-const { uri, apiKey } = config.providers.openExchangeRates
+const {
+  providers: {
+    openExchangeRates: { uri, apiKey }
+  },
+  defaultFiatCode: DEFAULT_FIAT
+} = config
 
 const asOpenExchangeRatesResponse = asObject({
   rates: asMap(asNumber)
@@ -18,7 +22,7 @@ const openExchangeRatesRateMap = (
   Object.keys(results.rates).reduce((out, code) => {
     return {
       ...out,
-      [`${code}_USD`]: (1 / results.rates[code]).toString()
+      [`${code}_${DEFAULT_FIAT}`]: (1 / results.rates[code]).toString()
     }
   }, {})
 
@@ -29,7 +33,9 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
   const justDate = date.split('T')[0]
   try {
     const response = await fetch(
-      `${uri}/api/historical/${justDate}.json?app_id=${apiKey}&base=USD&symbols=${codeString}`
+      `${uri}/api/historical/${justDate}.json?app_id=${apiKey}&base=${subIso(
+        DEFAULT_FIAT
+      )}&symbols=${codeString}`
     )
     const json = asOpenExchangeRatesResponse(await response.json())
     if (response.ok === false) {
@@ -70,13 +76,13 @@ const openExchangeRates = async (
     const fromCurrency = pair.currency_pair.split('_')[0]
     const toCurrency = pair.currency_pair.split('_')[1]
     if (
-      fiatCurrencyCodes[fromCurrency] === true &&
+      isFiatCode(fromCurrency) &&
       datesAndCodesWanted[pair.date].indexOf(fromCurrency) === -1
     ) {
       datesAndCodesWanted[pair.date].push(fromCurrency)
     }
     if (
-      fiatCurrencyCodes[toCurrency] === true &&
+      isFiatCode(toCurrency) &&
       datesAndCodesWanted[pair.date].indexOf(toCurrency) === -1
     ) {
       datesAndCodesWanted[pair.date].push(toCurrency)

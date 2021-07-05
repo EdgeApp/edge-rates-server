@@ -3,8 +3,13 @@ import fetch from 'node-fetch'
 
 import { config } from './../config'
 import { NewRates, RateMap, ReturnRate } from './../rates'
-import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
-import { checkConstantCode, combineRates, logger } from './../utils/utils'
+import {
+  checkConstantCode,
+  combineRates,
+  isFiatCode,
+  logger,
+  subIso
+} from './../utils/utils'
 
 // TODO: add ID map
 
@@ -14,7 +19,12 @@ object if only one currency is requested. They ignore unrecognized codes so
 this ensures the response will have at least two accepted currency codes.
 */
 
-const { uri, apiKey } = config.providers.coinMarketCapHistorical
+const {
+  providers: {
+    coinMarketCapHistorical: { uri, apiKey }
+  },
+  defaultFiatCode: DEFAULT_FIAT
+} = config
 
 const DEFAULT_CODES = ['BTC', 'ETH']
 
@@ -31,11 +41,11 @@ const coinMarketCapPrice = asObject({
   quotes: asArray(
     asObject({
       timestamp: asString,
-      quote: asObject({
-        USD: asObject({
+      quote: asMap(
+        asObject({
           price: asNumber
         })
-      })
+      )
     })
   )
 })
@@ -52,7 +62,9 @@ const coinMarketCapHistoricalRateMap = (
     .reduce((out, code) => {
       return {
         ...out,
-        [`${code}_USD`]: results.data[code].quotes[0].quote.USD.price.toString()
+        [`${code}_${DEFAULT_FIAT}`]: results.data[code].quotes[0].quote[
+          subIso(DEFAULT_FIAT)
+        ].price.toString()
       }
     }, {})
 
@@ -61,7 +73,9 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
   if (codes.length === 0) return rates
   try {
     const response = await fetch(
-      `${uri}/v1/cryptocurrency/quotes/historical?symbol=${codes}&time_end=${date}&count=1&skip_invalid=true`,
+      `${uri}/v1/cryptocurrency/quotes/historical?symbol=${codes}&time_end=${date}&count=1&skip_invalid=true&convert=${subIso(
+        DEFAULT_FIAT
+      )}`,
       OPTIONS
     )
     if (response.status !== 200 || response.ok === false) {
@@ -97,10 +111,7 @@ const coinMarketCapHistorical = async (
       datesAndCodesWanted[pair.date] = DEFAULT_CODES
     }
     const fromCurrency = checkConstantCode(pair.currency_pair.split('_')[0])
-    if (
-      fiatCurrencyCodes[fromCurrency] == null &&
-      !DEFAULT_CODES.includes(fromCurrency)
-    ) {
+    if (!isFiatCode(fromCurrency) && !DEFAULT_CODES.includes(fromCurrency)) {
       datesAndCodesWanted[pair.date].push(fromCurrency)
     }
   }

@@ -5,10 +5,14 @@ import { config } from '../config'
 import { NewRates, RateMap, ReturnRate } from '../rates'
 import {
   coincapDefaultMap,
-  coincapEdgeMap,
-  fiatCurrencyCodes
-} from '../utils/currencyCodeMaps'
-import { checkConstantCode, combineRates, logger } from './../utils/utils'
+  coincapEdgeMap
+} from '../utils/currencyCodeMaps.json'
+import {
+  checkConstantCode,
+  combineRates,
+  isFiatCode,
+  logger
+} from './../utils/utils'
 
 const { uri } = config.providers.coincap
 
@@ -114,7 +118,7 @@ const coincap = async (
       datesAndCodesWanted[pair.date] = []
     }
     const fromCurrency = checkConstantCode(pair.currency_pair.split('_')[0])
-    if (fiatCurrencyCodes[fromCurrency] == null) {
+    if (!isFiatCode(fromCurrency)) {
       datesAndCodesWanted[pair.date].push(fromCurrency)
     }
   }

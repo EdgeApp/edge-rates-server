@@ -3,12 +3,16 @@ import fetch from 'node-fetch'
 
 import { config } from '../config'
 import { NewRates, RateMap, ReturnRate } from '../rates'
-import { fiatCurrencyCodes } from '../utils/currencyCodeMaps'
-import { checkConstantCode, logger } from './../utils/utils'
+import { checkConstantCode, isFiatCode, logger, subIso } from './../utils/utils'
 
 // TODO: add ID map
 
-const { uri, apiKey } = config.providers.nomics
+const {
+  providers: {
+    nomics: { uri, apiKey }
+  },
+  defaultFiatCode: DEFAULT_FIAT
+} = config
 
 const asNomicsResponse = asArray(
   asObject({
@@ -21,7 +25,7 @@ const nomicsRateMap = (results: ReturnType<typeof asNomicsResponse>): RateMap =>
   results.reduce((out, code) => {
     return {
       ...out,
-      [`${code.symbol}_USD`]: code.price
+      [`${code.symbol}_${DEFAULT_FIAT}`]: code.price
     }
   }, {})
 
@@ -41,7 +45,7 @@ const nomics = async (
   for (const request of requestedRates) {
     if (request.date !== currentTime) continue
     const fromCurrency = checkConstantCode(request.currency_pair.split('_')[0])
-    if (fiatCurrencyCodes[fromCurrency] == null) {
+    if (!isFiatCode(fromCurrency)) {
       codesWanted.push(fromCurrency)
     }
   }
@@ -51,7 +55,9 @@ const nomics = async (
     try {
       const ids = codesWanted.join(',')
       const response = await fetch(
-        `${uri}/v1/currencies/ticker?key=${apiKey}&ids=${ids}&convert=USD`
+        `${uri}/v1/currencies/ticker?key=${apiKey}&ids=${ids}&convert=${subIso(
+          DEFAULT_FIAT
+        )}`
       )
       if (
         response.status === 429 ||
