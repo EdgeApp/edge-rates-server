@@ -1,7 +1,10 @@
 import { validate } from 'jsonschema'
 
 import { NewRates, ReturnRate } from '../rates'
-import { constantCurrencyCodes } from './currencyCodeMaps'
+import { config } from './../config'
+import { constantCurrencyCodes } from './currencyCodeMaps.json'
+
+const { defaultFiatCode: DEFAULT_FIAT } = config
 
 /*
  * Returns string value of date "normalized" by floor'ing to nearest
@@ -87,3 +90,12 @@ export const logger = (...args): void => {
   }
   console.log(result)
 }
+
+export const defaultFiatPair = (code: string): string =>
+  `${code}_${DEFAULT_FIAT}`
+
+export const isFiatCode = (code: string): boolean => code.indexOf('iso:') === 0
+
+export const subIso = (code: string): string => code.split(':')[1]
+
+export const addIso = (code: string): string => `iso:${code}`
