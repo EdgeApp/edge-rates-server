@@ -63,6 +63,10 @@ export interface NewRates {
   [date: string]: RateMap
 }
 
+export interface AssetMap {
+  [currencyCode: string]: string
+}
+
 const addNewRatesToDocs = (
   newRates: NewRates,
   documents: DbDoc[],

@@ -2,7 +2,7 @@ import { asArray, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { NewRates, RateMap, ReturnRate } from '../rates'
+import { AssetMap, NewRates, RateMap, ReturnRate } from '../rates'
 import {
   coincapDefaultMap,
   coincapEdgeMap
@@ -148,4 +148,23 @@ const coincap = async (
   return rates
 }
 
-export { coincap }
+const asCoincapAssetResponse = asObject({
+  data: asArray(asObject({ id: asString, symbol: asString }))
+})
+
+const coincapAssets = async (): Promise<AssetMap> => {
+  const assets: { [code: string]: string } = {}
+  const response = await fetch('https://api.coincap.io/v2/assets?limit=2000')
+  if (response.ok === false) {
+    throw new Error(response.status)
+  }
+  const json = asCoincapAssetResponse(await response.json()).data
+
+  for (const obj of json) {
+    if (assets[obj.symbol] == null) assets[obj.symbol] = obj.id
+  }
+
+  return assets
+}
+
+export { coincap, coincapAssets }
