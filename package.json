@@ -20,7 +20,7 @@
     "startEngines": "node -r sucrase/register src/ratesEngine.ts",
     "start": "node -r sucrase/register src/index.ts",
     "precommit": "lint-staged && yarn test && yarn prepare",
-    "prepare": "configure && npm-run-all clean -p build.*",
+    "prepare": "configure && npm-run-all clean -p build.* && cp ./src/utils/currencyCodeMaps.json ./lib/utils/currencyCodeMaps.json",
     "test": "mocha -r sucrase/register 'test/**/*.test.ts'",
     "lint": "eslint --ext .js,.jsx,.ts,.tsx ."
   },
