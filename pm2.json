@@ -1,10 +1,17 @@
 {
-  "apps": [
-    {
-      "name": "server",
-      "script": "lib/index.js",
-      "error_file": "logs/server/error.log",
-      "out_file": "logs/server/out.log"
-    }
-  ]
+    "apps": [{
+            "name": "ratesServer",
+            "script": "lib/index.js",
+            "error_file": "logs/server/error.log",
+            "out_file": "logs/server/out.log",
+            "instances": "max"
+        },
+        {
+            "name": "ratesEngines",
+            "script": "lib/ratesEngine.js",
+            "instances": "1",
+            "error_file": "logs/engineLogs/error.log",
+            "out_file": "logs/engineLogs/log.log"
+        }
+    ]
 }
