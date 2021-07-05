@@ -33,7 +33,7 @@ export const exchangeRateRouter = (
 
   /*
    * Query params:
-   * currency_pair: String with the two currencies separated by an underscore. Ex: "ETH_USD"
+   * currency_pair: String with the two currencies separated by an underscore. Ex: "ETH_iso:USD"
    */
   router.get('/exchangeRate', async function(req, res) {
     const currencyPair = req.query.currency_pair
