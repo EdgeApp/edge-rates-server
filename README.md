@@ -2,18 +2,22 @@
 
 > A REST API for retrieving and storing historical crypto and fiat exchange rates.
 
-#### Installation
+# Setup
 
-Install Yarn
+This project will automatically create & manage the required databases inside of CouchDb, assuming it has access.
+
+### Installation
+
+#### Install Yarn
 
     https://linuxize.com/post/how-to-install-yarn-on-ubuntu-18-04/
 
-Install Node
+#### Install Node
 
     curl -sL https://deb.nodesource.com/setup_10.x -o nodesource_setup.sh
     sudo bash nodesource_setup.sh
 
-Run Yarn
+#### Run Yarn
 
     yarn
 
@@ -25,21 +29,29 @@ Install and run CouchDB v3.1 (use apt install process for Ubuntu 18.04)
 
     node lib/index.js
 
-#### Install forever-service
+## Manage server using `pm2`
 
-    sudo npm install -g forever
+    First, install pm2 to run at startup:
 
-    sudo npm install -g forever-service
+    yarn global add pm2
+    pm2 startup # Then do what it says
 
-#### Install rates server using `forever-service`
+    Next, tell pm2 how to run the server script:
 
-    sudo forever-service install ratesServer -r [username] --script lib/index.js  --start
+    # install:
+    pm2 start pm2.json
+    pm2 save
+
+    # check status:
+    pm2 monit
+    tail -f /var/log/ratesServer.log
 
 #### Restart, stop, delete service
 
-    sudo service ratesServer restart
-    sudo service ratesServer stop
-    sudo forever-service delete ratesServer
+    pm2 restart ratesServer
+    pm2 reload ratesServer
+    pm2 stop ratesServer
+    pm2 delete ratesServer
 
 ### Terminate SSL using Caddy
 
