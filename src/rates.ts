@@ -80,13 +80,13 @@ const addNewRatesToDocs = (
         // Sanity check value is acceptable and only allow a 0 rate from the zeroRates plugin
         if (
           isNotANumber(rate) ||
-          (rate === '0' && providerName !== 'zeroRates')
+          (bns.eq(rate, '0') === true && providerName !== 'zeroRates')
         ) {
           delete rateMap[pair]
           continue
         }
         invertedRateMap[invertPair(pair)] =
-          rate === '0' ? '0' : bns.div('1', rate, 8)
+          providerName === 'zeroRates' ? '0' : bns.div('1', rate, 8)
       }
 
       // Add new rates and their inverts to the doc and mark updated
