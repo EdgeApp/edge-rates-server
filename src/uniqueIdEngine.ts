@@ -4,7 +4,7 @@ import promisify from 'promisify-node'
 import { config } from './config'
 import { coincapAssets } from './providers/coincap'
 import { coinMarketCapAssets } from './providers/coinMarketCap'
-import { getFromDb, saveToDb } from './utils/dbUtils'
+import { DbDoc, getFromDb, saveToDb } from './utils/dbUtils'
 import { logger, snooze } from './utils/utils'
 
 const { couchUri } = config
@@ -12,7 +12,7 @@ const { couchUri } = config
 const ONE_DAY = 1000 * 60 * 60 * 24
 
 const nanoDb = nano(couchUri)
-const dbUniqueIds = nanoDb.db.use('db_uniqueids')
+const dbUniqueIds: nano.DocumentScope<DbDoc> = nanoDb.db.use('db_uniqueids')
 promisify(dbUniqueIds)
 
 export const providers = [coincapAssets, coinMarketCapAssets]

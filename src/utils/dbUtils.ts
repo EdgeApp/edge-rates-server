@@ -1,14 +1,21 @@
 import AwaitLock from 'await-lock'
+import nano from 'nano'
 
-import { DbDoc } from '../rates'
 import { config } from './../config'
 import { slackPoster } from './postToSlack'
 import { logger } from './utils'
 
+export interface DbDoc
+  extends nano.IdentifiedDocument,
+    nano.MaybeRevisionedDocument {
+  [pair: string]: any
+  updated?: boolean
+}
+
 let LOCK_ID = 0
 
 export const saveToDb = (
-  localDB: any,
+  localDB: nano.DocumentScope<DbDoc>,
   documents: DbDoc[],
   locks = {}
 ): void => {
@@ -22,7 +29,7 @@ export const saveToDb = (
   if (docs.length === 0) return
   locks[++LOCK_ID] = new AwaitLock()
 
-  locks[LOCK_ID].acquireAsync().then(() =>
+  locks[LOCK_ID].acquireAsync().then(async () =>
     localDB
       .bulk({ docs })
       .then(response => {

@@ -8,6 +8,7 @@ import promisify from 'promisify-node'
 
 import { asConfig } from './config'
 import { assetMaps } from './uniqueIdEngine'
+import { DbDoc } from './utils/dbUtils'
 
 interface HttpConfig {
   httpHost: string
@@ -34,7 +35,7 @@ export const createServer = (
   config: ReturnType<typeof asConfig>
 ): express.Application => {
   const nanoDb = nano(config.couchUri)
-  const dbUniqueIds = nanoDb.db.use('db_uniqueids')
+  const dbUniqueIds: nano.DocumentScope<DbDoc> = nanoDb.db.use('db_uniqueids')
   promisify(dbUniqueIds)
 
   const app = express()
