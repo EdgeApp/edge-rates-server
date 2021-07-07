@@ -109,7 +109,7 @@ const historicalQuery = async (
   return rates
 }
 
-const coincap = async (
+export const coincap = async (
   rateObj: ReturnRate[],
   currentTime: string
 ): Promise<NewRates> => {
@@ -152,7 +152,7 @@ const asCoincapAssetResponse = asObject({
   data: asArray(asObject({ id: asString, symbol: asString }))
 })
 
-const coincapAssets = async (): Promise<AssetMap> => {
+export const coincapAssets = async (): Promise<AssetMap> => {
   const assets: { [code: string]: string } = {}
   const response = await fetch('https://api.coincap.io/v2/assets?limit=2000')
   if (response.ok === false) {
@@ -166,5 +166,3 @@ const coincapAssets = async (): Promise<AssetMap> => {
 
   return assets
 }
-
-export { coincap, coincapAssets }

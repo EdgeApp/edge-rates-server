@@ -29,7 +29,7 @@ const nomicsRateMap = (results: ReturnType<typeof asNomicsResponse>): RateMap =>
     }
   }, {})
 
-const nomics = async (
+export const nomics = async (
   requestedRates: ReturnRate[],
   currentTime: string
 ): Promise<NewRates> => {
@@ -78,5 +78,3 @@ const nomics = async (
     }
   return rates
 }
-
-export { nomics }

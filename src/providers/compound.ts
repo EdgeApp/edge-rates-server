@@ -37,7 +37,7 @@ const compoundRateMap = (
     }
   }, {})
 
-const compound = async (
+export const compound = async (
   rateObj: ReturnRate[],
   currentTime: string
 ): Promise<NewRates> => {
@@ -61,5 +61,3 @@ const compound = async (
   }
   return rates
 }
-
-export { compound }

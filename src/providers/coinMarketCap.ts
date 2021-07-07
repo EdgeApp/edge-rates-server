@@ -94,7 +94,7 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
   return rates
 }
 
-const coinMarketCapHistorical = async (
+export const coinMarketCapHistorical = async (
   rateObj: ReturnRate[]
 ): Promise<NewRates> => {
   const rates = {}
@@ -134,7 +134,7 @@ const asCoinMarketCapAssetResponse = asObject({
   data: asArray(asObject({ id: asNumber, symbol: asString }))
 })
 
-const coinMarketCapAssets = async (): Promise<AssetMap> => {
+export const coinMarketCapAssets = async (): Promise<AssetMap> => {
   const assets: { [code: string]: string } = {}
   const response = await fetch(
     'https://pro-api.coinmarketcap.com/v1/cryptocurrency/map?limit=5000',
@@ -151,5 +151,3 @@ const coinMarketCapAssets = async (): Promise<AssetMap> => {
 
   return assets
 }
-
-export { coinMarketCapHistorical, coinMarketCapAssets }
