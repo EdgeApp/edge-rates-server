@@ -21,22 +21,95 @@ this ensures the response will have at least two accepted currency codes.
 
 const {
   providers: {
-    coinMarketCapHistorical: { uri, apiKey }
+    coinMarketCapHistorical: { uri: historicalUri, apiKey: historicalApiKey },
+    coinMarketCapCurrent: { uri: currentUri, apiKey: currentApiKey }
   },
   defaultFiatCode: DEFAULT_FIAT
 } = config
 
-const DEFAULT_CODES = ['BTC', 'ETH']
+/*
+// CURRENT PRICE UTILS
+*/
 
-const OPTIONS = {
+const currentQueryOptions = {
   method: 'GET',
   headers: {
-    'X-CMC_PRO_API_KEY': apiKey
+    'X-CMC_PRO_API_KEY': currentApiKey
   },
   json: true
 }
 
-const coinMarketCapPrice = asObject({
+const asCoinMarketCapCurrentResponse = asObject({
+  data: asMap(
+    asObject({
+      quote: asMap(asObject({ price: asNumber }))
+    })
+  )
+})
+
+const coinMarketCapCurrentRateMap = (
+  results: ReturnType<typeof asCoinMarketCapCurrentResponse>
+): RateMap =>
+  Object.keys(results.data).reduce((out, code) => {
+    return {
+      ...out,
+      [`${code}_${DEFAULT_FIAT}`]: results.data[code].quote[
+        subIso(DEFAULT_FIAT)
+      ].price.toString()
+    }
+  }, {})
+
+const currentQuery = async (
+  currentTime: string,
+  codesWanted: string[]
+): Promise<NewRates> => {
+  const rates = { [currentTime]: {} }
+
+  if (currentApiKey == null) {
+    logger('No coinMarketCapHistorical API key')
+    return rates
+  }
+
+  if (codesWanted.length > 0)
+    try {
+      const codes = codesWanted.join(',')
+      const response = await fetch(
+        `${currentUri}/v1/cryptocurrency/quotes/latest?symbol=${codes}&skip_invalid=true&convert=${subIso(
+          DEFAULT_FIAT
+        )}`,
+        currentQueryOptions
+      )
+      if (response.status !== 200) {
+        logger(
+          `coinMarketCapCurrent returned code ${response.status} for ${codes} at ${currentTime}`
+        )
+        throw new Error(response.statusText)
+      }
+      const json = asCoinMarketCapCurrentResponse(await response.json())
+
+      // Create return object
+      rates[currentTime] = coinMarketCapCurrentRateMap(json)
+    } catch (e) {
+      logger(`No coinMarketCapCurrent quote: ${JSON.stringify(e)}`)
+    }
+  return rates
+}
+
+/*
+// HISTORICAL PRICE UTILS
+*/
+
+const historicalQueryOptions = {
+  method: 'GET',
+  headers: {
+    'X-CMC_PRO_API_KEY': historicalApiKey
+  },
+  json: true
+}
+
+const DEFAULT_CODES = ['BTC', 'ETH']
+
+const coinMarketCapHistoricalPrice = asObject({
   symbol: asString,
   quotes: asArray(
     asObject({
@@ -51,7 +124,7 @@ const coinMarketCapPrice = asObject({
 })
 
 const asCoinMarketCapHistoricalResponse = asObject({
-  data: asMap(coinMarketCapPrice)
+  data: asMap(coinMarketCapHistoricalPrice)
 })
 
 const coinMarketCapHistoricalRateMap = (
@@ -68,15 +141,24 @@ const coinMarketCapHistoricalRateMap = (
       }
     }, {})
 
-const query = async (date: string, codes: string[]): Promise<NewRates> => {
+const historicalQuery = async (
+  date: string,
+  codes: string[]
+): Promise<NewRates> => {
   const rates = {}
+
+  if (historicalApiKey == null) {
+    logger('No coinMarketCapHistorical API key')
+    return rates
+  }
+
   if (codes.length === 0) return rates
   try {
     const response = await fetch(
-      `${uri}/v1/cryptocurrency/quotes/historical?symbol=${codes}&time_end=${date}&count=1&skip_invalid=true&convert=${subIso(
+      `${historicalUri}/v1/cryptocurrency/quotes/historical?symbol=${codes}&time_end=${date}&count=1&skip_invalid=true&convert=${subIso(
         DEFAULT_FIAT
       )}`,
-      OPTIONS
+      historicalQueryOptions
     )
     if (response.status !== 200 || response.ok === false) {
       logger(
@@ -94,15 +176,11 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
   return rates
 }
 
-export const coinMarketCapHistorical = async (
-  rateObj: ReturnRate[]
+export const coinMarketCap = async (
+  rateObj: ReturnRate[],
+  currentTime: string
 ): Promise<NewRates> => {
   const rates = {}
-
-  if (apiKey == null) {
-    logger('No coinMarketCapHistorical API key')
-    return rates
-  }
 
   // Gather codes
   const datesAndCodesWanted: { [key: string]: string[] } = {}
@@ -117,14 +195,20 @@ export const coinMarketCapHistorical = async (
   }
 
   // Query
-  const providers = Object.keys(datesAndCodesWanted).map(async date =>
-    query(date, datesAndCodesWanted[date])
-  )
+  const providers: Array<Promise<NewRates>> = []
+  Object.keys(datesAndCodesWanted).forEach(date => {
+    if (date === currentTime) {
+      providers.push(currentQuery(date, datesAndCodesWanted[date]))
+    } else {
+      providers.push(historicalQuery(date, datesAndCodesWanted[date]))
+    }
+  })
+
   try {
     const response = await Promise.all(providers)
     combineRates(rates, response)
   } catch (e) {
-    logger('Failed to query coinMarketCapHistorical with error', e.message)
+    logger('Failed to query coinMarketCap with error', e.message)
   }
 
   return rates
@@ -138,7 +222,7 @@ export const coinMarketCapAssets = async (): Promise<AssetMap> => {
   const assets: { [code: string]: string } = {}
   const response = await fetch(
     'https://pro-api.coinmarketcap.com/v1/cryptocurrency/map?limit=5000',
-    OPTIONS
+    historicalQueryOptions
   )
   if (response.ok === false) {
     throw new Error(response.status)

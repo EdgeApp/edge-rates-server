@@ -4,8 +4,7 @@ import nano from 'nano'
 
 import { config } from './config'
 import { coincap } from './providers/coincap'
-import { coinMarketCapHistorical } from './providers/coinMarketCap'
-import { coinMarketCapCurrent } from './providers/coinMarketCapBasic'
+import { coinMarketCap } from './providers/coinMarketCap'
 import { compound } from './providers/compound'
 import { currencyConverter } from './providers/currencyConverter'
 import {
@@ -114,9 +113,8 @@ const getRatesFromProviders = async (
   const rateProviders = [
     zeroRates,
     currencyConverter,
-    coinMarketCapCurrent,
+    coinMarketCap,
     coincap,
-    coinMarketCapHistorical,
     nomics,
     compound,
     fallbackConstantRates,
