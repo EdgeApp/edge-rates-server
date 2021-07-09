@@ -1,9 +1,8 @@
 import { assert } from 'chai'
 import { describe, it } from 'mocha'
 
-import { CmcHistoricalQuote } from '../src/coinMarketCap'
 import { asRateParam } from '../src/rates'
-import { normalizeDate, validateObject } from '../src/utils'
+import { normalizeDate } from '../src/utils/utils'
 import fixtures from './unitUtils.json'
 
 for (const test of fixtures.normalizeDate) {
@@ -12,16 +11,6 @@ for (const test of fixtures.normalizeDate) {
   describe(`normalizeDate`, function() {
     it(`testing input ${input}`, function() {
       assert.equal(normalizeDate(input), output)
-    })
-  })
-}
-
-for (const test of fixtures.validateObject) {
-  const { input, output } = test
-
-  describe(`validateObject`, function() {
-    it(`testing input ${input}`, function() {
-      assert.equal(validateObject(input, CmcHistoricalQuote), output)
     })
   })
 }
