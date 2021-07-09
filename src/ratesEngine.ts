@@ -1,7 +1,7 @@
 import fetch from 'node-fetch'
 
 import { config } from './config'
-import { snooze } from './utils'
+import { snooze } from './utils/utils'
 
 const { cryptoCurrencyCodes, fiatCurrencyCodes, ratesServerAddress } = config
 
