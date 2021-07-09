@@ -5,6 +5,12 @@
       "script": "lib/index.js",
       "error_file": "logs/server/error.log",
       "out_file": "logs/server/out.log"
+    },
+    {
+      "name": "engine",
+      "script": "lib/ratesEngine.js",
+      "error_file": "logs/engine/error.log",
+      "out_file": "logs/engine/out.log"
     }
   ]
 }
