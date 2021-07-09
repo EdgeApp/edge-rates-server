@@ -3,10 +3,7 @@ import fetch from 'node-fetch'
 
 import { config } from '../config'
 import { AssetMap, NewRates, RateMap, ReturnRate } from '../rates'
-import {
-  coincapDefaultMap,
-  coincapEdgeMap
-} from '../utils/currencyCodeMaps.json'
+import { coincap as coincapIds } from '../utils/currencyCodeMaps.json'
 import {
   checkConstantCode,
   combineRates,
@@ -25,7 +22,7 @@ const OPTIONS = {
   method: 'GET',
   json: true
 }
-const CODE_MAP = { ...coincapDefaultMap, ...coincapEdgeMap }
+const CODE_MAP = { ...coincapIds }
 
 const createUniqueIdString = (requestedCodes: string[]): string => {
   return requestedCodes
