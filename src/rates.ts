@@ -109,6 +109,9 @@ const getRatesFromProviders = async (
   const currentTime = normalizeDate(new Date().toISOString())
   if (typeof currentTime !== 'string') throw new Error('malformed date')
 
+  const assetMapDoc =
+    rateObj.documents.find(doc => doc._id === 'currencyCodeMaps') ?? {}
+
   // Retrieve new rates
   const rateProviders = [
     zeroRates,
@@ -123,7 +126,11 @@ const getRatesFromProviders = async (
 
   for (const provider of rateProviders) {
     addNewRatesToDocs(
-      await provider(getNullRateArray(rateObj.data), currentTime),
+      await provider(
+        getNullRateArray(rateObj.data),
+        currentTime,
+        assetMapDoc[provider.name] ?? {}
+      ),
       rateObj.documents,
       provider.name
     )
@@ -139,10 +146,10 @@ export const getExchangeRates = async (
   localDb: any
 ): Promise<ReturnGetRate> => {
   try {
-    const dates: string[] = []
+    const getDocs: string[] = ['currencyCodeMaps']
     const data = query.map(pair => {
       const { currencyPair, date } = asRateParam(pair)
-      if (!dates.includes(date)) dates.push(date)
+      if (!getDocs.includes(date)) getDocs.push(date)
       return {
         currency_pair: currencyPair,
         date,
@@ -150,7 +157,7 @@ export const getExchangeRates = async (
       }
     })
 
-    const documents: DbDoc[] = await getFromDb(localDb, dates)
+    const documents: DbDoc[] = await getFromDb(localDb, getDocs)
     const out = await getRatesFromProviders({ data, documents })
     saveToDb(
       localDb,
