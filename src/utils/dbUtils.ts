@@ -7,21 +7,10 @@ import { logger } from './utils'
 
 let LOCK_ID = 0
 
-export const saveToDb = (
-  localDB: any,
-  documents: DbDoc[],
-  locks = {}
-): void => {
+export const saveToDb = (localDB: any, docs: DbDoc[], locks = {}): void => {
   const db: string = localDB?.config?.db ?? ''
-  const docs = documents
-    .filter(doc => doc.updated === true)
-    .map(doc => {
-      delete doc.updated
-      return doc
-    })
   if (docs.length === 0) return
   locks[++LOCK_ID] = new AwaitLock()
-
   locks[LOCK_ID].acquireAsync().then(() =>
     localDB
       .bulk({ docs })
