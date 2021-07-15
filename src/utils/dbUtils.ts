@@ -2,6 +2,7 @@ import AwaitLock from 'await-lock'
 
 import { DbDoc } from '../rates'
 import { config } from './../config'
+import currencyCodeMaps from './currencyCodeMaps.json'
 import { slackPoster } from './postToSlack'
 import { logger } from './utils'
 
@@ -60,4 +61,10 @@ export const getFromDb = async (
     })
   )
   return documents
+}
+
+export const ratesDbSetup = {
+  name: 'db_rates',
+  options: { partitioned: false },
+  documents: { currencyCodeMaps }
 }
