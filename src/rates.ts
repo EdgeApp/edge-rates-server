@@ -153,7 +153,15 @@ export const getExchangeRates = async (
 
     const documents: DbDoc[] = await getFromDb(localDb, dates)
     const out = await getRatesFromProviders({ data, documents })
-    saveToDb(localDb, out.documents)
+    saveToDb(
+      localDb,
+      out.documents
+        .filter(doc => doc.updated === true)
+        .map(doc => {
+          delete doc.updated
+          return doc
+        })
+    )
     return out
   } catch (e) {
     return {
