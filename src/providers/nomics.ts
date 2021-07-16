@@ -2,10 +2,8 @@ import { asArray, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { NewRates, RateMap, ReturnRate } from '../rates'
-import { checkConstantCode, isFiatCode, logger, subIso } from './../utils/utils'
-
-// TODO: add ID map
+import { AssetMap, NewRates, RateMap, ReturnRate } from '../rates'
+import { isFiatCode, logger, subIso } from './../utils/utils'
 
 const {
   providers: {
@@ -29,9 +27,13 @@ const nomicsRateMap = (results: ReturnType<typeof asNomicsResponse>): RateMap =>
     }
   }, {})
 
+const overrideCode = (code: string, assetMap: AssetMap): string =>
+  assetMap[code] ?? code
+
 export const nomics = async (
   requestedRates: ReturnRate[],
-  currentTime: string
+  currentTime: string,
+  assetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }
 
@@ -44,7 +46,10 @@ export const nomics = async (
   const codesWanted: string[] = []
   for (const request of requestedRates) {
     if (request.date !== currentTime) continue
-    const fromCurrency = checkConstantCode(request.currency_pair.split('_')[0])
+    const fromCurrency = overrideCode(
+      request.currency_pair.split('_')[0],
+      assetMap
+    )
     if (!isFiatCode(fromCurrency)) {
       codesWanted.push(fromCurrency)
     }

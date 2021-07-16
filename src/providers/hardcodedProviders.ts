@@ -1,16 +1,14 @@
 import { addIso, invertPair } from '../utils/utils'
-import { NewRates, ReturnRate } from './../rates'
-import {
-  fallbackConstantRates as fallbackRates,
-  zeroRates as zeroRateCodes
-} from './../utils/currencyCodeMaps.json'
+import { AssetMap, NewRates, ReturnRate } from './../rates'
 
-export const zeroRates = (rateObj: ReturnRate[]): NewRates => {
+export const zeroRates = (
+  rateObj: ReturnRate[],
+  currentTime: string,
+  assetMap: AssetMap
+): NewRates => {
   const rates = {}
   for (const pair of rateObj) {
-    if (
-      pair.currency_pair.split('_').some(code => zeroRateCodes[code] === '0')
-    ) {
+    if (pair.currency_pair.split('_').some(code => assetMap[code] === '0')) {
       if (rates[pair.date] == null) {
         rates[pair.date] = {}
       }
@@ -20,16 +18,23 @@ export const zeroRates = (rateObj: ReturnRate[]): NewRates => {
   return rates
 }
 
-const constantRates = Object.keys(fallbackRates).reduce(
-  (res, pair) => ({
-    ...res,
-    [`${pair.split('_')[0]}_${addIso(pair.split('_')[1])}`]: fallbackRates[pair]
-  }),
-  {}
-)
-
-export const fallbackConstantRates = (rateObj: ReturnRate[]): NewRates => {
+export const fallbackConstantRates = (
+  rateObj: ReturnRate[],
+  currentTime: string,
+  assetMap: AssetMap
+): NewRates => {
   const rates = {}
+
+  // Initialize currencies
+  const constantRates = Object.keys(assetMap).reduce(
+    (res, pair) => ({
+      ...res,
+      [`${pair.split('_')[0]}_${addIso(pair.split('_')[1])}`]: assetMap[pair]
+    }),
+    {}
+  )
+
+  // Search for matches
   for (const pair of rateObj) {
     if (constantRates[pair.currency_pair] != null) {
       if (rates[pair.date] == null) {

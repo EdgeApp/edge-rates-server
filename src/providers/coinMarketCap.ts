@@ -11,12 +11,10 @@ import {
   subIso
 } from './../utils/utils'
 
-// TODO: add ID map
-
-/* 
-Setting default codes simplifies return object handling. CMC returns a slightly different
-object if only one currency is requested. They ignore unrecognized codes so
-this ensures the response will have at least two accepted currency codes.
+/*
+Setting default codes simplifies return object handling. CMC returns a slightly
+different object if only one currency is requested. This ensures the response
+will have at least two accepted currency codes.
 */
 
 const {
@@ -27,9 +25,23 @@ const {
   defaultFiatCode: DEFAULT_FIAT
 } = config
 
+const DEFAULT_CODES = ['1', '1027'] // ['BTC', 'ETH']
+
 /*
 // CURRENT PRICE UTILS
 */
+
+export const hasUniqueId = (code: string, assetMap: AssetMap): boolean =>
+  assetMap[code] !== null
+
+export const invertCodeMapKey = (
+  id: string,
+  assetMap: AssetMap
+): string | void => {
+  for (const code of Object.keys(assetMap)) {
+    if (assetMap[code] === id) return code
+  }
+}
 
 const currentQueryOptions = {
   method: 'GET',
@@ -48,12 +60,15 @@ const asCoinMarketCapCurrentResponse = asObject({
 })
 
 const coinMarketCapCurrentRateMap = (
-  results: ReturnType<typeof asCoinMarketCapCurrentResponse>
+  results: ReturnType<typeof asCoinMarketCapCurrentResponse>,
+  assetMap: AssetMap
 ): RateMap =>
-  Object.keys(results.data).reduce((out, code) => {
+  Object.keys(results.data).reduce((out, id) => {
+    const code = invertCodeMapKey(id, assetMap)
+    if (code == null) return { ...out }
     return {
       ...out,
-      [`${code}_${DEFAULT_FIAT}`]: results.data[code].quote[
+      [`${code}_${DEFAULT_FIAT}`]: results.data[id].quote[
         subIso(DEFAULT_FIAT)
       ].price.toString()
     }
@@ -61,7 +76,8 @@ const coinMarketCapCurrentRateMap = (
 
 const currentQuery = async (
   currentTime: string,
-  codesWanted: string[]
+  ids: string[],
+  assetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }
 
@@ -70,25 +86,24 @@ const currentQuery = async (
     return rates
   }
 
-  if (codesWanted.length > 0)
+  if (ids.length > 0)
     try {
-      const codes = codesWanted.join(',')
       const response = await fetch(
-        `${currentUri}/v1/cryptocurrency/quotes/latest?symbol=${codes}&skip_invalid=true&convert=${subIso(
-          DEFAULT_FIAT
-        )}`,
+        `${currentUri}/v1/cryptocurrency/quotes/latest?id=${ids.join(
+          ','
+        )}&skip_invalid=true&convert=${subIso(DEFAULT_FIAT)}`,
         currentQueryOptions
       )
       if (response.status !== 200) {
         logger(
-          `coinMarketCapCurrent returned code ${response.status} for ${codes} at ${currentTime}`
+          `coinMarketCapCurrent returned code ${response.status} for ${ids} at ${currentTime}`
         )
         throw new Error(response.statusText)
       }
       const json = asCoinMarketCapCurrentResponse(await response.json())
 
       // Create return object
-      rates[currentTime] = coinMarketCapCurrentRateMap(json)
+      rates[currentTime] = coinMarketCapCurrentRateMap(json, assetMap)
     } catch (e) {
       logger(`No coinMarketCapCurrent quote: ${JSON.stringify(e)}`)
     }
@@ -107,9 +122,8 @@ const historicalQueryOptions = {
   json: true
 }
 
-const DEFAULT_CODES = ['BTC', 'ETH']
-
 const coinMarketCapHistoricalPrice = asObject({
+  id: asNumber,
   symbol: asString,
   quotes: asArray(
     asObject({
@@ -128,14 +142,17 @@ const asCoinMarketCapHistoricalResponse = asObject({
 })
 
 const coinMarketCapHistoricalRateMap = (
-  results: ReturnType<typeof asCoinMarketCapHistoricalResponse>
+  results: ReturnType<typeof asCoinMarketCapHistoricalResponse>,
+  assetMap: AssetMap
 ): RateMap =>
   Object.keys(results.data)
     .filter(code => results.data[code].quotes.length > 0)
-    .reduce((out, code) => {
+    .reduce((out, id) => {
+      const code = invertCodeMapKey(id, assetMap)
+      if (code == null) return { ...out }
       return {
         ...out,
-        [`${code}_${DEFAULT_FIAT}`]: results.data[code].quotes[0].quote[
+        [`${code}_${DEFAULT_FIAT}`]: results.data[id].quotes[0].quote[
           subIso(DEFAULT_FIAT)
         ].price.toString()
       }
@@ -143,7 +160,8 @@ const coinMarketCapHistoricalRateMap = (
 
 const historicalQuery = async (
   date: string,
-  codes: string[]
+  ids: string[],
+  assetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = {}
 
@@ -152,24 +170,26 @@ const historicalQuery = async (
     return rates
   }
 
-  if (codes.length === 0) return rates
+  if (ids.length === 0) return rates
   try {
     const response = await fetch(
-      `${historicalUri}/v1/cryptocurrency/quotes/historical?symbol=${codes}&time_end=${date}&count=1&skip_invalid=true&convert=${subIso(
+      `${historicalUri}/v1/cryptocurrency/quotes/historical?id=${ids.join(
+        ','
+      )}&time_end=${date}&count=1&skip_invalid=true&convert=${subIso(
         DEFAULT_FIAT
       )}`,
       historicalQueryOptions
     )
     if (response.status !== 200 || response.ok === false) {
       logger(
-        `coinMarketCapHistorical returned code ${response.status} for ${codes} at ${date}`
+        `coinMarketCapHistorical returned code ${response.status} for ${ids} at ${date}`
       )
       throw new Error(response.statusText)
     }
     const json = asCoinMarketCapHistoricalResponse(await response.json())
 
     // Create return object
-    rates[date] = coinMarketCapHistoricalRateMap(json)
+    rates[date] = coinMarketCapHistoricalRateMap(json, assetMap)
   } catch (e) {
     logger(`No CoinMarketCapHistorical quote: ${JSON.stringify(e)}`)
   }
@@ -178,7 +198,8 @@ const historicalQuery = async (
 
 export const coinMarketCap = async (
   rateObj: ReturnRate[],
-  currentTime: string
+  currentTime: string,
+  assetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = {}
 
@@ -189,8 +210,12 @@ export const coinMarketCap = async (
       datesAndCodesWanted[pair.date] = DEFAULT_CODES
     }
     const fromCurrency = checkConstantCode(pair.currency_pair.split('_')[0])
-    if (!isFiatCode(fromCurrency) && !DEFAULT_CODES.includes(fromCurrency)) {
-      datesAndCodesWanted[pair.date].push(fromCurrency)
+    if (
+      !isFiatCode(fromCurrency) &&
+      !DEFAULT_CODES.includes(fromCurrency) &&
+      assetMap[fromCurrency] != null
+    ) {
+      datesAndCodesWanted[pair.date].push(assetMap[fromCurrency])
     }
   }
 
@@ -198,9 +223,9 @@ export const coinMarketCap = async (
   const providers: Array<Promise<NewRates>> = []
   Object.keys(datesAndCodesWanted).forEach(date => {
     if (date === currentTime) {
-      providers.push(currentQuery(date, datesAndCodesWanted[date]))
+      providers.push(currentQuery(date, datesAndCodesWanted[date], assetMap))
     } else {
-      providers.push(historicalQuery(date, datesAndCodesWanted[date]))
+      providers.push(historicalQuery(date, datesAndCodesWanted[date], assetMap))
     }
   })
 
