@@ -3,13 +3,7 @@ import fetch from 'node-fetch'
 
 import { config } from './../config'
 import { AssetMap, NewRates, RateMap, ReturnRate } from './../rates'
-import {
-  checkConstantCode,
-  combineRates,
-  isFiatCode,
-  logger,
-  subIso
-} from './../utils/utils'
+import { combineRates, isFiatCode, logger, subIso } from './../utils/utils'
 
 /*
 Setting default codes simplifies return object handling. CMC returns a slightly
@@ -209,7 +203,7 @@ export const coinMarketCap = async (
     if (datesAndCodesWanted[pair.date] == null) {
       datesAndCodesWanted[pair.date] = DEFAULT_CODES
     }
-    const fromCurrency = checkConstantCode(pair.currency_pair.split('_')[0])
+    const fromCurrency = pair.currency_pair.split('_')[0]
     if (
       !isFiatCode(fromCurrency) &&
       !DEFAULT_CODES.includes(fromCurrency) &&

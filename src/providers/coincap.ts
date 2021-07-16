@@ -3,12 +3,7 @@ import fetch from 'node-fetch'
 
 import { config } from '../config'
 import { AssetMap, NewRates, RateMap, ReturnRate } from '../rates'
-import {
-  checkConstantCode,
-  combineRates,
-  isFiatCode,
-  logger
-} from './../utils/utils'
+import { combineRates, isFiatCode, logger } from './../utils/utils'
 
 /*
 // Coincap only returns USD denominated exchange rates
@@ -122,7 +117,7 @@ export const coincap = async (
     if (datesAndCodesWanted[pair.date] == null) {
       datesAndCodesWanted[pair.date] = []
     }
-    const fromCurrency = checkConstantCode(pair.currency_pair.split('_')[0])
+    const fromCurrency = pair.currency_pair.split('_')[0]
     if (!isFiatCode(fromCurrency)) {
       datesAndCodesWanted[pair.date].push(fromCurrency)
     }
