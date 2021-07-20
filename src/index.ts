@@ -17,10 +17,10 @@ import nano from 'nano'
 import promisify from 'promisify-node'
 
 import { config } from './config'
-import { asExchangeRateReq, getExchangeRate, ReturnRate } from './rates'
+import { asExchangeRateReq, getExchangeRates } from './rates'
 // const REQUIRED_CODES = ['BC1', 'DASH', 'LTC', 'BCH']
 
-const asExchangeRatesReq = asObject({
+export const asExchangeRatesReq = asObject({
   data: asArray(asExchangeRateReq)
 })
 
@@ -67,49 +67,37 @@ router.use(function(req, res, next) {
  * currency_pair: String with the two currencies separated by an underscore. Ex: "ETH_USD"
  */
 router.get('/exchangeRate', async function(req, res) {
-  const result = await getExchangeRate(req.query, dbRates)
-  if (result.data.error != null) {
-    return res.status(400).send(result.data.error)
-  }
-  if (result.document != null) {
-    await dbRates.insert(result.document).catch(e => {
-      console.log(e)
-    })
-  }
-  res.json(result.data)
-})
-
-router.post('/exchangeRates', async function(req, res) {
-  let queryResult
+  const currencyPair = req.query.currency_pair
+  const date = req.query.date
+  let query
   try {
-    queryResult = asExchangeRatesReq(req.body)
+    query = asExchangeRatesReq({
+      data: [{ currency_pair: currencyPair, date }]
+    })
   } catch (e) {
     return res.status(400).send(`Missing Request fields.`)
   }
-  if (queryResult.data.length > EXCHANGE_RATES_BATCH_LIMIT) {
+
+  const result = await getExchangeRates(query.data, dbRates)
+  res.json(result.data[0])
+})
+
+router.post('/exchangeRates', async function(req, res) {
+  let query
+  try {
+    query = asExchangeRatesReq(req.body)
+  } catch (e) {
+    return res.status(400).send(`Missing Request fields.`)
+  }
+  if (query.data.length > EXCHANGE_RATES_BATCH_LIMIT) {
     return res
       .status(400)
       .send(`Exceeded Limit of ${EXCHANGE_RATES_BATCH_LIMIT}`)
   }
-  const returnedRates: Array<Promise<ReturnRate>> = []
-  for (const exchangeRateLookup of queryResult.data) {
-    returnedRates.push(getExchangeRate(exchangeRateLookup, dbRates))
-  }
 
-  const data = await Promise.all(returnedRates)
-  let mergedDoc = {}
-  for (const rateQuery of data) {
-    if (rateQuery.document != null) {
-      mergedDoc = { ...mergedDoc, ...rateQuery.document }
-      delete rateQuery.document
-    }
-  }
-  if (Object.keys(mergedDoc).length !== 0) {
-    await dbRates.insert(mergedDoc).catch(e => {
-      console.log(e)
-    })
-  }
-  res.json({ data })
+  const requestedRates: Array<ReturnType<typeof asExchangeRateReq>> = query.data
+  const data = await getExchangeRates(requestedRates, dbRates)
+  res.json({ data: data.data })
 })
 
 // middleware to use for all requests

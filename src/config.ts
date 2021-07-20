@@ -12,7 +12,9 @@ const {
   CURRENCY_CONVERTER_API_KEY = '',
   COIN_MARKET_CAP_API_KEY = '',
   COIN_MARKET_CAP_HISTORICAL_API_KEY = '',
-  SLACK_WEBHOOK_URL = ''
+  SLACK_WEBHOOK_URL = '',
+  OPEN_EXCHANGE_RATES_API_KEY,
+  NOMICS_API_KEY
 } = process.env
 
 // Config:
@@ -65,13 +67,35 @@ export const asConfig = asObject({
     'GBP'
   ]),
   ratesServerAddress: asOptional(asString, RATES_SERVER_ADDRESS),
-  currencyConverterApiKey: asOptional(asString, CURRENCY_CONVERTER_API_KEY),
-  coinMarketCapCurrentApiKey: asOptional(asString, COIN_MARKET_CAP_API_KEY),
-  coinMarketCapHistoricalApiKey: asOptional(
-    asString,
-    COIN_MARKET_CAP_HISTORICAL_API_KEY
-  ),
   slackWebhookUrl: asOptional(asString, SLACK_WEBHOOK_URL),
+  providers: asObject({
+    coincap: asObject({
+      uri: asOptional(asString, 'https://api.coincap.io')
+    }),
+    currencyConverter: asObject({
+      uri: asOptional(asString, 'https://api.currconv.com'),
+      apiKey: asOptional(asString, CURRENCY_CONVERTER_API_KEY)
+    }),
+    coinMarketCapCurrent: asObject({
+      uri: asOptional(asString, 'https://pro-api.coinmarketcap.com'),
+      apiKey: asOptional(asString, COIN_MARKET_CAP_API_KEY)
+    }),
+    coinMarketCapHistorical: asObject({
+      uri: asOptional(asString, 'https://pro-api.coinmarketcap.com'),
+      apiKey: asOptional(asString, COIN_MARKET_CAP_HISTORICAL_API_KEY)
+    }),
+    openExchangeRates: asObject({
+      uri: asOptional(asString, 'https://openexchangerates.org'),
+      apiKey: asOptional(asString, OPEN_EXCHANGE_RATES_API_KEY)
+    }),
+    nomics: asObject({
+      uri: asOptional(asString, 'https://api.nomics.com'),
+      apiKey: asOptional(asString, NOMICS_API_KEY)
+    }),
+    compound: asObject({
+      uri: asOptional(asString, 'https://api.compound.finance')
+    })
+  }),
   ratesLookbackLimit: asOptional(asNumber, 604800000)
 })
 

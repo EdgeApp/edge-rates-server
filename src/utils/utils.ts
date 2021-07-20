@@ -1,7 +1,9 @@
 import { validate } from 'jsonschema'
 import fetch from 'node-fetch'
 
-import { config } from './config'
+import { config } from '../config'
+import { NewRates, ReturnRate } from '../rates'
+import { constantCurrencyCodes } from './currencyCodeMaps'
 
 const { slackWebhookUrl } = config
 
@@ -65,3 +67,46 @@ export async function postToSlack(date: string, text: string): Promise<void> {
 
 export const snooze = async (ms: number): Promise<void> =>
   new Promise((resolve: Function) => setTimeout(resolve, ms))
+
+export const getNullRateArray = (rates: ReturnRate[]): ReturnRate[] => {
+  return rates.filter(rate => rate.exchangeRate === null)
+}
+
+export const haveEveryRate = (rates: ReturnRate[]): boolean => {
+  return rates.every(rate => rate.exchangeRate !== null)
+}
+
+export const invertPair = (pair: string): string => {
+  const fromCurrency = pair.split('_')[0]
+  const toCurrency = pair.split('_')[1]
+  return `${toCurrency}_${fromCurrency}`
+}
+
+export const checkConstantCode = (code: string): string =>
+  constantCurrencyCodes[code] ?? code
+
+export const isNotANumber = (value: string): boolean => {
+  if (
+    Number.isNaN(Number(value)) ||
+    value.includes(',') ||
+    value === '' ||
+    /\s/.test(value)
+  )
+    return true
+
+  return false
+}
+
+export const combineRates = (
+  currentRates: NewRates,
+  incomingRates: NewRates[]
+): NewRates => {
+  incomingRates.forEach(response => {
+    Object.keys(response).forEach(date => {
+      if (currentRates[date] == null) currentRates[date] = {}
+      Object.assign(currentRates[date], response[date])
+    })
+  })
+
+  return currentRates
+}
