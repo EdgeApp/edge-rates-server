@@ -1,13 +1,13 @@
 import AwaitLock from 'await-lock'
 
 import { DbDoc } from '../rates'
+import { logger } from './utils'
 
 let LOCK_ID = 0
 
 export const saveToDb = (
   localDB: any,
   documents: DbDoc[],
-  log: Function,
   locks = {}
 ): void => {
   const db: string = localDB?.config?.db ?? ''
@@ -24,14 +24,14 @@ export const saveToDb = (
     localDB
       .bulk({ docs })
       .then(() =>
-        log(
+        logger(
           `Saved document IDs: ${docs
             .map(doc => doc._id)
             .join(', ')} to db: ${db}`
         )
       )
       .catch(e =>
-        log(
+        logger(
           `Error saving document ID: ${docs
             .map(doc => doc._id)
             .join(', ')} to db: ${db}`
@@ -48,8 +48,7 @@ export const saveToDb = (
 
 export const getFromDb = async (
   localDb: any,
-  dates: string[],
-  log: Function
+  dates: string[]
 ): Promise<DbDoc[]> => {
   // Grab existing db data for requested dates
   const documents = await Promise.all(

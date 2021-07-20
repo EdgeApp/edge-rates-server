@@ -25,6 +25,7 @@ export const asConfig = asObject({
     `http://admin:${COUCH_PASSWORD}@${COUCH_HOSTNAME}:5984`
   ),
   httpPort: asOptional(asNumber, 8008),
+  httpHost: asOptional(asString, '127.0.0.1'),
   infoServerAddress: asOptional(asString, INFO_SERVER_ADDRESS),
   infoServerApiKey: asOptional(asString, INFO_SERVER_API_KEY),
   bridgeCurrencies: asOptional(asArray(asString), ['USD', 'BTC']),
