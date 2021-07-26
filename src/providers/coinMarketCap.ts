@@ -108,7 +108,7 @@ const coinMarketCapHistorical = async (
   const datesAndCodesWanted: { [key: string]: string[] } = {}
   for (const pair of rateObj) {
     if (datesAndCodesWanted[pair.date] == null) {
-      datesAndCodesWanted[pair.date] = DEFAULT_CODES
+      datesAndCodesWanted[pair.date] = [...DEFAULT_CODES]
     }
     const fromCurrency = checkConstantCode(pair.currency_pair.split('_')[0])
     if (!isFiatCode(fromCurrency) && !DEFAULT_CODES.includes(fromCurrency)) {
