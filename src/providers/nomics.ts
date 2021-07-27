@@ -37,7 +37,7 @@ const nomicsPair = (code: ReturnType<typeof asNomicsQuote>): string =>
 
 const nomicsRateMap = createReducedRateMapArray(nomicsPair, nomicsQuote)
 
-const nomics = async (
+export const nomics = async (
   requestedRates: ReturnRate[],
   currentTime: string
 ): Promise<NewRates> => {
@@ -86,5 +86,3 @@ const nomics = async (
     }
   return rates
 }
-
-export { nomics }

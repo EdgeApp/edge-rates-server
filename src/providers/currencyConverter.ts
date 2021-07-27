@@ -78,7 +78,7 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
   return rates
 }
 
-const currencyConverter = async (
+export const currencyConverter = async (
   rateObj: ReturnRate[],
   currentTime: string
 ): Promise<NewRates> => {
@@ -139,5 +139,3 @@ const currencyConverter = async (
 
   return rates
 }
-
-export { currencyConverter }
