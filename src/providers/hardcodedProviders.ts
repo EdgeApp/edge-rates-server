@@ -6,16 +6,16 @@ import {
 } from '../utils/utils'
 import { NewRates, ReturnRate } from './../rates'
 import {
-  fallbackConstantRatePairs,
-  zeroRateCurrencyCodes
+  fallbackConstantRates as fallbackRates,
+  zeroRates as zeroRateCodes
 } from './../utils/currencyCodeMaps.json'
 
 export const zeroRates = (rateObj: ReturnRate[]): NewRates => {
   const rates = {}
   for (const pair of rateObj) {
     if (
-      zeroRateCurrencyCodes[fromCode(pair.currency_pair)] === true ||
-      zeroRateCurrencyCodes[toCode(pair.currency_pair)] === true
+      zeroRateCodes[fromCode(pair.currency_pair)] === true ||
+      zeroRateCodes[toCode(pair.currency_pair)] === true
     ) {
       if (rates[pair.date] == null) {
         rates[pair.date] = {}
@@ -26,13 +26,12 @@ export const zeroRates = (rateObj: ReturnRate[]): NewRates => {
   return rates
 }
 
-const constantRates = Object.keys(fallbackConstantRatePairs).reduce(
+const constantRates = Object.keys(fallbackRates).reduce(
   (res, pair) => ({
     ...res,
-    [fromCryptoToFiatCurrencyPair(
-      fromCode(pair),
-      toCode(pair)
-    )]: fallbackConstantRatePairs[pair]
+    [fromCryptoToFiatCurrencyPair(fromCode(pair), toCode(pair))]: fallbackRates[
+      pair
+    ]
   }),
   {}
 )
