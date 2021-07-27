@@ -120,7 +120,7 @@ const historicalQuery = async (
   return rates
 }
 
-const coincap = async (
+export const coincap = async (
   rateObj: ReturnRate[],
   currentTime: string
 ): Promise<NewRates> => {
@@ -158,5 +158,3 @@ const coincap = async (
 
   return rates
 }
-
-export { coincap }

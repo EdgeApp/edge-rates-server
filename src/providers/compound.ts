@@ -34,7 +34,7 @@ const compoundQuote = (code: ReturnType<typeof asCompoundQuote>): string =>
 
 const compoundRateMap = createReducedRateMapArray(compoundPair, compoundQuote)
 
-const compound = async (
+export const compound = async (
   rateObj: ReturnRate[],
   currentTime: string
 ): Promise<NewRates> => {
@@ -58,5 +58,3 @@ const compound = async (
   }
   return rates
 }
-
-export { compound }

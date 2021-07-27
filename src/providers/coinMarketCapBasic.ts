@@ -42,7 +42,7 @@ const coinMarketCapCurrentRateMap = createReducedRateMap(
   coinMarketCapCurrentQuote
 )
 
-const coinMarketCapCurrent = async (
+export const coinMarketCapCurrent = async (
   requestedRates: ReturnRate[],
   currentTime: string
 ): Promise<NewRates> => {
@@ -95,5 +95,3 @@ const coinMarketCapCurrent = async (
     }
   return rates
 }
-
-export { coinMarketCapCurrent }

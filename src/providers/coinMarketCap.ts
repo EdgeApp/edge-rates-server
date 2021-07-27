@@ -95,7 +95,7 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
   return rates
 }
 
-const coinMarketCapHistorical = async (
+export const coinMarketCapHistorical = async (
   rateObj: ReturnRate[]
 ): Promise<NewRates> => {
   const rates = {}
@@ -130,5 +130,3 @@ const coinMarketCapHistorical = async (
 
   return rates
 }
-
-export { coinMarketCapHistorical }
