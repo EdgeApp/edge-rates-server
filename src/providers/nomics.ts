@@ -1,11 +1,13 @@
-import { asArray, asObject, asOptional, asString } from 'cleaners'
+import { asArray, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { NewRates, RateMap, ReturnRate } from '../rates'
+import { NewRates, ReturnRate } from '../rates'
 import {
   checkConstantCode,
+  createReducedRateMapArray,
   fromCode,
+  fromCryptoToFiatCurrencyPair,
   isFiatCode,
   logger,
   subIso
@@ -20,20 +22,20 @@ const {
   defaultFiatCode: DEFAULT_FIAT
 } = config
 
-const asNomicsResponse = asArray(
-  asObject({
-    price: asOptional(asString),
-    symbol: asString
-  })
-)
+const asNomicsQuote = asObject({
+  price: asString,
+  symbol: asString
+})
 
-const nomicsRateMap = (results: ReturnType<typeof asNomicsResponse>): RateMap =>
-  results.reduce((out, code) => {
-    return {
-      ...out,
-      [`${code.symbol}_${DEFAULT_FIAT}`]: code.price
-    }
-  }, {})
+const asNomicsResponse = asArray(asNomicsQuote)
+
+const nomicsQuote = (code: ReturnType<typeof asNomicsQuote>): string =>
+  code.price
+
+const nomicsPair = (code: ReturnType<typeof asNomicsQuote>): string =>
+  fromCryptoToFiatCurrencyPair(code.symbol)
+
+const nomicsRateMap = createReducedRateMapArray(nomicsPair, nomicsQuote)
 
 const nomics = async (
   requestedRates: ReturnRate[],

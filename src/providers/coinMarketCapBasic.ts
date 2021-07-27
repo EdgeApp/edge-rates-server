@@ -2,10 +2,12 @@ import { asMap, asNumber, asObject } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { NewRates, RateMap, ReturnRate } from './../rates'
+import { NewRates, ReturnRate } from './../rates'
 import {
   checkConstantCode,
+  createReducedRateMap,
   fromCode,
+  fromCryptoToFiatCurrencyPair,
   isFiatCode,
   logger,
   subIso
@@ -20,25 +22,25 @@ const {
   defaultFiatCode: DEFAULT_FIAT
 } = config
 
+const asCoinMarketCapCurrentQuotes = asMap(
+  asObject({
+    quote: asMap(asObject({ price: asNumber }))
+  })
+)
+
 const asCoinMarketCapCurrentResponse = asObject({
-  data: asMap(
-    asObject({
-      quote: asMap(asObject({ price: asNumber }))
-    })
-  )
+  data: asCoinMarketCapCurrentQuotes
 })
 
-const coinMarketCapRateMap = (
-  results: ReturnType<typeof asCoinMarketCapCurrentResponse>
-): RateMap =>
-  Object.keys(results.data).reduce((out, code) => {
-    return {
-      ...out,
-      [`${code}_${DEFAULT_FIAT}`]: results.data[code].quote[
-        subIso(DEFAULT_FIAT)
-      ].price.toString()
-    }
-  }, {})
+const coinMarketCapCurrentQuote = (
+  data: ReturnType<typeof asCoinMarketCapCurrentQuotes>,
+  code: string
+): string => data[code].quote[subIso(DEFAULT_FIAT)].price.toString()
+
+const coinMarketCapCurrentRateMap = createReducedRateMap(
+  fromCryptoToFiatCurrencyPair,
+  coinMarketCapCurrentQuote
+)
 
 const coinMarketCapCurrent = async (
   requestedRates: ReturnRate[],
@@ -87,7 +89,7 @@ const coinMarketCapCurrent = async (
       const json = asCoinMarketCapCurrentResponse(await response.json())
 
       // Create return object
-      rates[currentTime] = coinMarketCapRateMap(json)
+      rates[currentTime] = coinMarketCapCurrentRateMap(json.data)
     } catch (e) {
       logger(`No coinMarketCapCurrent quote: ${JSON.stringify(e)}`)
     }

@@ -2,7 +2,7 @@ import { asArray, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { NewRates, RateMap, ReturnRate } from '../rates'
+import { NewRates, ReturnRate } from '../rates'
 import {
   coincapDefaultMap,
   coincapEdgeMap
@@ -10,6 +10,7 @@ import {
 import {
   checkConstantCode,
   combineRates,
+  createReducedRateMapArray,
   fromCode,
   fromCryptoToFiatCurrencyPair,
   isFiatCode,
@@ -36,23 +37,30 @@ const createUniqueIdString = (requestedCodes: string[]): string => {
     .join(',')
 }
 
+const asCoincapCurrentQuote = asObject({ symbol: asString, priceUsd: asString })
+
 const asCoincapCurrentResponse = asObject({
-  data: asArray(asObject({ symbol: asString, priceUsd: asString }))
+  data: asArray(asCoincapCurrentQuote)
 })
+
+const coincapCurrentQuote = (
+  code: ReturnType<typeof asCoincapCurrentQuote>
+): string => code.priceUsd
+
+const coinCapCurrentRatePair = (
+  code: ReturnType<typeof asCoincapCurrentQuote>
+): string => fromCryptoToFiatCurrencyPair(code.symbol, 'USD')
+
+const coincapCurrentRateMap = createReducedRateMapArray(
+  coinCapCurrentRatePair,
+  coincapCurrentQuote
+)
+
+const asCoincapHistoricalQuote = asObject({ priceUsd: asString })
 
 const asCoincapHistoricalResponse = asObject({
-  data: asArray(asObject({ priceUsd: asString }))
+  data: asArray(asCoincapHistoricalQuote)
 })
-
-const coinCapCurrentRateMap = (
-  results: ReturnType<typeof asCoincapCurrentResponse>
-): RateMap =>
-  results.data.reduce((out, code) => {
-    return {
-      ...out,
-      [`${code.symbol}_iso:USD`]: code.priceUsd
-    }
-  }, {})
 
 const currentQuery = async (
   date: string,
@@ -73,7 +81,7 @@ const currentQuery = async (
     }
 
     // Add to return object
-    rates[date] = coinCapCurrentRateMap(json)
+    rates[date] = coincapCurrentRateMap(json.data)
   } catch (e) {
     logger(`No coincapCurrent quote: ${JSON.stringify(e)}`)
   }

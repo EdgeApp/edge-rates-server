@@ -2,11 +2,13 @@ import { asMap, asNumber, asObject } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { NewRates, RateMap, ReturnRate } from './../rates'
+import { NewRates, ReturnRate } from './../rates'
 import {
   combineRates,
+  createReducedRateMap,
   dateOnly,
   fromCode,
+  fromCryptoToFiatCurrencyPair,
   isFiatCode,
   logger,
   subIso,
@@ -20,19 +22,21 @@ const {
   defaultFiatCode: DEFAULT_FIAT
 } = config
 
+const asOpenExchangeRatesQuotes = asMap(asNumber)
+
 const asOpenExchangeRatesResponse = asObject({
-  rates: asMap(asNumber)
+  rates: asOpenExchangeRatesQuotes
 })
 
-const openExchangeRatesRateMap = (
-  results: ReturnType<typeof asOpenExchangeRatesResponse>
-): RateMap =>
-  Object.keys(results.rates).reduce((out, code) => {
-    return {
-      ...out,
-      [`${code}_${DEFAULT_FIAT}`]: (1 / results.rates[code]).toString()
-    }
-  }, {})
+const openExchangeRatesQuote = (
+  data: ReturnType<typeof asOpenExchangeRatesQuotes>,
+  code: string
+): string => (1 / data[code]).toString()
+
+const openExchangeRatesRateMap = createReducedRateMap(
+  fromCryptoToFiatCurrencyPair,
+  openExchangeRatesQuote
+)
 
 const query = async (date: string, codes: string[]): Promise<NewRates> => {
   const rates = { [date]: {} }
@@ -59,7 +63,7 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
     }
 
     // Create return object
-    rates[date] = openExchangeRatesRateMap(json)
+    rates[date] = openExchangeRatesRateMap(json.rates)
   } catch (e) {
     logger(`Failed to get ${codes} from openExchangeRates`, e)
   }

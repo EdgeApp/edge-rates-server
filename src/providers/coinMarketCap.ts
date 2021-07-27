@@ -2,11 +2,13 @@ import { asArray, asMap, asNumber, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { NewRates, RateMap, ReturnRate } from './../rates'
+import { NewRates, ReturnRate } from './../rates'
 import {
   checkConstantCode,
   combineRates,
+  createReducedRateMap,
   fromCode,
+  fromCryptoToFiatCurrencyPair,
   isFiatCode,
   logger,
   subIso
@@ -37,37 +39,35 @@ const OPTIONS = {
   json: true
 }
 
-const coinMarketCapPrice = asObject({
-  symbol: asString,
-  quotes: asArray(
-    asObject({
-      timestamp: asString,
-      quote: asMap(
-        asObject({
-          price: asNumber
-        })
-      )
-    })
-  )
-})
+const ascoinMarketCapHistoricalQuotes = asMap(
+  asObject({
+    symbol: asString,
+    quotes: asArray(
+      asObject({
+        timestamp: asString,
+        quote: asMap(
+          asObject({
+            price: asNumber
+          })
+        )
+      })
+    )
+  })
+)
 
 const asCoinMarketCapHistoricalResponse = asObject({
-  data: asMap(coinMarketCapPrice)
+  data: ascoinMarketCapHistoricalQuotes
 })
 
-const coinMarketCapHistoricalRateMap = (
-  results: ReturnType<typeof asCoinMarketCapHistoricalResponse>
-): RateMap =>
-  Object.keys(results.data)
-    .filter(code => results.data[code].quotes.length > 0)
-    .reduce((out, code) => {
-      return {
-        ...out,
-        [`${code}_${DEFAULT_FIAT}`]: results.data[code].quotes[0].quote[
-          subIso(DEFAULT_FIAT)
-        ].price.toString()
-      }
-    }, {})
+const coinMarketCapHistoricalQuote = (
+  data: ReturnType<typeof ascoinMarketCapHistoricalQuotes>,
+  code: string
+): string => data[code].quotes[0].quote[subIso(DEFAULT_FIAT)].price.toString()
+
+const coinMarketCapHistoricalRateMap = createReducedRateMap(
+  fromCryptoToFiatCurrencyPair,
+  coinMarketCapHistoricalQuote
+)
 
 const query = async (date: string, codes: string[]): Promise<NewRates> => {
   const rates = {}
@@ -88,7 +88,7 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
     const json = asCoinMarketCapHistoricalResponse(await response.json())
 
     // Create return object
-    rates[date] = coinMarketCapHistoricalRateMap(json)
+    rates[date] = coinMarketCapHistoricalRateMap(json.data)
   } catch (e) {
     logger(`No CoinMarketCapHistorical quote: ${JSON.stringify(e)}`)
   }

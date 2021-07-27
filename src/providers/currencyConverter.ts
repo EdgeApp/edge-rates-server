@@ -2,12 +2,13 @@ import { asMap, asNumber, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { NewRates, RateMap, ReturnRate } from './../rates'
+import { NewRates, ReturnRate } from './../rates'
 import {
-  addIso,
   combineRates,
+  createReducedRateMap,
   dateOnly,
   fromCode,
+  fromFiatToFiat,
   invertPair,
   isFiatCode,
   logger,
@@ -23,26 +24,26 @@ const {
   defaultFiatCode: DEFAULT_FIAT
 } = config
 
-const asCurrencyConvertorResults = asMap(asObject({ val: asMap(asNumber) }))
+const asCurrencyConvertorQuotes = asMap(asObject({ val: asMap(asNumber) }))
 
 const asCurrencyConverterResponse = asObject({
   status: asOptional(asNumber),
   error: asOptional(asString),
-  results: asCurrencyConvertorResults
+  results: asCurrencyConvertorQuotes
 })
 
-const currencyConverterRateMap = (
-  results: ReturnType<typeof asCurrencyConvertorResults>
-): RateMap =>
-  Object.keys(results).reduce((out, pair) => {
-    const codes = pair.split('_')
-    return {
-      ...out,
-      [`${addIso(codes[0])}_${addIso(codes[1])}`]: Object.values(
-        results[pair].val
-      )[0].toString()
-    }
-  }, {})
+const currencyConverterPair = (pair: string): string =>
+  fromFiatToFiat(fromCode(pair), toCode(pair))
+
+const currencyConverterQuote = (
+  results: ReturnType<typeof asCurrencyConvertorQuotes>,
+  pair: string
+): string => Object.values(results[pair].val)[0].toString()
+
+const currencyConverterRateMap = createReducedRateMap(
+  currencyConverterPair,
+  currencyConverterQuote
+)
 
 const query = async (date: string, codes: string[]): Promise<NewRates> => {
   const rates = { [date]: {} }
