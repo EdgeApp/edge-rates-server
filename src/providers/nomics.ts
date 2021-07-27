@@ -3,7 +3,13 @@ import fetch from 'node-fetch'
 
 import { config } from '../config'
 import { NewRates, RateMap, ReturnRate } from '../rates'
-import { checkConstantCode, isFiatCode, logger, subIso } from './../utils/utils'
+import {
+  checkConstantCode,
+  fromCode,
+  isFiatCode,
+  logger,
+  subIso
+} from './../utils/utils'
 
 // TODO: add ID map
 
@@ -44,7 +50,7 @@ const nomics = async (
   const codesWanted: string[] = []
   for (const request of requestedRates) {
     if (request.date !== currentTime) continue
-    const fromCurrency = checkConstantCode(request.currency_pair.split('_')[0])
+    const fromCurrency = checkConstantCode(fromCode(request.currency_pair))
     if (!isFiatCode(fromCurrency)) {
       codesWanted.push(fromCurrency)
     }

@@ -10,6 +10,8 @@ import {
 import {
   checkConstantCode,
   combineRates,
+  fromCode,
+  fromCryptoToFiatCurrencyPair,
   isFiatCode,
   logger
 } from './../utils/utils'
@@ -102,7 +104,8 @@ const historicalQuery = async (
     }
 
     // Add to return object
-    rates[date][`${code}_iso:USD`] = json.data[0].priceUsd
+    rates[date][fromCryptoToFiatCurrencyPair(code, 'USD')] =
+      json.data[0].priceUsd
   } catch (e) {
     logger(`No coincapHistorical quote: ${JSON.stringify(e)}`)
   }
@@ -121,7 +124,7 @@ const coincap = async (
     if (datesAndCodesWanted[pair.date] == null) {
       datesAndCodesWanted[pair.date] = []
     }
-    const fromCurrency = checkConstantCode(pair.currency_pair.split('_')[0])
+    const fromCurrency = checkConstantCode(fromCode(pair.currency_pair))
     if (!isFiatCode(fromCurrency)) {
       datesAndCodesWanted[pair.date].push(fromCurrency)
     }

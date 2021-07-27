@@ -1,4 +1,9 @@
-import { addIso, invertPair } from '../utils/utils'
+import {
+  fromCode,
+  fromCryptoToFiatCurrencyPair,
+  invertPair,
+  toCode
+} from '../utils/utils'
 import { NewRates, ReturnRate } from './../rates'
 import {
   fallbackConstantRatePairs,
@@ -9,8 +14,8 @@ export const zeroRates = (rateObj: ReturnRate[]): NewRates => {
   const rates = {}
   for (const pair of rateObj) {
     if (
-      zeroRateCurrencyCodes[pair.currency_pair.split('_')[0]] === true ||
-      zeroRateCurrencyCodes[pair.currency_pair.split('_')[1]] === true
+      zeroRateCurrencyCodes[fromCode(pair.currency_pair)] === true ||
+      zeroRateCurrencyCodes[toCode(pair.currency_pair)] === true
     ) {
       if (rates[pair.date] == null) {
         rates[pair.date] = {}
@@ -24,9 +29,10 @@ export const zeroRates = (rateObj: ReturnRate[]): NewRates => {
 const constantRates = Object.keys(fallbackConstantRatePairs).reduce(
   (res, pair) => ({
     ...res,
-    [`${pair.split('_')[0]}_${addIso(
-      pair.split('_')[1]
-    )}`]: fallbackConstantRatePairs[pair]
+    [fromCryptoToFiatCurrencyPair(
+      fromCode(pair),
+      toCode(pair)
+    )]: fallbackConstantRatePairs[pair]
   }),
   {}
 )

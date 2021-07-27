@@ -6,9 +6,14 @@ import { NewRates, RateMap, ReturnRate } from './../rates'
 import {
   addIso,
   combineRates,
+  dateOnly,
+  fromCode,
+  invertPair,
   isFiatCode,
   logger,
-  subIso
+  subIso,
+  toCode,
+  toIsoPair
 } from './../utils/utils'
 
 const {
@@ -42,10 +47,9 @@ const currencyConverterRateMap = (
 const query = async (date: string, codes: string[]): Promise<NewRates> => {
   const rates = { [date]: {} }
   if (codes.length === 0) return rates
-  const justDate = date.split('T')[0]
   try {
     const response = await fetch(
-      `${uri}/api/v7/convert?q=${codes}&date=${justDate}&apiKey=${apiKey}`
+      `${uri}/api/v7/convert?q=${codes}&date=${dateOnly(date)}&apiKey=${apiKey}`
     )
     const { status, error, results } = asCurrencyConverterResponse(
       await response.json()
@@ -89,28 +93,34 @@ const currencyConverter = async (
   for (const pair of rateObj) {
     if (datesAndCodesWanted[pair.date] == null)
       datesAndCodesWanted[pair.date] = []
-    const fromCurrency = pair.currency_pair.split('_')[0]
-    const toCurrency = pair.currency_pair.split('_')[1]
+    const fromCurrency = fromCode(pair.currency_pair)
+    const toCurrency = toCode(pair.currency_pair)
+    const currencyConverterToDefaultPair = toIsoPair(
+      subIso,
+      subIso
+    )(fromCurrency)
     if (
       isFiatCode(fromCurrency) &&
       fromCurrency !== DEFAULT_FIAT &&
-      datesAndCodesWanted[pair.date].indexOf(
-        `${subIso(fromCurrency)}_${subIso(DEFAULT_FIAT)}`
-      ) === -1
+      datesAndCodesWanted[pair.date].indexOf(currencyConverterToDefaultPair) ===
+        -1
     ) {
-      datesAndCodesWanted[pair.date].push(
-        `${subIso(fromCurrency)}_${subIso(DEFAULT_FIAT)}`
-      )
+      datesAndCodesWanted[pair.date].push(currencyConverterToDefaultPair)
     }
+
+    const currencyConverterFromDefaultPair = toIsoPair(subIso, subIso)(
+      DEFAULT_FIAT,
+      toCurrency
+    )
     if (
       isFiatCode(toCurrency) &&
-      fromCurrency !== DEFAULT_FIAT &&
+      toCurrency !== DEFAULT_FIAT &&
       datesAndCodesWanted[pair.date].indexOf(
-        `${subIso(DEFAULT_FIAT)}_${subIso(toCurrency)}`
+        invertPair(currencyConverterFromDefaultPair)
       ) === -1
     ) {
       datesAndCodesWanted[pair.date].push(
-        `${subIso(DEFAULT_FIAT)}_${subIso(toCurrency)}`
+        invertPair(currencyConverterFromDefaultPair)
       )
     }
   }
