@@ -30,6 +30,8 @@ import {
 
 const { bridgeCurrencies } = config
 
+const PRECISION = 20
+
 type ErrorType = 'not_found' | 'conflict' | 'db_error'
 interface RateError extends Error {
   errorCode?: number
@@ -73,30 +75,29 @@ const addNewRatesToDocs = (
   providerName: string
 ): void => {
   for (const date of Object.keys(newRates)) {
-    const rateMap = newRates[date]
     const dbIndex = documents.findIndex(doc => doc._id === date)
     if (dbIndex >= 0) {
       // Create map of inverted pairs and rates
-      const invertedRateMap = {}
-      for (const pair of Object.keys(rateMap)) {
-        const rate = rateMap[pair]
+      const rateMap = {}
+      // const rateMap = newRates[date]
+      for (const pair of Object.keys(newRates[date])) {
+        const rate = Number(newRates[date][pair]).toFixed(PRECISION) // Prevent scientific notation
         // Sanity check value is acceptable and only allow a 0 rate from the zeroRates plugin
         if (
           isNotANumber(rate) ||
-          (rate === '0' && providerName !== 'zeroRates')
+          (bns.eq(rate, '0') === true && providerName !== 'zeroRates')
         ) {
-          delete rateMap[pair]
           continue
         }
-        invertedRateMap[invertPair(pair)] =
-          rate === '0' ? '0' : bns.div('1', rate, 8)
+        rateMap[pair] = rate
+        rateMap[invertPair(pair)] =
+          bns.eq(rate, '0') === true ? '0' : bns.div('1', rate, PRECISION)
       }
 
       // Add new rates and their inverts to the doc and mark updated
       documents[dbIndex] = {
         ...documents[dbIndex],
         ...rateMap,
-        ...invertedRateMap,
         ...{ updated: true }
       }
     }
@@ -205,7 +206,7 @@ export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
         rate.exchangeRate = bns.div(
           doc[toCurrencyPair(from, bridgeCurrency)],
           doc[toCurrencyPair(to, bridgeCurrency)],
-          8
+          PRECISION
         )
         continue
       }
@@ -216,7 +217,7 @@ export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
         rate.exchangeRate = bns.div(
           doc[toCurrencyPair(bridgeCurrency, to)],
           doc[toCurrencyPair(bridgeCurrency, from)],
-          8
+          PRECISION
         )
         continue
       }
@@ -241,7 +242,7 @@ export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
             doc[toCurrencyPair(bridgeCurrency, from)],
             doc[toCurrencyPair(to, bridgeCurrency)]
           ),
-          8
+          PRECISION
         )
     }
   }
