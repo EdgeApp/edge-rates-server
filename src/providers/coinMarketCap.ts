@@ -6,6 +6,7 @@ import { NewRates, RateMap, ReturnRate } from './../rates'
 import {
   checkConstantCode,
   combineRates,
+  fromCode,
   isFiatCode,
   logger,
   subIso
@@ -110,7 +111,7 @@ const coinMarketCapHistorical = async (
     if (datesAndCodesWanted[pair.date] == null) {
       datesAndCodesWanted[pair.date] = [...DEFAULT_CODES]
     }
-    const fromCurrency = checkConstantCode(pair.currency_pair.split('_')[0])
+    const fromCurrency = checkConstantCode(fromCode(pair.currency_pair))
     if (!isFiatCode(fromCurrency) && !DEFAULT_CODES.includes(fromCurrency)) {
       datesAndCodesWanted[pair.date].push(fromCurrency)
     }
