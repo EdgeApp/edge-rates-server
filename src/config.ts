@@ -14,7 +14,8 @@ const {
   COIN_MARKET_CAP_HISTORICAL_API_KEY = '',
   SLACK_WEBHOOK_URL = '',
   OPEN_EXCHANGE_RATES_API_KEY,
-  NOMICS_API_KEY
+  NOMICS_API_KEY,
+  DEFAULT_FIAT = 'iso:USD'
 } = process.env
 
 // Config:
@@ -28,7 +29,7 @@ export const asConfig = asObject({
   httpHost: asOptional(asString, '127.0.0.1'),
   infoServerAddress: asOptional(asString, INFO_SERVER_ADDRESS),
   infoServerApiKey: asOptional(asString, INFO_SERVER_API_KEY),
-  bridgeCurrencies: asOptional(asArray(asString), ['USD', 'BTC']),
+  bridgeCurrencies: asOptional(asArray(asString), ['iso:USD', 'BTC']),
   cryptoCurrencyCodes: asOptional(asArray(asString), [
     'BTC',
     'ETH',
@@ -62,10 +63,10 @@ export const asConfig = asObject({
     'VET'
   ]),
   fiatCurrencyCodes: asOptional(asArray(asString), [
-    'EUR',
-    'CNY',
-    'JPY',
-    'GBP'
+    'iso:EUR',
+    'iso:CNY',
+    'iso:JPY',
+    'iso:GBP'
   ]),
   ratesServerAddress: asOptional(asString, RATES_SERVER_ADDRESS),
   slackWebhookUrl: asOptional(asString, SLACK_WEBHOOK_URL),
@@ -97,6 +98,7 @@ export const asConfig = asObject({
       uri: asOptional(asString, 'https://api.compound.finance')
     })
   }),
+  defaultFiatCode: asOptional(asString, DEFAULT_FIAT),
   ratesLookbackLimit: asOptional(asNumber, 604800000)
 })
 

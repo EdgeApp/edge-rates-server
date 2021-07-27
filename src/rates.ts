@@ -17,11 +17,15 @@ import { openExchangeRates } from './providers/openExchangeRates'
 import { getFromDb, saveToDb } from './utils/dbUtils'
 import {
   checkConstantCode,
+  currencyCodeArray,
+  fromCode,
   getNullRateArray,
   haveEveryRate,
   invertPair,
   isNotANumber,
-  normalizeDate
+  normalizeDate,
+  toCode,
+  toCurrencyPair
 } from './utils/utils'
 
 const { bridgeCurrencies } = config
@@ -172,11 +176,11 @@ export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
     if (rate.exchangeRate !== null) continue
     const dbIndex = rateObj.documents.findIndex(doc => doc._id === rate.date)
     if (rateObj.documents[dbIndex] == null) continue
-    const from = checkConstantCode(rate.currency_pair.split('_')[0])
-    const to = checkConstantCode(rate.currency_pair.split('_')[1])
+    const from = checkConstantCode(fromCode(rate.currency_pair))
+    const to = checkConstantCode(toCode(rate.currency_pair))
     const doc = rateObj.documents[dbIndex]
     // Check simple combinations first
-    if (doc[`${from}_${to}`] != null) {
+    if (doc[toCurrencyPair(from, to)] != null) {
       rate.exchangeRate = doc[`${from}_${to}`]
       continue
     }
@@ -187,47 +191,47 @@ export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
         continue
       }
       if (
-        doc[`${from}_${bridgeCurrency}`] != null &&
-        doc[`${to}_${bridgeCurrency}`] != null
+        doc[toCurrencyPair(from, bridgeCurrency)] != null &&
+        doc[toCurrencyPair(to, bridgeCurrency)] != null
       ) {
         rate.exchangeRate = bns.div(
-          doc[`${from}_${bridgeCurrency}`],
-          doc[`${to}_${bridgeCurrency}`],
+          doc[toCurrencyPair(from, bridgeCurrency)],
+          doc[toCurrencyPair(to, bridgeCurrency)],
           8
         )
         continue
       }
       if (
-        doc[`${bridgeCurrency}_${from}`] != null &&
-        doc[`${bridgeCurrency}_${to}`] != null
+        doc[toCurrencyPair(bridgeCurrency, from)] != null &&
+        doc[toCurrencyPair(bridgeCurrency, to)] != null
       ) {
         rate.exchangeRate = bns.div(
-          doc[`${bridgeCurrency}_${to}`],
-          doc[`${bridgeCurrency}_${from}`],
+          doc[toCurrencyPair(bridgeCurrency, to)],
+          doc[toCurrencyPair(bridgeCurrency, from)],
           8
         )
         continue
       }
       if (
-        doc[`${from}_${bridgeCurrency}`] != null &&
-        doc[`${bridgeCurrency}_${to}`] != null
+        doc[toCurrencyPair(from, bridgeCurrency)] != null &&
+        doc[toCurrencyPair(bridgeCurrency, to)] != null
       ) {
         rate.exchangeRate = bns.mul(
-          doc[`${from}_${bridgeCurrency}`],
-          doc[`${bridgeCurrency}_${to}`]
+          doc[toCurrencyPair(from, bridgeCurrency)],
+          doc[toCurrencyPair(bridgeCurrency, to)]
         )
         continue
       }
 
       if (
-        doc[`${bridgeCurrency}_${from}`] != null &&
-        doc[`${to}_${bridgeCurrency}`] != null
+        doc[toCurrencyPair(bridgeCurrency, from)] != null &&
+        doc[toCurrencyPair(to, bridgeCurrency)] != null
       )
         rate.exchangeRate = bns.div(
           '1',
           bns.mul(
-            doc[`${bridgeCurrency}_${from}`],
-            doc[`${to}_${bridgeCurrency}`]
+            doc[toCurrencyPair(bridgeCurrency, from)],
+            doc[toCurrencyPair(to, bridgeCurrency)]
           ),
           8
         )
@@ -259,10 +263,10 @@ export const asRateParam = (param: any): RateParamReturn => {
         'Missing or invalid query param(s): currency_pair and date should both be strings'
       )
     }
-    const currencyTokens = currencyPair.split('_')
+    const currencyTokens = currencyCodeArray(currencyPair)
     if (currencyTokens.length !== 2) {
       throw new Error(
-        'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_USD"'
+        'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_iso:USD"'
       )
     }
     const parsedDate = normalizeDate(dateStr)

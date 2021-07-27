@@ -2,34 +2,53 @@ import { asMap, asNumber, asObject } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { NewRates, RateMap, ReturnRate } from './../rates'
-import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
-import { combineRates, logger } from './../utils/utils'
+import { NewRates, ReturnRate } from './../rates'
+import {
+  combineRates,
+  createReducedRateMap,
+  dateOnly,
+  fromCode,
+  fromCryptoToFiatCurrencyPair,
+  isFiatCode,
+  logger,
+  subIso,
+  toCode
+} from './../utils/utils'
 
-const { uri, apiKey } = config.providers.openExchangeRates
+const {
+  providers: {
+    openExchangeRates: { uri, apiKey }
+  },
+  defaultFiatCode: DEFAULT_FIAT
+} = config
+
+const asOpenExchangeRatesQuotes = asMap(asNumber)
 
 const asOpenExchangeRatesResponse = asObject({
-  rates: asMap(asNumber)
+  rates: asOpenExchangeRatesQuotes
 })
 
-const openExchangeRatesRateMap = (
-  results: ReturnType<typeof asOpenExchangeRatesResponse>
-): RateMap =>
-  Object.keys(results.rates).reduce((out, code) => {
-    return {
-      ...out,
-      [`${code}_USD`]: (1 / results.rates[code]).toString()
-    }
-  }, {})
+const openExchangeRatesQuote = (
+  data: ReturnType<typeof asOpenExchangeRatesQuotes>,
+  code: string
+): string => (1 / data[code]).toString()
+
+const openExchangeRatesRateMap = createReducedRateMap(
+  fromCryptoToFiatCurrencyPair,
+  openExchangeRatesQuote
+)
 
 const query = async (date: string, codes: string[]): Promise<NewRates> => {
   const rates = { [date]: {} }
   if (codes.length === 0) return rates
   const codeString = codes.join(',')
-  const justDate = date.split('T')[0]
   try {
     const response = await fetch(
-      `${uri}/api/historical/${justDate}.json?app_id=${apiKey}&base=USD&symbols=${codeString}`
+      `${uri}/api/historical/${dateOnly(
+        date
+      )}.json?app_id=${apiKey}&base=${subIso(
+        DEFAULT_FIAT
+      )}&symbols=${codeString}`
     )
     const json = asOpenExchangeRatesResponse(await response.json())
     if (response.ok === false) {
@@ -44,7 +63,7 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
     }
 
     // Create return object
-    rates[date] = openExchangeRatesRateMap(json)
+    rates[date] = openExchangeRatesRateMap(json.rates)
   } catch (e) {
     logger(`Failed to get ${codes} from openExchangeRates`, e)
   }
@@ -67,19 +86,19 @@ const openExchangeRates = async (
   for (const pair of rateObj) {
     if (datesAndCodesWanted[pair.date] == null)
       datesAndCodesWanted[pair.date] = []
-    const fromCurrency = pair.currency_pair.split('_')[0]
-    const toCurrency = pair.currency_pair.split('_')[1]
+    const fromCurrency = fromCode(pair.currency_pair)
+    const toCurrency = toCode(pair.currency_pair)
     if (
-      fiatCurrencyCodes[fromCurrency] === true &&
+      isFiatCode(fromCurrency) &&
       datesAndCodesWanted[pair.date].indexOf(fromCurrency) === -1
     ) {
-      datesAndCodesWanted[pair.date].push(fromCurrency)
+      datesAndCodesWanted[pair.date].push(subIso(fromCurrency))
     }
     if (
-      fiatCurrencyCodes[toCurrency] === true &&
+      isFiatCode(toCurrency) &&
       datesAndCodesWanted[pair.date].indexOf(toCurrency) === -1
     ) {
-      datesAndCodesWanted[pair.date].push(toCurrency)
+      datesAndCodesWanted[pair.date].push(subIso(toCurrency))
     }
   }
 
