@@ -5,7 +5,6 @@ import { config } from '../config'
 import { AssetMap, NewRates, ReturnRate } from '../rates'
 import {
   assetMapReducer,
-  checkConstantCode,
   combineRates,
   createReducedRateMapArray,
   fromCode,
@@ -134,7 +133,7 @@ export const coincap = async (
     if (datesAndCodesWanted[pair.date] == null) {
       datesAndCodesWanted[pair.date] = []
     }
-    const fromCurrency = checkConstantCode(fromCode(pair.currency_pair))
+    const fromCurrency = fromCode(pair.currency_pair)
     if (!isFiatCode(fromCurrency)) {
       datesAndCodesWanted[pair.date].push(fromCurrency)
     }

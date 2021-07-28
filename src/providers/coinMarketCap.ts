@@ -5,7 +5,6 @@ import { config } from './../config'
 import { AssetMap, NewRates, ReturnRate } from './../rates'
 import {
   assetMapReducer,
-  checkConstantCode,
   combineRates,
   createReducedRateMap,
   fromCode,
@@ -191,7 +190,7 @@ export const coinMarketCap = async (
   // Gather codes
   const datesAndCodesWanted: { [key: string]: string[] } = {}
   for (const pair of rateObj) {
-    const fromCurrency = checkConstantCode(fromCode(pair.currency_pair))
+    const fromCurrency = fromCode(pair.currency_pair)
     if (
       !isFiatCode(fromCurrency) &&
       !DEFAULT_CODES.includes(fromCurrency) &&
