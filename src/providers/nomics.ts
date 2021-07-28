@@ -5,7 +5,6 @@ import { config } from '../config'
 import { AssetMap, NewRates, ReturnRate } from '../rates'
 import {
   assetMapReducer,
-  checkConstantCode,
   createReducedRateMapArray,
   fromCode,
   fromCryptoToFiatCurrencyPair,
@@ -55,7 +54,7 @@ export const nomics = async (
   const codesWanted: string[] = []
   for (const request of requestedRates) {
     if (request.date !== currentTime) continue
-    const fromCurrency = checkConstantCode(fromCode(request.currency_pair))
+    const fromCurrency = fromCode(request.currency_pair)
     if (!isFiatCode(fromCurrency))
       codesWanted.push(overrideCode(fromCurrency, assetMap))
   }

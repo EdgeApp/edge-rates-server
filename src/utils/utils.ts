@@ -2,7 +2,6 @@ import { validate } from 'jsonschema'
 
 import { AssetMap, NewRates, RateMap, ReturnRate } from '../rates'
 import { config } from './../config'
-import { constantCurrencyCodes } from './currencyCodeMaps.json'
 
 const { defaultFiatCode: DEFAULT_FIAT } = config
 
@@ -46,8 +45,10 @@ export const haveEveryRate = (rates: ReturnRate[]): boolean => {
   return rates.every(rate => rate.exchangeRate !== null)
 }
 
-export const checkConstantCode = (code: string): string =>
-  constantCurrencyCodes[code] ?? code
+export const checkConstantCode = (
+  code: string,
+  constantCurrencyCodes: AssetMap
+): string => constantCurrencyCodes[code] ?? code
 
 export const isNotANumber = (value: string): boolean => {
   if (

@@ -189,13 +189,25 @@ export const getExchangeRates = async (
 }
 
 export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
+  let constantCurrencyCodes = {}
+  const currencyCodeMaps = rateObj.documents.find(
+    doc => doc._id === 'currencyCodeMaps'
+  )
+  if (currencyCodeMaps?.constantCurrencyCodes != null)
+    constantCurrencyCodes = currencyCodeMaps.constantCurrencyCodes
   for (let i = 0; i < rateObj.data.length; i++) {
     const rate = rateObj.data[i]
     if (rate.exchangeRate !== null) continue
     const dbIndex = rateObj.documents.findIndex(doc => doc._id === rate.date)
     if (rateObj.documents[dbIndex] == null) continue
-    const from = checkConstantCode(fromCode(rate.currency_pair))
-    const to = checkConstantCode(toCode(rate.currency_pair))
+    const from = checkConstantCode(
+      fromCode(rate.currency_pair),
+      constantCurrencyCodes
+    )
+    const to = checkConstantCode(
+      toCode(rate.currency_pair),
+      constantCurrencyCodes
+    )
     const doc = rateObj.documents[dbIndex]
     // Check simple combinations first
     if (doc[toCurrencyPair(from, to)] != null) {
