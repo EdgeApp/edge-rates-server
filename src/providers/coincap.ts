@@ -3,7 +3,6 @@ import fetch from 'node-fetch'
 
 import { config } from '../config'
 import { AssetMap, NewRates, ReturnRate } from '../rates'
-import { coincap as coincapIds } from '../utils/currencyCodeMaps.json'
 import {
   assetMapReducer,
   checkConstantCode,
@@ -26,12 +25,14 @@ const OPTIONS = {
   method: 'GET',
   json: true
 }
-const CODE_MAP = { ...coincapIds }
 
-const createUniqueIdString = (requestedCodes: string[]): string => {
+const createUniqueIdString = (
+  requestedCodes: string[],
+  codeMap: AssetMap
+): string => {
   return requestedCodes
-    .filter(code => CODE_MAP[code] != null)
-    .map(code => CODE_MAP[code])
+    .filter(code => codeMap[code] != null)
+    .map(code => codeMap[code])
     .join(',')
 }
 
@@ -62,10 +63,11 @@ const asCoincapHistoricalResponse = asObject({
 
 const currentQuery = async (
   date: string,
-  codes: string[]
+  codes: string[],
+  assetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = { [date]: {} }
-  const codeString = createUniqueIdString(codes)
+  const codeString = createUniqueIdString(codes, assetMap)
   if (codeString === '') return rates
   const url = `${uri}/v2/assets?ids=${codeString}`
   try {
@@ -89,11 +91,12 @@ const currentQuery = async (
 
 const historicalQuery = async (
   date: string,
-  code: string
+  code: string,
+  assetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = { [date]: {} }
   const timestamp = Date.parse(date)
-  const id = createUniqueIdString([code])
+  const id = createUniqueIdString([code], assetMap)
   if (id === '') return rates
   try {
     const response = await fetch(
@@ -120,7 +123,8 @@ const historicalQuery = async (
 
 export const coincap = async (
   rateObj: ReturnRate[],
-  currentTime: string
+  currentTime: string,
+  assetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = {}
 
@@ -140,10 +144,10 @@ export const coincap = async (
   const providers: Array<Promise<NewRates>> = []
   Object.keys(datesAndCodesWanted).forEach(date => {
     if (date === currentTime) {
-      providers.push(currentQuery(date, datesAndCodesWanted[date]))
+      providers.push(currentQuery(date, datesAndCodesWanted[date], assetMap))
     } else {
       datesAndCodesWanted[date].forEach(code => {
-        providers.push(historicalQuery(date, code))
+        providers.push(historicalQuery(date, code, assetMap))
       })
     }
   })

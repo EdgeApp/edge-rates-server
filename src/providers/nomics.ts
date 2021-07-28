@@ -14,8 +14,6 @@ import {
   subIso
 } from './../utils/utils'
 
-// TODO: add ID map
-
 const {
   providers: {
     nomics: { uri, apiKey }
@@ -38,9 +36,13 @@ const nomicsPair = (code: ReturnType<typeof asNomicsQuote>): string =>
 
 const nomicsRateMap = createReducedRateMapArray(nomicsPair, nomicsQuote)
 
+const overrideCode = (code: string, assetMap: AssetMap): string =>
+  assetMap[code] ?? code
+
 export const nomics = async (
   requestedRates: ReturnRate[],
-  currentTime: string
+  currentTime: string,
+  assetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }
 
@@ -54,9 +56,8 @@ export const nomics = async (
   for (const request of requestedRates) {
     if (request.date !== currentTime) continue
     const fromCurrency = checkConstantCode(fromCode(request.currency_pair))
-    if (!isFiatCode(fromCurrency)) {
-      codesWanted.push(fromCurrency)
-    }
+    if (!isFiatCode(fromCurrency))
+      codesWanted.push(overrideCode(fromCurrency, assetMap))
   }
 
   // Query
