@@ -1,6 +1,6 @@
 import { validate } from 'jsonschema'
 
-import { NewRates, RateMap, ReturnRate } from '../rates'
+import { AssetMap, NewRates, RateMap, ReturnRate } from '../rates'
 import { config } from './../config'
 import { constantCurrencyCodes } from './currencyCodeMaps.json'
 
@@ -129,14 +129,20 @@ export const createReducedRateMapArray = (
     }
   }, {})
 
+const useCurrencyCodeAsIs = (code: string): string => code
+
 export const createReducedRateMap = (
   createCurrencyPair: IsoOp,
-  createCurrencyQuote: (rates, code: string) => string
-) => (data): RateMap =>
+  createCurrencyQuote: (rates, code: string) => string,
+  uniqueId: (id: string, assetMap: AssetMap) => string = useCurrencyCodeAsIs
+) => (data, assetMap = {}): RateMap =>
   Object.keys(data).reduce((out, code) => {
     return {
       ...out,
-      [createCurrencyPair(code)]: createCurrencyQuote(data, code)
+      [createCurrencyPair(uniqueId(code, assetMap))]: createCurrencyQuote(
+        data,
+        code
+      )
     }
   }, {})
 
