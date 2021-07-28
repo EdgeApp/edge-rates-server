@@ -2,8 +2,9 @@ import { asArray, asMap, asNumber, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { NewRates, ReturnRate } from './../rates'
+import { AssetMap, NewRates, ReturnRate } from './../rates'
 import {
+  assetMapReducer,
   checkConstantCode,
   combineRates,
   createReducedRateMap,
@@ -129,4 +130,22 @@ export const coinMarketCapHistorical = async (
   }
 
   return rates
+}
+
+const asCoinMarketCapAssetResponse = asObject({
+  data: asArray(asObject({ id: asNumber, symbol: asString }))
+})
+
+export const coinMarketCapAssets = async (): Promise<AssetMap> => {
+  const response = await fetch(
+    `${uri}/v1/cryptocurrency/map?limit=5000`,
+    OPTIONS
+  )
+  if (response.ok === false) {
+    throw new Error(response.status)
+  }
+
+  return assetMapReducer(
+    asCoinMarketCapAssetResponse(await response.json()).data
+  )
 }

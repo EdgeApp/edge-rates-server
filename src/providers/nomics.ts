@@ -2,8 +2,9 @@ import { asArray, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { NewRates, ReturnRate } from '../rates'
+import { AssetMap, NewRates, ReturnRate } from '../rates'
 import {
+  assetMapReducer,
   checkConstantCode,
   createReducedRateMapArray,
   fromCode,
@@ -85,4 +86,27 @@ export const nomics = async (
       logger(`No Nomics quote: ${JSON.stringify(e)}`)
     }
   return rates
+}
+
+const asNomicsAssetResponse = asArray(
+  asObject({
+    id: asString,
+    symbol: asString
+  })
+)
+
+export const nomicsAssets = async (): Promise<AssetMap> => {
+  const response = await fetch(
+    `${uri}/v1/currencies/ticker?key=${apiKey}&sort=rank&status=active`
+  )
+  if (
+    response.status === 429 ||
+    response.status === 401 ||
+    response.ok === false
+  ) {
+    logger(`nomicsAssets returned code ${response.status}`)
+    throw new Error(response.statusText)
+  }
+
+  return assetMapReducer(asNomicsAssetResponse(await response.json()))
 }

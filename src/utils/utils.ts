@@ -141,3 +141,16 @@ export const createReducedRateMap = <T>(
   }, {})
 
 export const dateOnly = (date: string): string => date.split('T')[0]
+
+// Unique ID utils
+
+interface Asset {
+  id: string | number
+  symbol: string
+}
+
+const assetCode = (asset: Asset): string => asset.symbol
+
+const assetId = (asset: Asset): string => asset.id.toString()
+
+export const assetMapReducer = createReducedRateMapArray(assetCode, assetId)
