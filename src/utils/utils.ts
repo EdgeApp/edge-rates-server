@@ -161,3 +161,38 @@ const assetCode = (asset: Asset): string => asset.symbol
 const assetId = (asset: Asset): string => asset.id.toString()
 
 export const assetMapReducer = createReducedRateMapArray(assetCode, assetId)
+
+export const assetMapCombiner = (
+  edgeMap: AssetMap,
+  providerMap: AssetMap
+): AssetMap => ({ ...providerMap, ...edgeMap })
+
+const ONE_DAY = 1000 * 60 * 60 * 24
+
+export const memoize = <T>(
+  func: (...args) => Promise<T>,
+  key: string,
+  timeLimit: number = ONE_DAY
+): (() => Promise<T>) => {
+  const cache: { [key: string]: T } | {} = {}
+  const expiration: { [key: string]: number } = {}
+  return async (...args) => {
+    if (expiration[key] == null || expiration[key] < Date.now()) {
+      console.log('Updating ' + key + ' cache...')
+
+      const res = await func(...args)
+      if (res != null) {
+        cache[key] = res
+        expiration[key] = Date.now() + timeLimit
+      }
+    }
+    return cache[key] ?? {}
+  }
+}
+
+export const createAssetMaps = async (
+  edgeMap: AssetMap,
+  func: () => Promise<AssetMap>
+): Promise<AssetMap> => {
+  return assetMapCombiner(edgeMap, await func())
+}
