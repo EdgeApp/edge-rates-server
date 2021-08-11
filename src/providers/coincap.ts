@@ -2,13 +2,24 @@ import { asArray, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { NewRates, RateMap, ReturnRate } from '../rates'
+import { NewRates, ReturnRate } from '../rates'
 import {
   coincapDefaultMap,
-  coincapEdgeMap,
-  fiatCurrencyCodes
-} from '../utils/currencyCodeMaps'
-import { checkConstantCode, combineRates, logger } from './../utils/utils'
+  coincapEdgeMap
+} from '../utils/currencyCodeMaps.json'
+import {
+  checkConstantCode,
+  combineRates,
+  createReducedRateMapArray,
+  fromCode,
+  fromCryptoToFiatCurrencyPair,
+  isFiatCode,
+  logger
+} from './../utils/utils'
+
+/*
+// Coincap only returns USD denominated exchange rates
+*/
 
 const { uri } = config.providers.coincap
 
@@ -26,23 +37,30 @@ const createUniqueIdString = (requestedCodes: string[]): string => {
     .join(',')
 }
 
+const asCoincapCurrentQuote = asObject({ symbol: asString, priceUsd: asString })
+
 const asCoincapCurrentResponse = asObject({
-  data: asArray(asObject({ symbol: asString, priceUsd: asString }))
+  data: asArray(asCoincapCurrentQuote)
 })
+
+const coincapCurrentQuote = (
+  code: ReturnType<typeof asCoincapCurrentQuote>
+): string => code.priceUsd
+
+const coinCapCurrentRatePair = (
+  code: ReturnType<typeof asCoincapCurrentQuote>
+): string => fromCryptoToFiatCurrencyPair(code.symbol, 'USD')
+
+const coincapCurrentRateMap = createReducedRateMapArray(
+  coinCapCurrentRatePair,
+  coincapCurrentQuote
+)
+
+const asCoincapHistoricalQuote = asObject({ priceUsd: asString })
 
 const asCoincapHistoricalResponse = asObject({
-  data: asArray(asObject({ priceUsd: asString }))
+  data: asArray(asCoincapHistoricalQuote)
 })
-
-const coinCapCurrentRateMap = (
-  results: ReturnType<typeof asCoincapCurrentResponse>
-): RateMap =>
-  results.data.reduce((out, code) => {
-    return {
-      ...out,
-      [`${code.symbol}_USD`]: code.priceUsd
-    }
-  }, {})
 
 const currentQuery = async (
   date: string,
@@ -51,7 +69,7 @@ const currentQuery = async (
   const rates = { [date]: {} }
   const codeString = createUniqueIdString(codes)
   if (codeString === '') return rates
-  const url = `${uri}/v2/assets?ids=${codes}`
+  const url = `${uri}/v2/assets?ids=${codeString}`
   try {
     const response = await fetch(url, OPTIONS)
     const json = asCoincapCurrentResponse(await response.json())
@@ -63,7 +81,7 @@ const currentQuery = async (
     }
 
     // Add to return object
-    rates[date] = coinCapCurrentRateMap(json)
+    rates[date] = coincapCurrentRateMap(json.data)
   } catch (e) {
     logger(`No coincapCurrent quote: ${JSON.stringify(e)}`)
   }
@@ -94,7 +112,8 @@ const historicalQuery = async (
     }
 
     // Add to return object
-    rates[date][`${code}_USD`] = json.data[0].priceUsd
+    rates[date][fromCryptoToFiatCurrencyPair(code, 'USD')] =
+      json.data[0].priceUsd
   } catch (e) {
     logger(`No coincapHistorical quote: ${JSON.stringify(e)}`)
   }
@@ -113,8 +132,8 @@ const coincap = async (
     if (datesAndCodesWanted[pair.date] == null) {
       datesAndCodesWanted[pair.date] = []
     }
-    const fromCurrency = checkConstantCode(pair.currency_pair.split('_')[0])
-    if (fiatCurrencyCodes[fromCurrency] == null) {
+    const fromCurrency = checkConstantCode(fromCode(pair.currency_pair))
+    if (!isFiatCode(fromCurrency)) {
       datesAndCodesWanted[pair.date].push(fromCurrency)
     }
   }

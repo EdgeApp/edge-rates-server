@@ -3,13 +3,18 @@ import fetch from 'node-fetch'
 import { config } from './config'
 import { snooze } from './utils/utils'
 
-const { cryptoCurrencyCodes, fiatCurrencyCodes, ratesServerAddress } = config
+const {
+  cryptoCurrencyCodes,
+  fiatCurrencyCodes,
+  ratesServerAddress,
+  defaultFiatCode: DEFAULT_FIAT
+} = config
 
 const endPoint = `${ratesServerAddress}/v1/exchangeRates`
 
 const LOOP_DELAY = 1000 * 60 // Delay 1 minutes
 const allCurrencies = cryptoCurrencyCodes.concat(fiatCurrencyCodes)
-const bridgeCurrency = 'USD'
+const bridgeCurrency = DEFAULT_FIAT
 
 interface pairQuery {
   currency_pair: string

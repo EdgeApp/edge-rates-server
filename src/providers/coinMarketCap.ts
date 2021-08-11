@@ -2,9 +2,17 @@ import { asArray, asMap, asNumber, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { NewRates, RateMap, ReturnRate } from './../rates'
-import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
-import { checkConstantCode, combineRates, logger } from './../utils/utils'
+import { NewRates, ReturnRate } from './../rates'
+import {
+  checkConstantCode,
+  combineRates,
+  createReducedRateMap,
+  fromCode,
+  fromCryptoToFiatCurrencyPair,
+  isFiatCode,
+  logger,
+  subIso
+} from './../utils/utils'
 
 // TODO: add ID map
 
@@ -14,7 +22,12 @@ object if only one currency is requested. They ignore unrecognized codes so
 this ensures the response will have at least two accepted currency codes.
 */
 
-const { uri, apiKey } = config.providers.coinMarketCapHistorical
+const {
+  providers: {
+    coinMarketCapHistorical: { uri, apiKey }
+  },
+  defaultFiatCode: DEFAULT_FIAT
+} = config
 
 const DEFAULT_CODES = ['BTC', 'ETH']
 
@@ -26,42 +39,44 @@ const OPTIONS = {
   json: true
 }
 
-const coinMarketCapPrice = asObject({
-  symbol: asString,
-  quotes: asArray(
-    asObject({
-      timestamp: asString,
-      quote: asObject({
-        USD: asObject({
-          price: asNumber
-        })
+const ascoinMarketCapHistoricalQuotes = asMap(
+  asObject({
+    symbol: asString,
+    quotes: asArray(
+      asObject({
+        timestamp: asString,
+        quote: asMap(
+          asObject({
+            price: asNumber
+          })
+        )
       })
-    })
-  )
-})
+    )
+  })
+)
 
 const asCoinMarketCapHistoricalResponse = asObject({
-  data: asMap(coinMarketCapPrice)
+  data: ascoinMarketCapHistoricalQuotes
 })
 
-const coinMarketCapHistoricalRateMap = (
-  results: ReturnType<typeof asCoinMarketCapHistoricalResponse>
-): RateMap =>
-  Object.keys(results.data)
-    .filter(code => results.data[code].quotes.length > 0)
-    .reduce((out, code) => {
-      return {
-        ...out,
-        [`${code}_USD`]: results.data[code].quotes[0].quote.USD.price.toString()
-      }
-    }, {})
+const coinMarketCapHistoricalQuote = (
+  data: ReturnType<typeof ascoinMarketCapHistoricalQuotes>,
+  code: string
+): string => data[code].quotes?.[0].quote[subIso(DEFAULT_FIAT)].price.toString()
+
+const coinMarketCapHistoricalRateMap = createReducedRateMap(
+  fromCryptoToFiatCurrencyPair,
+  coinMarketCapHistoricalQuote
+)
 
 const query = async (date: string, codes: string[]): Promise<NewRates> => {
   const rates = {}
   if (codes.length === 0) return rates
   try {
     const response = await fetch(
-      `${uri}/v1/cryptocurrency/quotes/historical?symbol=${codes}&time_end=${date}&count=1&skip_invalid=true`,
+      `${uri}/v1/cryptocurrency/quotes/historical?symbol=${codes}&time_end=${date}&count=1&skip_invalid=true&convert=${subIso(
+        DEFAULT_FIAT
+      )}`,
       OPTIONS
     )
     if (response.status !== 200 || response.ok === false) {
@@ -73,7 +88,7 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
     const json = asCoinMarketCapHistoricalResponse(await response.json())
 
     // Create return object
-    rates[date] = coinMarketCapHistoricalRateMap(json)
+    rates[date] = coinMarketCapHistoricalRateMap(json.data)
   } catch (e) {
     logger(`No CoinMarketCapHistorical quote: ${JSON.stringify(e)}`)
   }
@@ -94,13 +109,10 @@ const coinMarketCapHistorical = async (
   const datesAndCodesWanted: { [key: string]: string[] } = {}
   for (const pair of rateObj) {
     if (datesAndCodesWanted[pair.date] == null) {
-      datesAndCodesWanted[pair.date] = DEFAULT_CODES
+      datesAndCodesWanted[pair.date] = [...DEFAULT_CODES]
     }
-    const fromCurrency = checkConstantCode(pair.currency_pair.split('_')[0])
-    if (
-      fiatCurrencyCodes[fromCurrency] == null &&
-      !DEFAULT_CODES.includes(fromCurrency)
-    ) {
+    const fromCurrency = checkConstantCode(fromCode(pair.currency_pair))
+    if (!isFiatCode(fromCurrency) && !DEFAULT_CODES.includes(fromCurrency)) {
       datesAndCodesWanted[pair.date].push(fromCurrency)
     }
   }

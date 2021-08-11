@@ -2,37 +2,55 @@ import { asMap, asNumber, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { NewRates, RateMap, ReturnRate } from './../rates'
-import { fiatCurrencyCodes } from './../utils/currencyCodeMaps'
-import { combineRates, logger } from './../utils/utils'
+import { NewRates, ReturnRate } from './../rates'
+import {
+  combineRates,
+  createReducedRateMap,
+  dateOnly,
+  fromCode,
+  fromFiatToFiat,
+  invertPair,
+  isFiatCode,
+  logger,
+  subIso,
+  toCode,
+  toIsoPair
+} from './../utils/utils'
 
-const { uri, apiKey } = config.providers.currencyConverter
+const {
+  providers: {
+    currencyConverter: { uri, apiKey }
+  },
+  defaultFiatCode: DEFAULT_FIAT
+} = config
 
-const asCurrencyConvertorResults = asMap(asObject({ val: asMap(asNumber) }))
+const asCurrencyConvertorQuotes = asMap(asObject({ val: asMap(asNumber) }))
 
 const asCurrencyConverterResponse = asObject({
   status: asOptional(asNumber),
   error: asOptional(asString),
-  results: asCurrencyConvertorResults
+  results: asCurrencyConvertorQuotes
 })
 
-const currencyConverterRateMap = (
-  results: ReturnType<typeof asCurrencyConvertorResults>
-): RateMap =>
-  Object.keys(results).reduce((out, code) => {
-    return {
-      ...out,
-      [code]: Object.values(results[code].val)[0].toString()
-    }
-  }, {})
+const currencyConverterPair = (pair: string): string =>
+  fromFiatToFiat(fromCode(pair), toCode(pair))
+
+const currencyConverterQuote = (
+  results: ReturnType<typeof asCurrencyConvertorQuotes>,
+  pair: string
+): string => Object.values(results[pair].val)[0].toString()
+
+const currencyConverterRateMap = createReducedRateMap(
+  currencyConverterPair,
+  currencyConverterQuote
+)
 
 const query = async (date: string, codes: string[]): Promise<NewRates> => {
   const rates = { [date]: {} }
   if (codes.length === 0) return rates
-  const justDate = date.split('T')[0]
   try {
     const response = await fetch(
-      `${uri}/api/v7/convert?q=${codes}&date=${justDate}&apiKey=${apiKey}`
+      `${uri}/api/v7/convert?q=${codes}&date=${dateOnly(date)}&apiKey=${apiKey}`
     )
     const { status, error, results } = asCurrencyConverterResponse(
       await response.json()
@@ -76,21 +94,35 @@ const currencyConverter = async (
   for (const pair of rateObj) {
     if (datesAndCodesWanted[pair.date] == null)
       datesAndCodesWanted[pair.date] = []
-    const fromCurrency = pair.currency_pair.split('_')[0]
-    const toCurrency = pair.currency_pair.split('_')[1]
+    const fromCurrency = fromCode(pair.currency_pair)
+    const toCurrency = toCode(pair.currency_pair)
+    const currencyConverterToDefaultPair = toIsoPair(
+      subIso,
+      subIso
+    )(fromCurrency)
     if (
-      fiatCurrencyCodes[fromCurrency] === true &&
-      fromCurrency !== 'USD' &&
-      datesAndCodesWanted[pair.date].indexOf(`${fromCurrency}_USD`) === -1
+      isFiatCode(fromCurrency) &&
+      fromCurrency !== DEFAULT_FIAT &&
+      datesAndCodesWanted[pair.date].indexOf(currencyConverterToDefaultPair) ===
+        -1
     ) {
-      datesAndCodesWanted[pair.date].push(`${fromCurrency}_USD`)
+      datesAndCodesWanted[pair.date].push(currencyConverterToDefaultPair)
     }
+
+    const currencyConverterFromDefaultPair = toIsoPair(subIso, subIso)(
+      DEFAULT_FIAT,
+      toCurrency
+    )
     if (
-      fiatCurrencyCodes[toCurrency] === true &&
-      fromCurrency !== 'USD' &&
-      datesAndCodesWanted[pair.date].indexOf(`USD_${toCurrency}`) === -1
+      isFiatCode(toCurrency) &&
+      toCurrency !== DEFAULT_FIAT &&
+      datesAndCodesWanted[pair.date].indexOf(
+        invertPair(currencyConverterFromDefaultPair)
+      ) === -1
     ) {
-      datesAndCodesWanted[pair.date].push(`USD_${toCurrency}`)
+      datesAndCodesWanted[pair.date].push(
+        invertPair(currencyConverterFromDefaultPair)
+      )
     }
   }
 
