@@ -35,12 +35,9 @@ const {
 export const hasUniqueId = (code: string, assetMap: AssetMap): boolean =>
   assetMap[code] != null
 
-export const invertCodeMapKey = (id: string, assetMap: AssetMap): string => {
-  return (
-    Object.keys(assetMap).find(key => assetMap[key] === id) ??
-    'FAKE_CODE_TO_SATISFY_TYPECHECKER'
-  )
-}
+export const invertCodeMapKey = (id: string, assetMap: AssetMap): string =>
+  Object.keys(assetMap).find(key => assetMap[key] === id) ??
+  'FAKE_CODE_TO_SATISFY_TYPECHECKER'
 
 const CURRENT_OPTIONS = {
   method: 'GET',
@@ -195,11 +192,7 @@ export const coinMarketCap = async (
   const datesAndCodesWanted: { [key: string]: string[] } = {}
   for (const pair of rateObj) {
     const fromCurrency = fromCode(pair.currency_pair)
-    if (
-      !isFiatCode(fromCurrency) &&
-      !DEFAULT_CODES.includes(fromCurrency) &&
-      hasUniqueId(fromCurrency, assetMap)
-    ) {
+    if (!isFiatCode(fromCurrency) && hasUniqueId(fromCurrency, assetMap)) {
       if (datesAndCodesWanted[pair.date] == null) {
         datesAndCodesWanted[pair.date] = []
       }
