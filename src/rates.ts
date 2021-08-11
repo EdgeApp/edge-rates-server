@@ -126,6 +126,8 @@ const getRatesFromProviders = async (
     openExchangeRates
   ]
 
+  const { constantCurrencyCodes = {} } = edgeAssetMap
+
   for (const provider of rateProviders) {
     console.time(`Queried ${provider.name}`)
     addNewRatesToDocs(
@@ -137,7 +139,7 @@ const getRatesFromProviders = async (
       rateObj.documents,
       provider.name
     )
-    currencyBridgeDB(rateObj)
+    currencyBridgeDB(rateObj, constantCurrencyCodes)
     console.timeEnd(`Queried ${provider.name}`)
     if (haveEveryRate(rateObj.data)) break
   }
@@ -190,13 +192,10 @@ export const getExchangeRates = async (
   }
 }
 
-export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
-  let constantCurrencyCodes = {}
-  const currencyCodeMaps = rateObj.documents.find(
-    doc => doc._id === 'currencyCodeMaps'
-  )
-  if (currencyCodeMaps?.constantCurrencyCodes != null)
-    constantCurrencyCodes = currencyCodeMaps.constantCurrencyCodes
+export const currencyBridgeDB = (
+  rateObj: ReturnGetRate,
+  constantCurrencyCodes: AssetMap
+): void => {
   for (let i = 0; i < rateObj.data.length; i++) {
     const rate = rateObj.data[i]
     if (rate.exchangeRate !== null) continue
