@@ -6,11 +6,13 @@ import { AssetMap, NewRates, ReturnRate } from '../rates'
 import {
   assetMapReducer,
   combineRates,
+  createAssetMaps,
   createReducedRateMapArray,
   fromCode,
   fromCryptoToFiatCurrencyPair,
   isFiatCode,
-  logger
+  logger,
+  memoize
 } from './../utils/utils'
 
 /*
@@ -123,9 +125,11 @@ const historicalQuery = async (
 export const coincap = async (
   rateObj: ReturnRate[],
   currentTime: string,
-  assetMap: AssetMap
+  edgeAssetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = {}
+
+  const assetMap = await createAssetMaps(edgeAssetMap, coincapAssets)
 
   // Gather codes
   const datesAndCodesWanted: { [key: string]: string[] } = {}
@@ -164,11 +168,11 @@ const asCoincapAssetResponse = asObject({
   data: asArray(asObject({ id: asString, symbol: asString }))
 })
 
-export const coincapAssets = async (): Promise<AssetMap> => {
+export const coincapAssets = memoize(async (): Promise<AssetMap> => {
   const response = await fetch(`${uri}/v2/assets?limit=2000`)
   if (response.ok === false) {
     throw new Error(response.status)
   }
 
   return assetMapReducer(asCoincapAssetResponse(await response.json()).data)
-}
+}, 'coincap')

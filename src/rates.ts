@@ -13,7 +13,7 @@ import {
 } from './providers/hardcodedProviders'
 import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
-import { getFromDb, saveToDb } from './utils/dbUtils'
+import { getEdgeAssetDoc, getFromDb, saveToDb } from './utils/dbUtils'
 import {
   checkConstantCode,
   currencyCodeArray,
@@ -108,13 +108,11 @@ const addNewRatesToDocs = (
 }
 
 const getRatesFromProviders = async (
-  rateObj: ReturnGetRate
+  rateObj: ReturnGetRate,
+  edgeAssetMap: DbDoc
 ): Promise<ReturnGetRate> => {
   const currentTime = normalizeDate(new Date().toISOString())
   if (typeof currentTime !== 'string') throw new Error('malformed date')
-
-  const assetMapDoc =
-    rateObj.documents.find(doc => doc._id === 'currencyCodeMaps') ?? {}
 
   // Retrieve new rates
   const rateProviders = [
@@ -133,7 +131,7 @@ const getRatesFromProviders = async (
       await provider(
         getNullRateArray(rateObj.data),
         currentTime,
-        assetMapDoc[provider.name] ?? {}
+        edgeAssetMap[provider.name] ?? {}
       ),
       rateObj.documents,
       provider.name
@@ -150,7 +148,7 @@ export const getExchangeRates = async (
   localDb: any
 ): Promise<ReturnGetRate> => {
   try {
-    const docs: string[] = ['currencyCodeMaps']
+    const docs: string[] = []
     const data = query.map(pair => {
       const { currencyPair, date } = asRateParam(pair)
       if (!docs.includes(date)) docs.push(date)
@@ -161,8 +159,10 @@ export const getExchangeRates = async (
       }
     })
 
+    const edgeAssetDoc = await getEdgeAssetDoc()
     const documents: DbDoc[] = await getFromDb(localDb, docs)
-    const out = await getRatesFromProviders({ data, documents })
+
+    const out = await getRatesFromProviders({ data, documents }, edgeAssetDoc)
     saveToDb(
       localDb,
       out.documents

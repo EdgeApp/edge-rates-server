@@ -1,8 +1,19 @@
+import nano from 'nano'
+import promisify from 'promisify-node'
+
 import { DbDoc } from '../rates'
 import { config } from './../config'
 import currencyCodeMaps from './currencyCodeMaps.json'
 import { slackPoster } from './postToSlack'
-import { logger } from './utils'
+import { logger, memoize } from './utils'
+
+const ONE_HOUR = 1000 * 60 * 60
+
+const { couchUri } = config
+
+const nanoDb = nano(couchUri)
+const dbRates = nanoDb.db.use('db_rates')
+promisify(dbRates)
 
 export const saveToDb = (localDB: any, docs: DbDoc[]): void => {
   const db: string = localDB?.config?.db ?? ''
@@ -57,3 +68,10 @@ export const ratesDbSetup = {
   options: { partitioned: false },
   documents: { currencyCodeMaps }
 }
+
+export const getEdgeAssetDoc = memoize(
+  async (): Promise<DbDoc> =>
+    (await getFromDb(dbRates, ['currencyCodeMaps']))[0],
+  'edge',
+  ONE_HOUR
+)

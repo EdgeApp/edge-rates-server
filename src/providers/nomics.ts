@@ -5,11 +5,13 @@ import { config } from '../config'
 import { AssetMap, NewRates, ReturnRate } from '../rates'
 import {
   assetMapReducer,
+  createAssetMaps,
   createReducedRateMapArray,
   fromCode,
   fromCryptoToFiatCurrencyPair,
   isFiatCode,
   logger,
+  memoize,
   subIso
 } from './../utils/utils'
 
@@ -41,9 +43,11 @@ const overrideCode = (code: string, assetMap: AssetMap): string =>
 export const nomics = async (
   requestedRates: ReturnRate[],
   currentTime: string,
-  assetMap: AssetMap
+  edgeAssetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }
+
+  const assetMap = await createAssetMaps(edgeAssetMap, nomicsAssets)
 
   if (apiKey == null) {
     logger('No Nomics API key')
@@ -95,7 +99,7 @@ const asNomicsAssetResponse = asArray(
   })
 )
 
-export const nomicsAssets = async (): Promise<AssetMap> => {
+export const nomicsAssets = memoize(async (): Promise<AssetMap> => {
   const response = await fetch(
     `${uri}/v1/currencies/ticker?key=${apiKey}&sort=rank&status=active`
   )
@@ -109,4 +113,4 @@ export const nomicsAssets = async (): Promise<AssetMap> => {
   }
 
   return assetMapReducer(asNomicsAssetResponse(await response.json()))
-}
+}, 'nomics')

@@ -6,11 +6,13 @@ import { AssetMap, NewRates, ReturnRate } from './../rates'
 import {
   assetMapReducer,
   combineRates,
+  createAssetMaps,
   createReducedRateMap,
   fromCode,
   fromCryptoToFiatCurrencyPair,
   isFiatCode,
   logger,
+  memoize,
   subIso
 } from './../utils/utils'
 
@@ -178,9 +180,11 @@ const coinMarketCapHistorical = async (
 export const coinMarketCap = async (
   rateObj: ReturnRate[],
   currentTime: string,
-  assetMap: AssetMap
+  edgeAssetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = {}
+
+  const assetMap = await createAssetMaps(edgeAssetMap, coinMarketCapAssets)
 
   if (historicalApiKey == null) {
     logger('No coinMarketCapHistorical API key')
@@ -223,7 +227,7 @@ const asCoinMarketCapAssetResponse = asObject({
   data: asArray(asObject({ id: asNumber, symbol: asString }))
 })
 
-export const coinMarketCapAssets = async (): Promise<AssetMap> => {
+export const coinMarketCapAssets = memoize(async (): Promise<AssetMap> => {
   const response = await fetch(
     `${historicalUri}/v1/cryptocurrency/map?limit=5000`,
     HISTORICAL_OPTIONS
@@ -235,4 +239,4 @@ export const coinMarketCapAssets = async (): Promise<AssetMap> => {
   return assetMapReducer(
     asCoinMarketCapAssetResponse(await response.json()).data
   )
-}
+}, 'coinMarketCap')
