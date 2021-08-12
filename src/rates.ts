@@ -5,6 +5,7 @@ import nano from 'nano'
 import { config } from './config'
 import { coincap } from './providers/coincap'
 import { coinMarketCap } from './providers/coinMarketCap'
+import { coinmonitor } from './providers/coinmonitor'
 import { compound } from './providers/compound'
 import { currencyConverter } from './providers/currencyConverter'
 import {
@@ -13,6 +14,7 @@ import {
 } from './providers/hardcodedProviders'
 import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
+import { wazirx } from './providers/wazirx'
 import { getEdgeAssetDoc, getFromDb, saveToDb } from './utils/dbUtils'
 import {
   checkConstantCode,
@@ -117,12 +119,14 @@ const getRatesFromProviders = async (
   // Retrieve new rates
   const rateProviders = [
     zeroRates,
-    currencyConverter,
+    coinmonitor,
+    wazirx,
     coinMarketCap,
     coincap,
     nomics,
     compound,
     fallbackConstantRates,
+    currencyConverter,
     openExchangeRates
   ]
 

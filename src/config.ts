@@ -96,6 +96,12 @@ export const asConfig = asObject({
     }),
     compound: asObject({
       uri: asOptional(asString, 'https://api.compound.finance')
+    }),
+    wazirx: asObject({
+      uri: asOptional(asString, 'https://api.wazirx.com')
+    }),
+    coinmonitor: asObject({
+      uri: asOptional(asString, 'http://ar.coinmonitor.info')
     })
   }),
   defaultFiatCode: asOptional(asString, DEFAULT_FIAT),
