@@ -7,6 +7,13 @@ import currencyCodeMaps from './currencyCodeMaps.json'
 import { slackPoster } from './postToSlack'
 import { logger, memoize } from './utils'
 
+interface NanoBulkResponse {
+  id: string
+  rev: string
+  error?: string
+  reason?: string
+}
+
 const ONE_HOUR = 1000 * 60 * 60
 
 export interface DbDoc
@@ -29,11 +36,30 @@ const nanoDb = nano(couchUri)
 const dbRates: nano.DocumentScope<DbDoc> = nanoDb.db.use('db_rates')
 promisify(dbRates)
 
-interface NanoBulkResponse {
-  id: string
-  rev: string
-  error?: string
-  reason?: string
+const findDoc = (id: string, arr: DbDoc[]): DbDoc | undefined =>
+  arr.find(doc => doc._id === id)
+
+const resolveConflicts = async (
+  response: nano.DocumentBulkResponse[],
+  allDocs: DbDoc[]
+): Promise<void> => {
+  const conflictIds = response
+    .filter(doc => doc.error === 'conflict')
+    .map(doc => doc.id)
+  if (conflictIds.length === 0) return
+  const latestDocs = await getFromDb(dbRates, conflictIds)
+  const out: DbDoc[] = []
+  conflictIds.forEach(id => {
+    const latest = findDoc(id, latestDocs)
+    if (latest != null) {
+      const conflict = findDoc(id, allDocs)
+      out.push({
+        ...conflict,
+        ...latest
+      })
+    }
+  })
+  if (out.length > 0) saveToDb(dbRates, out)
 }
 
 const dbResponseLogger = (response: nano.DocumentBulkResponse[]): void => {
@@ -61,6 +87,9 @@ export const saveToDb = (
     .bulk({ docs })
     .then(response => {
       dbResponseLogger(response)
+      resolveConflicts(response, docs).catch(e =>
+        console.log('Error resolving conflicts', e.message)
+      )
     })
     .catch(e => {
       logger(e)
