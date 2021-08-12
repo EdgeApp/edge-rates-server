@@ -29,28 +29,38 @@ const nanoDb = nano(couchUri)
 const dbRates: nano.DocumentScope<DbDoc> = nanoDb.db.use('db_rates')
 promisify(dbRates)
 
+interface NanoBulkResponse {
+  id: string
+  rev: string
+  error?: string
+  reason?: string
+}
+
+const dbResponseLogger = (response: nano.DocumentBulkResponse[]): void => {
+  const successArray = response
+    .filter(doc => doc.error == null)
+    .map(doc => doc.id)
+  if (successArray.length > 0)
+    logger(`Saved document IDs: ${successArray.join(', ')} to db_rates`)
+
+  const failureArray = response
+    // Conflicts are expected and OK so no need to print. They'll be combined and retried until successfully saved.
+    // Future TODO: will be to save to the db on a loop from redis store.
+    .filter(doc => doc.error != null && doc.error !== 'conflict')
+    .map(doc => `${doc.id}: ${doc.error}`)
+  if (failureArray.length > 0)
+    logger(`Error saving document IDs: ${failureArray.join(', ')} to db_rates`)
+}
+
 export const saveToDb = (
   localDB: nano.DocumentScope<DbDoc>,
   docs: DbDoc[]
 ): void => {
-  const db: string = localDB?.config?.db ?? ''
   if (docs.length === 0) return
   localDB
     .bulk({ docs })
     .then(response => {
-      const successArray = response
-        .filter(doc => doc.error == null)
-        .map(doc => doc.id)
-      if (successArray.length > 0)
-        logger(`Saved document IDs: ${successArray.join(', ')} to db: ${db}`)
-
-      const failureArray = response
-        .filter(doc => doc.error != null)
-        .map(doc => `${doc.id}: ${doc.error}`)
-      if (failureArray.length > 0)
-        logger(
-          `Error saving document IDs: ${failureArray.join(', ')} to db: ${db}`
-        )
+      dbResponseLogger(response)
     })
     .catch(e => {
       logger(e)
