@@ -11,13 +11,10 @@ import { asConfig } from './config'
 import { asExchangeRateReq, getExchangeRates } from './rates'
 import { DbDoc } from './utils/dbUtils'
 
-// const REQUIRED_CODES = ['BC1', 'DASH', 'LTC', 'BCH']
-
 export const asExchangeRatesReq = asObject({
   data: asArray(asExchangeRateReq)
 })
 
-// const AUTOREPLICATION_DELAY = 1000 * 60 * 30 // 30 minutes
 const EXCHANGE_RATES_BATCH_LIMIT = 100
 
 export const exchangeRateRouter = (

@@ -12,7 +12,7 @@ const {
 
 const endPoint = `${ratesServerAddress}/v1/exchangeRates`
 
-const LOOP_DELAY = 1000 * 60 // Delay 1 minutes
+const LOOP_DELAY = 1000 * 60 // Delay 1 minute
 const allCurrencies = cryptoCurrencyCodes.concat(fiatCurrencyCodes)
 const bridgeCurrency = DEFAULT_FIAT
 

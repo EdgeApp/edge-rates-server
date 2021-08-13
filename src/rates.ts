@@ -39,12 +39,6 @@ interface RateError extends Error {
   errorType?: ErrorType
 }
 
-// const rateError = (
-//   message: string,
-//   errorCode: number = 500,
-//   errorType?: ErrorType
-// ): RateError => Object.assign(new Error(message), { errorCode, errorType })
-
 export interface ReturnGetRate {
   data: ReturnRate[]
   documents: DbDoc[]
