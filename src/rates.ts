@@ -1,11 +1,10 @@
-import { bns } from 'biggystring'
+import { div, eq, mul } from 'biggystring'
 import { asObject, asOptional, asString } from 'cleaners'
 import nano from 'nano'
 
 import { config } from './config'
 import { coincap } from './providers/coincap'
-import { coinMarketCapHistorical } from './providers/coinMarketCap'
-import { coinMarketCapCurrent } from './providers/coinMarketCapBasic'
+import { coinMarketCap } from './providers/coinMarketCap'
 import { compound } from './providers/compound'
 import { currencyConverter } from './providers/currencyConverter'
 import {
@@ -14,7 +13,7 @@ import {
 } from './providers/hardcodedProviders'
 import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
-import { getFromDb, saveToDb } from './utils/dbUtils'
+import { getEdgeAssetDoc, getFromDb, saveToDb } from './utils/dbUtils'
 import {
   checkConstantCode,
   currencyCodeArray,
@@ -29,6 +28,8 @@ import {
 } from './utils/utils'
 
 const { bridgeCurrencies } = config
+
+const PRECISION = 20
 
 type ErrorType = 'not_found' | 'conflict' | 'db_error'
 interface RateError extends Error {
@@ -67,36 +68,40 @@ export interface NewRates {
   [date: string]: RateMap
 }
 
+export interface AssetMap {
+  [currencyCode: string]: string
+}
+
 const addNewRatesToDocs = (
   newRates: NewRates,
   documents: DbDoc[],
   providerName: string
 ): void => {
   for (const date of Object.keys(newRates)) {
-    const rateMap = newRates[date]
     const dbIndex = documents.findIndex(doc => doc._id === date)
     if (dbIndex >= 0) {
       // Create map of inverted pairs and rates
-      const invertedRateMap = {}
-      for (const pair of Object.keys(rateMap)) {
-        const rate = rateMap[pair]
+      const rateMap = {}
+      // const rateMap = newRates[date]
+      for (const pair of Object.keys(newRates[date])) {
+        const rate = Number(newRates[date][pair]).toFixed(PRECISION) // Prevent scientific notation
         // Sanity check value is acceptable and only allow a 0 rate from the zeroRates plugin
         if (
           isNotANumber(rate) ||
-          (rate === '0' && providerName !== 'zeroRates')
+          (eq(rate, '0') && providerName !== 'zeroRates')
         ) {
-          delete rateMap[pair]
           continue
         }
-        invertedRateMap[invertPair(pair)] =
-          rate === '0' ? '0' : bns.div('1', rate, 8)
+        rateMap[pair] = rate
+        rateMap[invertPair(pair)] = eq(rate, '0')
+          ? '0'
+          : div('1', rate, PRECISION)
       }
 
       // Add new rates and their inverts to the doc and mark updated
       documents[dbIndex] = {
         ...documents[dbIndex],
         ...rateMap,
-        ...invertedRateMap,
         ...{ updated: true }
       }
     }
@@ -104,7 +109,8 @@ const addNewRatesToDocs = (
 }
 
 const getRatesFromProviders = async (
-  rateObj: ReturnGetRate
+  rateObj: ReturnGetRate,
+  edgeAssetMap: DbDoc
 ): Promise<ReturnGetRate> => {
   const currentTime = normalizeDate(new Date().toISOString())
   if (typeof currentTime !== 'string') throw new Error('malformed date')
@@ -113,22 +119,29 @@ const getRatesFromProviders = async (
   const rateProviders = [
     zeroRates,
     currencyConverter,
-    coinMarketCapCurrent,
+    coinMarketCap,
     coincap,
-    coinMarketCapHistorical,
     nomics,
     compound,
     fallbackConstantRates,
     openExchangeRates
   ]
 
+  const { constantCurrencyCodes = {} } = edgeAssetMap
+
   for (const provider of rateProviders) {
+    console.time(`Queried ${provider.name}`)
     addNewRatesToDocs(
-      await provider(getNullRateArray(rateObj.data), currentTime),
+      await provider(
+        getNullRateArray(rateObj.data),
+        currentTime,
+        edgeAssetMap[provider.name] ?? {}
+      ),
       rateObj.documents,
       provider.name
     )
-    currencyBridgeDB(rateObj)
+    currencyBridgeDB(rateObj, constantCurrencyCodes)
+    console.timeEnd(`Queried ${provider.name}`)
     if (haveEveryRate(rateObj.data)) break
   }
 
@@ -140,10 +153,10 @@ export const getExchangeRates = async (
   localDb: any
 ): Promise<ReturnGetRate> => {
   try {
-    const dates: string[] = []
+    const docs: string[] = []
     const data = query.map(pair => {
       const { currencyPair, date } = asRateParam(pair)
-      if (!dates.includes(date)) dates.push(date)
+      if (!docs.includes(date)) docs.push(date)
       return {
         currency_pair: currencyPair,
         date,
@@ -151,9 +164,19 @@ export const getExchangeRates = async (
       }
     })
 
-    const documents: DbDoc[] = await getFromDb(localDb, dates)
-    const out = await getRatesFromProviders({ data, documents })
-    saveToDb(localDb, out.documents)
+    const edgeAssetDoc = await getEdgeAssetDoc()
+    const documents: DbDoc[] = await getFromDb(localDb, docs)
+
+    const out = await getRatesFromProviders({ data, documents }, edgeAssetDoc)
+    saveToDb(
+      localDb,
+      out.documents
+        .filter(doc => doc.updated === true)
+        .map(doc => {
+          delete doc.updated
+          return doc
+        })
+    )
     return out
   } catch (e) {
     return {
@@ -170,14 +193,23 @@ export const getExchangeRates = async (
   }
 }
 
-export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
+export const currencyBridgeDB = (
+  rateObj: ReturnGetRate,
+  constantCurrencyCodes: AssetMap
+): void => {
   for (let i = 0; i < rateObj.data.length; i++) {
     const rate = rateObj.data[i]
     if (rate.exchangeRate !== null) continue
     const dbIndex = rateObj.documents.findIndex(doc => doc._id === rate.date)
     if (rateObj.documents[dbIndex] == null) continue
-    const from = checkConstantCode(fromCode(rate.currency_pair))
-    const to = checkConstantCode(toCode(rate.currency_pair))
+    const from = checkConstantCode(
+      fromCode(rate.currency_pair),
+      constantCurrencyCodes
+    )
+    const to = checkConstantCode(
+      toCode(rate.currency_pair),
+      constantCurrencyCodes
+    )
     const doc = rateObj.documents[dbIndex]
     // Check simple combinations first
     if (doc[toCurrencyPair(from, to)] != null) {
@@ -194,10 +226,10 @@ export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
         doc[toCurrencyPair(from, bridgeCurrency)] != null &&
         doc[toCurrencyPair(to, bridgeCurrency)] != null
       ) {
-        rate.exchangeRate = bns.div(
+        rate.exchangeRate = div(
           doc[toCurrencyPair(from, bridgeCurrency)],
           doc[toCurrencyPair(to, bridgeCurrency)],
-          8
+          PRECISION
         )
         continue
       }
@@ -205,10 +237,10 @@ export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
         doc[toCurrencyPair(bridgeCurrency, from)] != null &&
         doc[toCurrencyPair(bridgeCurrency, to)] != null
       ) {
-        rate.exchangeRate = bns.div(
+        rate.exchangeRate = div(
           doc[toCurrencyPair(bridgeCurrency, to)],
           doc[toCurrencyPair(bridgeCurrency, from)],
-          8
+          PRECISION
         )
         continue
       }
@@ -216,7 +248,7 @@ export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
         doc[toCurrencyPair(from, bridgeCurrency)] != null &&
         doc[toCurrencyPair(bridgeCurrency, to)] != null
       ) {
-        rate.exchangeRate = bns.mul(
+        rate.exchangeRate = mul(
           doc[toCurrencyPair(from, bridgeCurrency)],
           doc[toCurrencyPair(bridgeCurrency, to)]
         )
@@ -227,13 +259,13 @@ export const currencyBridgeDB = (rateObj: ReturnGetRate): void => {
         doc[toCurrencyPair(bridgeCurrency, from)] != null &&
         doc[toCurrencyPair(to, bridgeCurrency)] != null
       )
-        rate.exchangeRate = bns.div(
+        rate.exchangeRate = div(
           '1',
-          bns.mul(
+          mul(
             doc[toCurrencyPair(bridgeCurrency, from)],
             doc[toCurrencyPair(to, bridgeCurrency)]
           ),
-          8
+          PRECISION
         )
     }
   }

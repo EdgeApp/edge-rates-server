@@ -1,8 +1,7 @@
 import { validate } from 'jsonschema'
 
-import { NewRates, RateMap, ReturnRate } from '../rates'
+import { AssetMap, NewRates, RateMap, ReturnRate } from '../rates'
 import { config } from './../config'
-import { constantCurrencyCodes } from './currencyCodeMaps.json'
 
 const { defaultFiatCode: DEFAULT_FIAT } = config
 
@@ -46,8 +45,10 @@ export const haveEveryRate = (rates: ReturnRate[]): boolean => {
   return rates.every(rate => rate.exchangeRate !== null)
 }
 
-export const checkConstantCode = (code: string): string =>
-  constantCurrencyCodes[code] ?? code
+export const checkConstantCode = (
+  code: string,
+  constantCurrencyCodes: AssetMap
+): string => constantCurrencyCodes[code] ?? code
 
 export const isNotANumber = (value: string): boolean => {
   if (
@@ -129,15 +130,69 @@ export const createReducedRateMapArray = <T>(
     }
   }, {})
 
+const useCurrencyCodeAsIs = (code: string): string => code
+
 export const createReducedRateMap = <T>(
   createCurrencyPair: IsoOp,
-  createCurrencyQuote: (rates: T, code: string) => string
-) => (data: T): RateMap =>
+  createCurrencyQuote: (rates: T, code: string) => string,
+  uniqueId: (id: string, assetMap: AssetMap) => string = useCurrencyCodeAsIs
+) => (data, assetMap = {}): RateMap =>
   Object.keys(data).reduce((out, code) => {
     return {
       ...out,
-      [createCurrencyPair(code)]: createCurrencyQuote(data, code)
+      [createCurrencyPair(uniqueId(code, assetMap))]: createCurrencyQuote(
+        data,
+        code
+      )
     }
   }, {})
 
 export const dateOnly = (date: string): string => date.split('T')[0]
+
+// Unique ID utils
+
+interface Asset {
+  id: string | number
+  symbol: string
+}
+
+const assetCode = (asset: Asset): string => asset.symbol
+
+const assetId = (asset: Asset): string => asset.id.toString()
+
+export const assetMapReducer = createReducedRateMapArray(assetCode, assetId)
+
+export const assetMapCombiner = (
+  edgeMap: AssetMap,
+  providerMap: AssetMap
+): AssetMap => ({ ...providerMap, ...edgeMap })
+
+const ONE_DAY = 1000 * 60 * 60 * 24
+
+export const memoize = <T>(
+  func: (...args) => Promise<T>,
+  key: string,
+  timeLimit: number = ONE_DAY
+): (() => Promise<T>) => {
+  const cache: { [key: string]: T } | {} = {}
+  const expiration: { [key: string]: number } = {}
+  return async (...args) => {
+    if (expiration[key] == null || expiration[key] < Date.now()) {
+      console.log('Updating ' + key + ' cache...')
+
+      const res = await func(...args)
+      if (res != null) {
+        cache[key] = res
+        expiration[key] = Date.now() + timeLimit
+      }
+    }
+    return cache[key] ?? {}
+  }
+}
+
+export const createAssetMaps = async (
+  edgeMap: AssetMap,
+  func: () => Promise<AssetMap>
+): Promise<AssetMap> => {
+  return assetMapCombiner(edgeMap, await func())
+}

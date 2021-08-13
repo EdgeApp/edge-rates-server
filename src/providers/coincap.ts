@@ -2,19 +2,17 @@ import { asArray, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { NewRates, ReturnRate } from '../rates'
+import { AssetMap, NewRates, ReturnRate } from '../rates'
 import {
-  coincapDefaultMap,
-  coincapEdgeMap
-} from '../utils/currencyCodeMaps.json'
-import {
-  checkConstantCode,
+  assetMapReducer,
   combineRates,
+  createAssetMaps,
   createReducedRateMapArray,
   fromCode,
   fromCryptoToFiatCurrencyPair,
   isFiatCode,
-  logger
+  logger,
+  memoize
 } from './../utils/utils'
 
 /*
@@ -28,12 +26,14 @@ const OPTIONS = {
   method: 'GET',
   json: true
 }
-const CODE_MAP = { ...coincapDefaultMap, ...coincapEdgeMap }
 
-const createUniqueIdString = (requestedCodes: string[]): string => {
+const createUniqueIdString = (
+  requestedCodes: string[],
+  codeMap: AssetMap
+): string => {
   return requestedCodes
-    .filter(code => CODE_MAP[code] != null)
-    .map(code => CODE_MAP[code])
+    .filter(code => codeMap[code] != null)
+    .map(code => codeMap[code])
     .join(',')
 }
 
@@ -64,10 +64,11 @@ const asCoincapHistoricalResponse = asObject({
 
 const currentQuery = async (
   date: string,
-  codes: string[]
+  codes: string[],
+  assetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = { [date]: {} }
-  const codeString = createUniqueIdString(codes)
+  const codeString = createUniqueIdString(codes, assetMap)
   if (codeString === '') return rates
   const url = `${uri}/v2/assets?ids=${codeString}`
   try {
@@ -91,11 +92,12 @@ const currentQuery = async (
 
 const historicalQuery = async (
   date: string,
-  code: string
+  code: string,
+  assetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = { [date]: {} }
   const timestamp = Date.parse(date)
-  const id = createUniqueIdString([code])
+  const id = createUniqueIdString([code], assetMap)
   if (id === '') return rates
   try {
     const response = await fetch(
@@ -120,11 +122,14 @@ const historicalQuery = async (
   return rates
 }
 
-const coincap = async (
+export const coincap = async (
   rateObj: ReturnRate[],
-  currentTime: string
+  currentTime: string,
+  edgeAssetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = {}
+
+  const assetMap = await createAssetMaps(edgeAssetMap, coincapAssets)
 
   // Gather codes
   const datesAndCodesWanted: { [key: string]: string[] } = {}
@@ -132,7 +137,7 @@ const coincap = async (
     if (datesAndCodesWanted[pair.date] == null) {
       datesAndCodesWanted[pair.date] = []
     }
-    const fromCurrency = checkConstantCode(fromCode(pair.currency_pair))
+    const fromCurrency = fromCode(pair.currency_pair)
     if (!isFiatCode(fromCurrency)) {
       datesAndCodesWanted[pair.date].push(fromCurrency)
     }
@@ -142,10 +147,10 @@ const coincap = async (
   const providers: Array<Promise<NewRates>> = []
   Object.keys(datesAndCodesWanted).forEach(date => {
     if (date === currentTime) {
-      providers.push(currentQuery(date, datesAndCodesWanted[date]))
+      providers.push(currentQuery(date, datesAndCodesWanted[date], assetMap))
     } else {
       datesAndCodesWanted[date].forEach(code => {
-        providers.push(historicalQuery(date, code))
+        providers.push(historicalQuery(date, code, assetMap))
       })
     }
   })
@@ -159,4 +164,15 @@ const coincap = async (
   return rates
 }
 
-export { coincap }
+const asCoincapAssetResponse = asObject({
+  data: asArray(asObject({ id: asString, symbol: asString }))
+})
+
+export const coincapAssets = memoize(async (): Promise<AssetMap> => {
+  const response = await fetch(`${uri}/v2/assets?limit=2000`)
+  if (response.ok === false) {
+    throw new Error(response.status)
+  }
+
+  return assetMapReducer(asCoincapAssetResponse(await response.json()).data)
+}, 'coincap')

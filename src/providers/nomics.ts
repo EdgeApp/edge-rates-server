@@ -2,18 +2,18 @@ import { asArray, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { NewRates, ReturnRate } from '../rates'
+import { AssetMap, NewRates, ReturnRate } from '../rates'
 import {
-  checkConstantCode,
+  assetMapReducer,
+  createAssetMaps,
   createReducedRateMapArray,
   fromCode,
   fromCryptoToFiatCurrencyPair,
   isFiatCode,
   logger,
+  memoize,
   subIso
 } from './../utils/utils'
-
-// TODO: add ID map
 
 const {
   providers: {
@@ -37,11 +37,17 @@ const nomicsPair = (code: ReturnType<typeof asNomicsQuote>): string =>
 
 const nomicsRateMap = createReducedRateMapArray(nomicsPair, nomicsQuote)
 
-const nomics = async (
+const overrideCode = (code: string, assetMap: AssetMap): string =>
+  assetMap[code] ?? code
+
+export const nomics = async (
   requestedRates: ReturnRate[],
-  currentTime: string
+  currentTime: string,
+  edgeAssetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }
+
+  const assetMap = await createAssetMaps(edgeAssetMap, nomicsAssets)
 
   if (apiKey == null) {
     logger('No Nomics API key')
@@ -52,10 +58,9 @@ const nomics = async (
   const codesWanted: string[] = []
   for (const request of requestedRates) {
     if (request.date !== currentTime) continue
-    const fromCurrency = checkConstantCode(fromCode(request.currency_pair))
-    if (!isFiatCode(fromCurrency)) {
-      codesWanted.push(fromCurrency)
-    }
+    const fromCurrency = fromCode(request.currency_pair)
+    if (!isFiatCode(fromCurrency))
+      codesWanted.push(overrideCode(fromCurrency, assetMap))
   }
 
   // Query
@@ -87,4 +92,25 @@ const nomics = async (
   return rates
 }
 
-export { nomics }
+const asNomicsAssetResponse = asArray(
+  asObject({
+    id: asString,
+    symbol: asString
+  })
+)
+
+export const nomicsAssets = memoize(async (): Promise<AssetMap> => {
+  const response = await fetch(
+    `${uri}/v1/currencies/ticker?key=${apiKey}&sort=rank&status=active`
+  )
+  if (
+    response.status === 429 ||
+    response.status === 401 ||
+    response.ok === false
+  ) {
+    logger(`nomicsAssets returned code ${response.status}`)
+    throw new Error(response.statusText)
+  }
+
+  return assetMapReducer(asNomicsAssetResponse(await response.json()))
+}, 'nomics')
