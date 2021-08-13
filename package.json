@@ -58,7 +58,7 @@
     "typescript": "^3.8.2"
   },
   "dependencies": {
-    "biggystring": "^3.0.2",
+    "biggystring": "^4.0.0",
     "cleaner-config": "^0.1.7",
     "cleaners": "^0.2.0",
     "compression": "^1.7.4",

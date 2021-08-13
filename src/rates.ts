@@ -1,4 +1,4 @@
-import { bns } from 'biggystring'
+import { div, eq, mul } from 'biggystring'
 import { asObject, asOptional, asString } from 'cleaners'
 import nano from 'nano'
 
@@ -88,13 +88,14 @@ const addNewRatesToDocs = (
         // Sanity check value is acceptable and only allow a 0 rate from the zeroRates plugin
         if (
           isNotANumber(rate) ||
-          (bns.eq(rate, '0') === true && providerName !== 'zeroRates')
+          (eq(rate, '0') && providerName !== 'zeroRates')
         ) {
           continue
         }
         rateMap[pair] = rate
-        rateMap[invertPair(pair)] =
-          bns.eq(rate, '0') === true ? '0' : bns.div('1', rate, PRECISION)
+        rateMap[invertPair(pair)] = eq(rate, '0')
+          ? '0'
+          : div('1', rate, PRECISION)
       }
 
       // Add new rates and their inverts to the doc and mark updated
@@ -225,7 +226,7 @@ export const currencyBridgeDB = (
         doc[toCurrencyPair(from, bridgeCurrency)] != null &&
         doc[toCurrencyPair(to, bridgeCurrency)] != null
       ) {
-        rate.exchangeRate = bns.div(
+        rate.exchangeRate = div(
           doc[toCurrencyPair(from, bridgeCurrency)],
           doc[toCurrencyPair(to, bridgeCurrency)],
           PRECISION
@@ -236,7 +237,7 @@ export const currencyBridgeDB = (
         doc[toCurrencyPair(bridgeCurrency, from)] != null &&
         doc[toCurrencyPair(bridgeCurrency, to)] != null
       ) {
-        rate.exchangeRate = bns.div(
+        rate.exchangeRate = div(
           doc[toCurrencyPair(bridgeCurrency, to)],
           doc[toCurrencyPair(bridgeCurrency, from)],
           PRECISION
@@ -247,7 +248,7 @@ export const currencyBridgeDB = (
         doc[toCurrencyPair(from, bridgeCurrency)] != null &&
         doc[toCurrencyPair(bridgeCurrency, to)] != null
       ) {
-        rate.exchangeRate = bns.mul(
+        rate.exchangeRate = mul(
           doc[toCurrencyPair(from, bridgeCurrency)],
           doc[toCurrencyPair(bridgeCurrency, to)]
         )
@@ -258,9 +259,9 @@ export const currencyBridgeDB = (
         doc[toCurrencyPair(bridgeCurrency, from)] != null &&
         doc[toCurrencyPair(to, bridgeCurrency)] != null
       )
-        rate.exchangeRate = bns.div(
+        rate.exchangeRate = div(
           '1',
-          bns.mul(
+          mul(
             doc[toCurrencyPair(bridgeCurrency, from)],
             doc[toCurrencyPair(to, bridgeCurrency)]
           ),
