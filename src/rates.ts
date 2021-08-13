@@ -15,7 +15,7 @@ import {
 import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
 import { wazirx } from './providers/wazirx'
-import { getEdgeAssetDoc, getFromDb, saveToDb } from './utils/dbUtils'
+import { DbDoc, getEdgeAssetDoc, getFromDb, saveToDb } from './utils/dbUtils'
 import {
   checkConstantCode,
   currencyCodeArray,
@@ -44,11 +44,6 @@ interface RateError extends Error {
 //   errorCode: number = 500,
 //   errorType?: ErrorType
 // ): RateError => Object.assign(new Error(message), { errorCode, errorType })
-
-export interface DbDoc extends nano.DocumentGetResponse {
-  [pair: string]: any
-  updated?: boolean
-}
 
 export interface ReturnGetRate {
   data: ReturnRate[]
@@ -154,7 +149,7 @@ const getRatesFromProviders = async (
 
 export const getExchangeRates = async (
   query: Array<ReturnType<typeof asExchangeRateReq>>,
-  localDb: any
+  localDb: nano.DocumentScope<DbDoc>
 ): Promise<ReturnGetRate> => {
   try {
     const docs: string[] = []

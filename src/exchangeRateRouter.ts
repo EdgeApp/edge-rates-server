@@ -9,6 +9,8 @@ import promisify from 'promisify-node'
 
 import { asConfig } from './config'
 import { asExchangeRateReq, getExchangeRates } from './rates'
+import { DbDoc } from './utils/dbUtils'
+
 // const REQUIRED_CODES = ['BC1', 'DASH', 'LTC', 'BCH']
 
 export const asExchangeRatesReq = asObject({
@@ -28,7 +30,7 @@ export const exchangeRateRouter = (
   // Nano for CouchDB
   // =============================================================================
   const nanoDb = nano(config.couchUri)
-  const dbRates = nanoDb.db.use('db_rates')
+  const dbRates: nano.DocumentScope<DbDoc> = nanoDb.db.use('db_rates')
   promisify(dbRates)
 
   /*

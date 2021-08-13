@@ -1,7 +1,6 @@
 import nano from 'nano'
 import promisify from 'promisify-node'
 
-import { DbDoc } from '../rates'
 import { config } from './../config'
 import currencyCodeMaps from './currencyCodeMaps.json'
 import { slackPoster } from './postToSlack'
@@ -9,13 +8,23 @@ import { logger, memoize } from './utils'
 
 const ONE_HOUR = 1000 * 60 * 60
 
+export interface DbDoc
+  extends nano.IdentifiedDocument,
+    nano.MaybeRevisionedDocument {
+  [pair: string]: any
+  updated?: boolean
+}
+
 const { couchUri } = config
 
 const nanoDb = nano(couchUri)
-const dbRates = nanoDb.db.use('db_rates')
+const dbRates: nano.DocumentScope<DbDoc> = nanoDb.db.use('db_rates')
 promisify(dbRates)
 
-export const saveToDb = (localDB: any, docs: DbDoc[]): void => {
+export const saveToDb = (
+  localDB: nano.DocumentScope<DbDoc>,
+  docs: DbDoc[]
+): void => {
   const db: string = localDB?.config?.db ?? ''
   if (docs.length === 0) return
   localDB
