@@ -6,12 +6,6 @@ import morgan from 'morgan'
 
 import { asConfig } from './config'
 
-interface HttpConfig {
-  httpHost: string
-  httpPort: string
-  slackWebhookUrl: string
-}
-
 const BodyParseError = {
   message: 'error parsing body data',
   errorType: 'bad_query',

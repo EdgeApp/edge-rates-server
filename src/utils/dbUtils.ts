@@ -1,7 +1,6 @@
 import nano from 'nano'
 import promisify from 'promisify-node'
 
-import { DbDoc } from '../rates'
 import { config } from './../config'
 import currencyCodeMaps from './currencyCodeMaps.json'
 import { slackPoster } from './postToSlack'
@@ -9,13 +8,23 @@ import { logger, memoize } from './utils'
 
 const ONE_HOUR = 1000 * 60 * 60
 
+export interface DbDoc
+  extends nano.IdentifiedDocument,
+    nano.MaybeRevisionedDocument {
+  [pair: string]: any
+  updated?: boolean
+}
+
 const { couchUri } = config
 
 const nanoDb = nano(couchUri)
-const dbRates = nanoDb.db.use('db_rates')
+const dbRates: nano.DocumentScope<DbDoc> = nanoDb.db.use('db_rates')
 promisify(dbRates)
 
-export const saveToDb = (localDB: any, docs: DbDoc[]): void => {
+export const saveToDb = (
+  localDB: nano.DocumentScope<DbDoc>,
+  docs: DbDoc[]
+): void => {
   const db: string = localDB?.config?.db ?? ''
   if (docs.length === 0) return
   localDB
@@ -43,24 +52,27 @@ export const saveToDb = (localDB: any, docs: DbDoc[]): void => {
 }
 
 export const getFromDb = async (
-  localDb: any,
+  localDb: nano.DocumentScope<DbDoc>,
   dates: string[]
 ): Promise<DbDoc[]> => {
   // Grab existing db data for requested dates
-  const documents = await Promise.all(
-    dates.map(date => {
-      return localDb.get(date).catch(e => {
-        if (e.error !== 'not_found') {
-          slackPoster(config.slackWebhookUrl, e).catch(e)
-        } else {
-          return {
-            _id: date
-          }
-        }
-      })
-    })
-  )
-  return documents
+  const response = await localDb.fetch({ keys: dates }).catch(e => {
+    if (e.error !== 'not_found') {
+      slackPoster(config.slackWebhookUrl, e).catch(e)
+    }
+  })
+  if (response == null)
+    return dates.map(date => ({
+      _id: date
+    }))
+  return response.rows.map(element => {
+    if ('error' in element || element.doc == null)
+      return {
+        _id: element.key
+      }
+
+    return element.doc
+  })
 }
 
 export const ratesDbSetup = {
