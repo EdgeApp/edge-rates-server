@@ -119,6 +119,9 @@
 		"YETI": "7939",
 		"COMBO": "8259",
 		"RENZEC": "8904",
+		"WAX": "2300",
+		"FTM": "3513",
+		"FUSDT": "10244",
 		"RBTC": "3626"
 	},
 	"coincap": {
@@ -193,6 +196,8 @@
 		"AMPL": "ampleforth",
 		"OCEAN": "ocean-protocol",
 		"GLM": "golem-network-tokens",
+		"FTM": "fantom",
+		"WAX": "wax",
 		"UNI": "uniswap"
 	},
 	"nomics": {
@@ -285,6 +290,8 @@
 		"BAND": "BAND",
 		"REN": "REN",
 		"AMPL": "AMPL",
+		"WAX": "WAX",
+		"FTM": "FTM",
 		"OCEAN": "OCEAN"
 	},
 	"allEdgeCurrencies": [
