@@ -1,6 +1,7 @@
 import fetch from 'node-fetch'
 
 import { config } from './config'
+import { getEdgeAssetDoc } from './utils/dbUtils'
 import { snooze } from './utils/utils'
 
 const {
@@ -13,7 +14,6 @@ const {
 const endPoint = `${ratesServerAddress}/v1/exchangeRates`
 
 const LOOP_DELAY = 1000 * 60 // Delay 1 minute
-const allCurrencies = cryptoCurrencyCodes.concat(fiatCurrencyCodes)
 const bridgeCurrency = DEFAULT_FIAT
 
 interface pairQuery {
@@ -21,8 +21,20 @@ interface pairQuery {
   date: string
 }
 
+const getCurrencyCodeList = async (): Promise<string[]> => {
+  let currencyCodes = cryptoCurrencyCodes.concat(fiatCurrencyCodes)
+  try {
+    const edgeDoc = await getEdgeAssetDoc()
+    currencyCodes = edgeDoc.allEdgeCurrencies.concat(edgeDoc.fiatCurrencyCodes)
+  } catch (e) {
+    console.log(`Could not get currency code list from DB. Using defaults.`)
+  }
+  return currencyCodes
+}
+
 export const ratesEngine = async (): Promise<void> => {
   const currentDate = new Date().toISOString()
+  const allCurrencies = await getCurrencyCodeList()
   try {
     const data: pairQuery[] = []
     for (const currencyCode of allCurrencies) {
