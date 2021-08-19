@@ -33,12 +33,6 @@ const { bridgeCurrencies } = config
 
 const PRECISION = 20
 
-type ErrorType = 'not_found' | 'conflict' | 'db_error'
-interface RateError extends Error {
-  errorCode?: number
-  errorType?: ErrorType
-}
-
 export interface ReturnGetRate {
   data: ReturnRate[]
   documents: DbDoc[]
