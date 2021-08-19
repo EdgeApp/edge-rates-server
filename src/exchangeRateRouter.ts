@@ -2,18 +2,25 @@
 // BASE SETUP
 // =============================================================================
 
-import { asArray, asObject } from 'cleaners'
+import { asArray, asObject, asOptional, asString } from 'cleaners'
 import express from 'express'
 import nano from 'nano'
 import promisify from 'promisify-node'
 
 import { asConfig } from './config'
-import { asExchangeRateReq, getExchangeRates } from './rates'
+import { getExchangeRates } from './rates'
 import { DbDoc } from './utils/dbUtils'
 
-export const asExchangeRatesReq = asObject({
+export const asExchangeRateReq = asObject({
+  currency_pair: asString,
+  date: asOptional(asString)
+})
+
+const asExchangeRatesReq = asObject({
   data: asArray(asExchangeRateReq)
 })
+
+export type ExchangeRateReq = ReturnType<typeof asExchangeRateReq>
 
 const EXCHANGE_RATES_BATCH_LIMIT = 100
 
@@ -63,8 +70,7 @@ export const exchangeRateRouter = (
         .send(`Exceeded Limit of ${EXCHANGE_RATES_BATCH_LIMIT}`)
     }
 
-    const requestedRates: Array<ReturnType<typeof asExchangeRateReq>> =
-      query.data
+    const requestedRates: ExchangeRateReq[] = query.data
     const data = await getExchangeRates(requestedRates, dbRates)
     res.json({ data: data.data })
   })

@@ -1,8 +1,8 @@
 import { div, eq, mul } from 'biggystring'
-import { asObject, asOptional, asString } from 'cleaners'
 import nano from 'nano'
 
 import { config } from './config'
+import { asExchangeRateReq, ExchangeRateReq } from './exchangeRateRouter'
 import { coincap } from './providers/coincap'
 import { coinMarketCap } from './providers/coinMarketCap'
 import { coinmonitor } from './providers/coinmonitor'
@@ -136,7 +136,7 @@ const getRatesFromProviders = async (
 }
 
 export const getExchangeRates = async (
-  query: Array<ReturnType<typeof asExchangeRateReq>>,
+  query: ExchangeRateReq[],
   localDb: nano.DocumentScope<DbDoc>
 ): Promise<ReturnGetRate> => {
   try {
@@ -257,11 +257,6 @@ export const currencyBridgeDB = (
     }
   }
 }
-
-export const asExchangeRateReq = asObject({
-  currency_pair: asString,
-  date: asOptional(asString)
-})
 
 interface RateParamReturn {
   currencyPair: string
