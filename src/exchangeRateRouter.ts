@@ -9,6 +9,7 @@ import { DbDoc } from './utils/dbUtils'
 import {
   addIso,
   fromCode,
+  isIsoCode,
   subIso,
   toCode,
   toCurrencyPair,
@@ -47,6 +48,9 @@ const maybeAddIsoToPair = (pair: string): string =>
 const removeIsoFromPair = (pair: string): string =>
   toIsoPair(subIso, subIso)(fromCode(pair), toCode(pair))
 
+const isIsoPair = (pair: string): boolean =>
+  isIsoCode(fromCode(pair)) || isIsoCode(toCode(pair))
+
 // *** MIDDLEWARE ***
 
 const v1ExchangeRateIsoAdder = (req: any, res: any, next: Function): void => {
@@ -68,6 +72,18 @@ const v1ExchangeRateIsoSubtractor = (
     exchangeRate: rate.exchangeRate,
     error: rate.error
   }))
+  next()
+}
+
+const v1IsoChecker = (req: any, res: any, next: Function): void => {
+  if (
+    req.requestedRates.data.every(pair => !isIsoPair(pair.currency_pair)) !==
+    true
+  ) {
+    return res
+      .status(400)
+      .send(`Please use v2 of this API to query with ISO codes`)
+  }
   next()
 }
 
@@ -131,6 +147,7 @@ export const exchangeRateRouterV1 = (): express.Router => {
 
   router.get('/exchangeRate', [
     exchangeRateCleaner,
+    v1IsoChecker,
     v1ExchangeRateIsoAdder,
     queryExchangeRates,
     v1ExchangeRateIsoSubtractor,
@@ -139,6 +156,7 @@ export const exchangeRateRouterV1 = (): express.Router => {
 
   router.post('/exchangeRates', [
     exchangeRatesCleaner,
+    v1IsoChecker,
     v1ExchangeRateIsoAdder,
     queryExchangeRates,
     v1ExchangeRateIsoSubtractor,

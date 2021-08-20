@@ -10,7 +10,7 @@ import {
   createReducedRateMapArray,
   fromCode,
   fromCryptoToFiatCurrencyPair,
-  isFiatCode,
+  isIsoCode,
   logger,
   memoize
 } from './../utils/utils'
@@ -138,7 +138,7 @@ export const coincap = async (
       datesAndCodesWanted[pair.date] = []
     }
     const fromCurrency = fromCode(pair.currency_pair)
-    if (!isFiatCode(fromCurrency)) {
+    if (!isIsoCode(fromCurrency)) {
       datesAndCodesWanted[pair.date].push(fromCurrency)
     }
   }

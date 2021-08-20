@@ -10,7 +10,7 @@ import {
   fromCode,
   fromFiatToFiat,
   invertPair,
-  isFiatCode,
+  isIsoCode,
   logger,
   subIso,
   toCode,
@@ -101,7 +101,7 @@ export const currencyConverter = async (
       subIso
     )(fromCurrency)
     if (
-      isFiatCode(fromCurrency) &&
+      isIsoCode(fromCurrency) &&
       fromCurrency !== DEFAULT_FIAT &&
       datesAndCodesWanted[pair.date].indexOf(currencyConverterToDefaultPair) ===
         -1
@@ -114,7 +114,7 @@ export const currencyConverter = async (
       toCurrency
     )
     if (
-      isFiatCode(toCurrency) &&
+      isIsoCode(toCurrency) &&
       toCurrency !== DEFAULT_FIAT &&
       datesAndCodesWanted[pair.date].indexOf(
         invertPair(currencyConverterFromDefaultPair)

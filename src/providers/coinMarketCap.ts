@@ -10,7 +10,7 @@ import {
   createReducedRateMap,
   fromCode,
   fromCryptoToFiatCurrencyPair,
-  isFiatCode,
+  isIsoCode,
   logger,
   memoize,
   subIso
@@ -192,7 +192,7 @@ export const coinMarketCap = async (
   const datesAndCodesWanted: { [key: string]: string[] } = {}
   for (const pair of rateObj) {
     const fromCurrency = fromCode(pair.currency_pair)
-    if (!isFiatCode(fromCurrency) && hasUniqueId(fromCurrency, assetMap)) {
+    if (!isIsoCode(fromCurrency) && hasUniqueId(fromCurrency, assetMap)) {
       if (datesAndCodesWanted[pair.date] == null) {
         datesAndCodesWanted[pair.date] = []
       }
