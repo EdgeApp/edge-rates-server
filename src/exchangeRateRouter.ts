@@ -126,7 +126,7 @@ const sendExchangeRates = (req: any, res: any): void => {
 
 // *** ROUTES ***
 
-export const exchangeRateRouter = (): express.Router => {
+export const exchangeRateRouterV1 = (): express.Router => {
   const router = express.Router()
 
   router.get('/exchangeRate', [
@@ -142,6 +142,24 @@ export const exchangeRateRouter = (): express.Router => {
     v1ExchangeRateIsoAdder,
     queryExchangeRates,
     v1ExchangeRateIsoSubtractor,
+    sendExchangeRates
+  ])
+
+  return router
+}
+
+export const exchangeRateRouterV2 = (): express.Router => {
+  const router = express.Router()
+
+  router.get('/exchangeRate', [
+    exchangeRateCleaner,
+    queryExchangeRates,
+    sendExchangeRate
+  ])
+
+  router.post('/exchangeRates', [
+    exchangeRatesCleaner,
+    queryExchangeRates,
     sendExchangeRates
   ])
 
