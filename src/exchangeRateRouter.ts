@@ -6,6 +6,14 @@ import promisify from 'promisify-node'
 import { config } from './config'
 import { getExchangeRates } from './rates'
 import { DbDoc } from './utils/dbUtils'
+import {
+  addIso,
+  fromCode,
+  subIso,
+  toCode,
+  toCurrencyPair,
+  toIsoPair
+} from './utils/utils'
 
 export const asExchangeRateReq = asObject({
   currency_pair: asString,
@@ -18,13 +26,50 @@ const asExchangeRatesReq = asObject({
 
 export type ExchangeRateReq = ReturnType<typeof asExchangeRateReq>
 
+const { couchUri, fiatCurrencyCodes: FIAT_CODES } = config
 const EXCHANGE_RATES_BATCH_LIMIT = 100
 
-const nanoDb = nano(config.couchUri)
+const nanoDb = nano(couchUri)
 const dbRates: nano.DocumentScope<DbDoc> = nanoDb.db.use('db_rates')
 promisify(dbRates)
 
+// *** UTILS ***
+
+const addIsoToMaybeFiatCode = (code: string): string =>
+  FIAT_CODES.includes(addIso(code)) ? addIso(code) : code
+
+const maybeAddIsoToPair = (pair: string): string =>
+  toCurrencyPair(
+    addIsoToMaybeFiatCode(fromCode(pair)),
+    addIsoToMaybeFiatCode(toCode(pair))
+  )
+
+const removeIsoFromPair = (pair: string): string =>
+  toIsoPair(subIso, subIso)(fromCode(pair), toCode(pair))
+
 // *** MIDDLEWARE ***
+
+const v1ExchangeRateIsoAdder = (req: any, res: any, next: Function): void => {
+  req.requestedRates.data = req.requestedRates.data.map(req => ({
+    currency_pair: maybeAddIsoToPair(req.currency_pair),
+    date: req.date
+  }))
+  next()
+}
+
+const v1ExchangeRateIsoSubtractor = (
+  req: any,
+  res: any,
+  next: Function
+): void => {
+  req.requestedRatesResult.data = req.requestedRatesResult.data.map(rate => ({
+    currency_pair: removeIsoFromPair(rate.currency_pair),
+    date: rate.date,
+    exchangeRate: rate.exchangeRate,
+    error: rate.error
+  }))
+  next()
+}
 
 // Query params:
 //  currency_pair: String with the two currencies separated by an underscore. Ex: "ETH_iso:USD"
@@ -86,13 +131,17 @@ export const exchangeRateRouter = (): express.Router => {
 
   router.get('/exchangeRate', [
     exchangeRateCleaner,
+    v1ExchangeRateIsoAdder,
     queryExchangeRates,
+    v1ExchangeRateIsoSubtractor,
     sendExchangeRate
   ])
 
   router.post('/exchangeRates', [
     exchangeRatesCleaner,
+    v1ExchangeRateIsoAdder,
     queryExchangeRates,
+    v1ExchangeRateIsoSubtractor,
     sendExchangeRates
   ])
 
