@@ -1,7 +1,3 @@
-// indexAuth.js
-// BASE SETUP
-// =============================================================================
-
 import { asArray, asObject, asOptional, asString } from 'cleaners'
 import express from 'express'
 import nano from 'nano'
@@ -24,11 +20,11 @@ export type ExchangeRateReq = ReturnType<typeof asExchangeRateReq>
 
 const EXCHANGE_RATES_BATCH_LIMIT = 100
 
-// Nano for CouchDB
-// =============================================================================
 const nanoDb = nano(config.couchUri)
 const dbRates: nano.DocumentScope<DbDoc> = nanoDb.db.use('db_rates')
 promisify(dbRates)
+
+// *** MIDDLEWARE ***
 
 // Query params:
 //  currency_pair: String with the two currencies separated by an underscore. Ex: "ETH_iso:USD"
@@ -83,9 +79,9 @@ const sendExchangeRates = (req: any, res: any): void => {
   res.json({ data: req.requestedRatesResult.data })
 }
 
+// *** ROUTES ***
+
 export const exchangeRateRouter = (): express.Router => {
-  // ROUTES FOR OUR API
-  // =============================================================================
   const router = express.Router()
 
   router.get('/exchangeRate', [
