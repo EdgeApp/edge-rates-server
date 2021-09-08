@@ -134,7 +134,7 @@ export const currencyConverter = async (
     const response = await Promise.all(providers)
     combineRates(rates, response)
   } catch (e) {
-    logger('Failed to query currencyConverter with error', e.message)
+    logger('Failed to query currencyConverter with error', e)
   }
 
   return rates

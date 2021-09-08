@@ -99,7 +99,7 @@ export const coinMarketCapCurrent = async (
     // Create return object
     rates[date] = coinMarketCapCurrentRateMap(json.data, assetMap)
   } catch (e) {
-    logger(`No coinMarketCapCurrent quote: ${JSON.stringify(e)}`)
+    logger('No coinMarketCapCurrent quote:', e)
   }
   return rates
 }
@@ -169,7 +169,7 @@ const coinMarketCapHistorical = async (
     // Create return object
     rates[date] = coinMarketCapHistoricalRateMap(json.data, assetMap)
   } catch (e) {
-    logger(`No CoinMarketCapHistorical quote: ${JSON.stringify(e)}`)
+    logger('No CoinMarketCapHistorical quote:', e)
   }
   return rates
 }
@@ -210,7 +210,7 @@ export const coinMarketCap = async (
     const response = await Promise.all(providers)
     combineRates(rates, response)
   } catch (e) {
-    logger('Failed to query coinMarketCapHistorical with error', e.message)
+    logger('Failed to query coinMarketCapHistorical with error', e)
   }
 
   return rates

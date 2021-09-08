@@ -81,6 +81,7 @@ export const logger = (...args): void => {
   let result = `${isoDate} - `
   for (const arg of args) {
     if (typeof arg === 'string') result += `${arg}, `
+    else if (arg instanceof Error) result += arg.message
     else result += `\n${JSON.stringify(arg)}`
   }
   console.log(result)

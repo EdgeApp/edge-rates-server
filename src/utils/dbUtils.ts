@@ -45,8 +45,7 @@ export const saveToDb = (
         )
     })
     .catch(e => {
-      console.log(e.message)
-      logger(e.message)
+      logger(e)
       slackPoster(config.slackWebhookUrl, e).catch(e)
     })
 }

@@ -87,7 +87,7 @@ export const nomics = async (
       // Create return object
       rates[currentTime] = nomicsRateMap(json)
     } catch (e) {
-      logger(`No Nomics quote: ${JSON.stringify(e)}`)
+      logger('No Nomics quote:', e)
     }
   return rates
 }

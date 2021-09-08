@@ -110,7 +110,7 @@ export const openExchangeRates = async (
     const response = await Promise.all(providers)
     combineRates(rates, response)
   } catch (e) {
-    logger('Failed to query openExchangeRates with error', e.message)
+    logger('Failed to query openExchangeRates with error', e)
   }
 
   return rates
