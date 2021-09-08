@@ -172,7 +172,7 @@ export const getExchangeRates = async (
           currency_pair: '',
           date: '',
           exchangeRate: '',
-          error: e
+          error: e instanceof Error ? e : undefined
         }
       ],
       documents: []
