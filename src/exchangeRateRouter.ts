@@ -1,10 +1,11 @@
-import { asArray, asObject, asOptional, asString } from 'cleaners'
+import { asArray, asMaybe, asObject, asOptional, asString } from 'cleaners'
 import express from 'express'
 import nano from 'nano'
 import promisify from 'promisify-node'
 
 import { config } from './config'
-import { getExchangeRates } from './rates'
+import { asReturnGetRate, getExchangeRates } from './rates'
+import { asExtendedReq } from './utils/asExtendedReq'
 import { DbDoc } from './utils/dbUtils'
 import {
   addIso,
@@ -25,7 +26,13 @@ const asExchangeRatesReq = asObject({
   data: asArray(asExchangeRateReq)
 })
 
+const asRatesRequest = asExtendedReq({
+  requestedRates: asOptional(asExchangeRatesReq),
+  requestedRatesResult: asOptional(asReturnGetRate)
+})
+
 export type ExchangeRateReq = ReturnType<typeof asExchangeRateReq>
+export type ExchangeRatesReq = ReturnType<typeof asExchangeRatesReq>
 
 const { couchUri, fiatCurrencyCodes: FIAT_CODES } = config
 const EXCHANGE_RATES_BATCH_LIMIT = 100
@@ -53,37 +60,52 @@ const isIsoPair = (pair: string): boolean =>
 
 // *** MIDDLEWARE ***
 
-const v1ExchangeRateIsoAdder = (req: any, res: any, next: Function): void => {
-  req.requestedRates.data = req.requestedRates.data.map(req => ({
+const v1ExchangeRateIsoAdder: express.RequestHandler = (
+  req,
+  res,
+  next
+): void => {
+  const exReq = asMaybe(asRatesRequest)(req)
+  if (exReq?.requestedRates == null) return next(500)
+
+  exReq.requestedRates.data = exReq.requestedRates.data.map(req => ({
     currency_pair: maybeAddIsoToPair(req.currency_pair),
     date: req.date
   }))
+
   next()
 }
 
-const v1ExchangeRateIsoSubtractor = (
-  req: any,
-  res: any,
-  next: Function
+const v1ExchangeRateIsoSubtractor: express.RequestHandler = (
+  req,
+  res,
+  next
 ): void => {
-  req.requestedRatesResult.data = req.requestedRatesResult.data.map(rate => ({
-    currency_pair: removeIsoFromPair(rate.currency_pair),
-    date: rate.date,
-    exchangeRate: rate.exchangeRate,
-    error: rate.error
-  }))
+  const exReq = asMaybe(asRatesRequest)(req)
+  if (exReq?.requestedRatesResult == null) return next(500)
+
+  exReq.requestedRatesResult.data = exReq.requestedRatesResult.data.map(
+    rate => ({
+      ...rate,
+      currency_pair: removeIsoFromPair(rate.currency_pair)
+    })
+  )
+
   next()
 }
 
-const v1IsoChecker = (req: any, res: any, next: Function): void => {
+const v1IsoChecker: express.RequestHandler = (req, res, next): void => {
+  const exReq = asMaybe(asRatesRequest)(req)
+  if (exReq?.requestedRates == null) return next(500)
+
   if (
-    req.requestedRates.data.every(pair => !isIsoPair(pair.currency_pair)) !==
+    exReq.requestedRates.data.every(pair => isIsoPair(pair.currency_pair)) ===
     true
   ) {
-    return res
-      .status(400)
-      .send(`Please use v2 of this API to query with ISO codes`)
+    res.status(400).send(`Please use v2 of this API to query with ISO codes`)
+    return
   }
+
   next()
 }
 
@@ -91,57 +113,78 @@ const v1IsoChecker = (req: any, res: any, next: Function): void => {
 //  currency_pair: String with the two currencies separated by an underscore. Ex: "ETH_iso:USD"
 //  date: String (optional) ex. "2019-11-21T15:28:21.123Z"
 
-const exchangeRateCleaner = (req: any, res: any, next: Function): void => {
+const exchangeRateCleaner: express.RequestHandler = (req, res, next): void => {
+  const exReq = asMaybe(asRatesRequest)(req)
+  if (exReq == null) return next(500)
+
   const { currencyPair, date } = req.query
   try {
-    req.requestedRates = asExchangeRatesReq({
+    exReq.requestedRates = asExchangeRatesReq({
       data: [{ currency_pair: currencyPair, date }]
     })
   } catch (e) {
-    return res.status(400).send(`Missing Request fields.`)
+    res.status(400).send(`Missing Request fields.`)
+    return
   }
+
   next()
 }
 
 //  Query body:
 //  { data: [{ currency_pair: string, date? string) }] }
 
-const exchangeRatesCleaner = (req: any, res: any, next: Function): void => {
+const exchangeRatesCleaner: express.RequestHandler = (req, res, next): void => {
+  const exReq = asRatesRequest(req)
+  if (exReq == null) return next(500)
+
   try {
-    req.requestedRates = asExchangeRatesReq(req.body)
+    exReq.requestedRates = asExchangeRatesReq(exReq.body)
   } catch (e) {
-    return res.status(400).send(`Missing Request fields.`)
+    res.status(400).send(`Missing Request fields.`)
+    return
   }
-  if (req.requestedRates.data.length > EXCHANGE_RATES_BATCH_LIMIT) {
-    return res
-      .status(400)
-      .send(`Exceeded Limit of ${EXCHANGE_RATES_BATCH_LIMIT}`)
+  if (exReq.requestedRates.data.length > EXCHANGE_RATES_BATCH_LIMIT) {
+    res.status(400).send(`Exceeded Limit of ${EXCHANGE_RATES_BATCH_LIMIT}`)
+    return
   }
+
+  //
   next()
 }
 
-const queryExchangeRates = async (
-  req: any,
-  res: any,
-  next: Function
+const queryExchangeRates: express.RequestHandler = async (
+  req,
+  res,
+  next
 ): Promise<void> => {
+  const exReq = asMaybe(asRatesRequest)(req)
+  if (exReq?.requestedRates == null) return next(500)
+
   try {
-    req.requestedRatesResult = await getExchangeRates(
-      req.requestedRates.data,
+    exReq.requestedRatesResult = await getExchangeRates(
+      exReq.requestedRates.data,
       dbRates
     )
   } catch (e) {
     res.status(400).send(e instanceof Error ? e.message : 'Malformed request')
   }
+
+  //
   next()
 }
 
-const sendExchangeRate = (req: any, res: any): void => {
-  res.json(req.requestedRatesResult.data[0])
+const sendExchangeRate: express.RequestHandler = (req, res, next): void => {
+  const exReq = asMaybe(asRatesRequest)(req)
+  if (exReq?.requestedRatesResult == null) return next(500)
+
+  res.json(exReq.requestedRatesResult.data[0])
 }
 
-const sendExchangeRates = (req: any, res: any): void => {
-  res.json({ data: req.requestedRatesResult.data })
+const sendExchangeRates: express.RequestHandler = (req, res, next): void => {
+  const exReq = asMaybe(asRatesRequest)(req)
+  if (exReq?.requestedRatesResult == null) return next(500)
+
+  res.json({ data: exReq.requestedRatesResult.data })
 }
 
 // *** ROUTES ***

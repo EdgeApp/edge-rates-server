@@ -1,4 +1,12 @@
 import { div, eq, mul } from 'biggystring'
+import {
+  asArray,
+  asEither,
+  asNull,
+  asObject,
+  asOptional,
+  asString
+} from 'cleaners'
 import nano from 'nano'
 
 import { config } from './config'
@@ -15,7 +23,13 @@ import {
 import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
 import { wazirx } from './providers/wazirx'
-import { DbDoc, getEdgeAssetDoc, getFromDb, saveToDb } from './utils/dbUtils'
+import {
+  asDbDoc,
+  DbDoc,
+  getEdgeAssetDoc,
+  getFromDb,
+  saveToDb
+} from './utils/dbUtils'
 import {
   checkConstantCode,
   currencyCodeArray,
@@ -38,11 +52,23 @@ export interface ReturnGetRate {
   documents: DbDoc[]
 }
 
+export const asReturnGetRate = asObject({
+  data: asArray(
+    asObject<ReturnRate>({
+      currency_pair: asString,
+      date: asString,
+      exchangeRate: asEither(asString, asNull),
+      error: asOptional(asString)
+    })
+  ),
+  documents: asArray(asDbDoc)
+})
+
 export interface ReturnRate {
   currency_pair: string
   date: string
   exchangeRate: string | null
-  error?: Error
+  error?: string
 }
 
 export interface RateMap {
@@ -172,7 +198,7 @@ export const getExchangeRates = async (
           currency_pair: '',
           date: '',
           exchangeRate: '',
-          error: e instanceof Error ? e : undefined
+          error: e instanceof Error ? e.message : 'Unknown error'
         }
       ],
       documents: []
