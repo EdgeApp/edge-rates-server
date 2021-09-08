@@ -125,10 +125,14 @@ const queryExchangeRates = async (
   res: any,
   next: Function
 ): Promise<void> => {
-  req.requestedRatesResult = await getExchangeRates(
-    req.requestedRates.data,
-    dbRates
-  )
+  try {
+    req.requestedRatesResult = await getExchangeRates(
+      req.requestedRates.data,
+      dbRates
+    )
+  } catch (e) {
+    res.status(400).send(e instanceof Error ? e.message : 'Malformed request')
+  }
   next()
 }
 

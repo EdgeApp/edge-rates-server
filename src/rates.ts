@@ -264,37 +264,32 @@ interface RateParamReturn {
 }
 
 export const asRateParam = (param: any): RateParamReturn => {
-  try {
-    const { currency_pair: currencyPair, date } = asExchangeRateReq(param)
-    let dateStr: string
-    if (typeof date === 'string') {
-      dateStr = date
-    } else {
-      dateStr = new Date().toISOString()
-    }
-    if (typeof currencyPair !== 'string' || typeof dateStr !== 'string') {
-      throw new Error(
-        'Missing or invalid query param(s): currency_pair and date should both be strings'
-      )
-    }
-    const currencyTokens = currencyCodeArray(currencyPair)
-    if (currencyTokens.length !== 2) {
-      throw new Error(
-        'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_iso:USD"'
-      )
-    }
-    const parsedDate = normalizeDate(dateStr)
-    if (parsedDate == null) {
-      throw new Error(
-        'date query param malformed.  should be conventional date string, ex:"2019-11-21T15:28:21.123Z"'
-      )
-    }
-    if (Date.parse(parsedDate) > Date.now()) {
-      throw new Error('Future date received. Must send past date.')
-    }
-    return { currencyPair, date: parsedDate }
-  } catch (e) {
-    e.errorCode = 400
-    throw e
+  const { currency_pair: currencyPair, date } = asExchangeRateReq(param)
+  let dateStr: string
+  if (typeof date === 'string') {
+    dateStr = date
+  } else {
+    dateStr = new Date().toISOString()
   }
+  if (typeof currencyPair !== 'string' || typeof dateStr !== 'string') {
+    throw new Error(
+      'Missing or invalid query param(s): currency_pair and date should both be strings'
+    )
+  }
+  const currencyTokens = currencyCodeArray(currencyPair)
+  if (currencyTokens.length !== 2) {
+    throw new Error(
+      'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_iso:USD"'
+    )
+  }
+  const parsedDate = normalizeDate(dateStr)
+  if (parsedDate == null) {
+    throw new Error(
+      'date query param malformed.  should be conventional date string, ex:"2019-11-21T15:28:21.123Z"'
+    )
+  }
+  if (Date.parse(parsedDate) > Date.now()) {
+    throw new Error('Future date received. Must send past date.')
+  }
+  return { currencyPair, date: parsedDate }
 }
