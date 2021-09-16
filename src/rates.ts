@@ -192,6 +192,7 @@ export const getExchangeRates = async (
     )
     return out
   } catch (e) {
+    console.log(e)
     return {
       data: [
         {

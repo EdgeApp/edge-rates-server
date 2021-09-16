@@ -178,14 +178,18 @@ export const memoize = <T>(
   const cache: { [key: string]: T } | {} = {}
   const expiration: { [key: string]: number } = {}
   return async (...args) => {
-    if (expiration[key] == null || expiration[key] < Date.now()) {
-      console.log('Updating ' + key + ' cache...')
+    try {
+      if (expiration[key] == null || expiration[key] < Date.now()) {
+        console.log('Updating ' + key + ' cache...')
 
-      const res = await func(...args)
-      if (res != null) {
-        cache[key] = res
-        expiration[key] = Date.now() + timeLimit
+        const res = await func(...args)
+        if (res != null) {
+          cache[key] = res
+          expiration[key] = Date.now() + timeLimit
+        }
       }
+    } catch (e) {
+      logger('memoize', key, e)
     }
     return cache[key] ?? {}
   }
