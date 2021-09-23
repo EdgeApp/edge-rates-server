@@ -10,7 +10,7 @@ import {
   createReducedRateMapArray,
   fromCode,
   fromCryptoToFiatCurrencyPair,
-  isFiatCode,
+  isIsoCode,
   logger,
   memoize
 } from './../utils/utils'
@@ -84,7 +84,7 @@ const currentQuery = async (
     // Add to return object
     rates[date] = coincapCurrentRateMap(json.data)
   } catch (e) {
-    logger(`No coincapCurrent quote: ${JSON.stringify(e)}`)
+    logger('No coincapCurrent quote:', e)
   }
 
   return rates
@@ -117,7 +117,7 @@ const historicalQuery = async (
     rates[date][fromCryptoToFiatCurrencyPair(code, 'USD')] =
       json.data[0].priceUsd
   } catch (e) {
-    logger(`No coincapHistorical quote: ${JSON.stringify(e)}`)
+    logger('No coincapHistorical quote:', e)
   }
   return rates
 }
@@ -138,7 +138,7 @@ export const coincap = async (
       datesAndCodesWanted[pair.date] = []
     }
     const fromCurrency = fromCode(pair.currency_pair)
-    if (!isFiatCode(fromCurrency)) {
+    if (!isIsoCode(fromCurrency)) {
       datesAndCodesWanted[pair.date].push(fromCurrency)
     }
   }
@@ -158,7 +158,7 @@ export const coincap = async (
     const response = await Promise.all(providers)
     combineRates(rates, response)
   } catch (e) {
-    logger('Failed to query coincap with error', e.message)
+    logger('Failed to query coincap with error', e)
   }
 
   return rates

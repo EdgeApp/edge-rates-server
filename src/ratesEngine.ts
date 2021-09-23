@@ -11,7 +11,7 @@ const {
   defaultFiatCode: DEFAULT_FIAT
 } = config
 
-const endPoint = `${ratesServerAddress}/v1/exchangeRates`
+const endPoint = `${ratesServerAddress}/v2/exchangeRates`
 
 const LOOP_DELAY = 1000 * 60 // Delay 1 minute
 const bridgeCurrency = DEFAULT_FIAT

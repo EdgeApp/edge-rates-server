@@ -54,7 +54,7 @@ export const compound = async (
 
     rates[currentTime] = compoundRateMap(json.cToken)
   } catch (e) {
-    logger(`No Compound quote: ${JSON.stringify(e)}`)
+    logger('No Compound quote:', e)
   }
   return rates
 }

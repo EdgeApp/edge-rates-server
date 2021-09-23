@@ -9,7 +9,7 @@ import {
   createReducedRateMapArray,
   fromCode,
   fromCryptoToFiatCurrencyPair,
-  isFiatCode,
+  isIsoCode,
   logger,
   memoize,
   subIso
@@ -59,7 +59,7 @@ export const nomics = async (
   for (const request of requestedRates) {
     if (request.date !== currentTime) continue
     const fromCurrency = fromCode(request.currency_pair)
-    if (!isFiatCode(fromCurrency))
+    if (!isIsoCode(fromCurrency))
       codesWanted.push(overrideCode(fromCurrency, assetMap))
   }
 
@@ -87,7 +87,7 @@ export const nomics = async (
       // Create return object
       rates[currentTime] = nomicsRateMap(json)
     } catch (e) {
-      logger(`No Nomics quote: ${JSON.stringify(e)}`)
+      logger('No Nomics quote:', e)
     }
   return rates
 }

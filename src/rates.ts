@@ -1,8 +1,16 @@
 import { div, eq, mul } from 'biggystring'
-import { asObject, asOptional, asString } from 'cleaners'
+import {
+  asArray,
+  asEither,
+  asNull,
+  asObject,
+  asOptional,
+  asString
+} from 'cleaners'
 import nano from 'nano'
 
 import { config } from './config'
+import { asExchangeRateReq, ExchangeRateReq } from './exchangeRateRouter'
 import { coincap } from './providers/coincap'
 import { coinMarketCap } from './providers/coinMarketCap'
 import { coinmonitor } from './providers/coinmonitor'
@@ -15,7 +23,13 @@ import {
 import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
 import { wazirx } from './providers/wazirx'
-import { DbDoc, getEdgeAssetDoc, getFromDb, saveToDb } from './utils/dbUtils'
+import {
+  asDbDoc,
+  DbDoc,
+  getEdgeAssetDoc,
+  getFromDb,
+  saveToDb
+} from './utils/dbUtils'
 import {
   checkConstantCode,
   currencyCodeArray,
@@ -33,22 +47,28 @@ const { bridgeCurrencies } = config
 
 const PRECISION = 20
 
-type ErrorType = 'not_found' | 'conflict' | 'db_error'
-interface RateError extends Error {
-  errorCode?: number
-  errorType?: ErrorType
-}
-
 export interface ReturnGetRate {
   data: ReturnRate[]
   documents: DbDoc[]
 }
 
+export const asReturnGetRate = asObject({
+  data: asArray(
+    asObject<ReturnRate>({
+      currency_pair: asString,
+      date: asString,
+      exchangeRate: asEither(asString, asNull),
+      error: asOptional(asString)
+    })
+  ),
+  documents: asArray(asDbDoc)
+})
+
 export interface ReturnRate {
   currency_pair: string
   date: string
   exchangeRate: string | null
-  error?: Error
+  error?: string
 }
 
 export interface RateMap {
@@ -142,7 +162,7 @@ const getRatesFromProviders = async (
 }
 
 export const getExchangeRates = async (
-  query: Array<ReturnType<typeof asExchangeRateReq>>,
+  query: ExchangeRateReq[],
   localDb: nano.DocumentScope<DbDoc>
 ): Promise<ReturnGetRate> => {
   try {
@@ -178,7 +198,7 @@ export const getExchangeRates = async (
           currency_pair: '',
           date: '',
           exchangeRate: '',
-          error: e
+          error: e instanceof Error ? e.message : 'Unknown error'
         }
       ],
       documents: []
@@ -264,48 +284,38 @@ export const currencyBridgeDB = (
   }
 }
 
-export const asExchangeRateReq = asObject({
-  currency_pair: asString,
-  date: asOptional(asString)
-})
-
 interface RateParamReturn {
   currencyPair: string
   date: string
 }
 
 export const asRateParam = (param: any): RateParamReturn => {
-  try {
-    const { currency_pair: currencyPair, date } = asExchangeRateReq(param)
-    let dateStr: string
-    if (typeof date === 'string') {
-      dateStr = date
-    } else {
-      dateStr = new Date().toISOString()
-    }
-    if (typeof currencyPair !== 'string' || typeof dateStr !== 'string') {
-      throw new Error(
-        'Missing or invalid query param(s): currency_pair and date should both be strings'
-      )
-    }
-    const currencyTokens = currencyCodeArray(currencyPair)
-    if (currencyTokens.length !== 2) {
-      throw new Error(
-        'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_iso:USD"'
-      )
-    }
-    const parsedDate = normalizeDate(dateStr)
-    if (parsedDate == null) {
-      throw new Error(
-        'date query param malformed.  should be conventional date string, ex:"2019-11-21T15:28:21.123Z"'
-      )
-    }
-    if (Date.parse(parsedDate) > Date.now()) {
-      throw new Error('Future date received. Must send past date.')
-    }
-    return { currencyPair, date: parsedDate }
-  } catch (e) {
-    e.errorCode = 400
-    throw e
+  const { currency_pair: currencyPair, date } = asExchangeRateReq(param)
+  let dateStr: string
+  if (typeof date === 'string') {
+    dateStr = date
+  } else {
+    dateStr = new Date().toISOString()
   }
+  if (typeof currencyPair !== 'string' || typeof dateStr !== 'string') {
+    throw new Error(
+      'Missing or invalid query param(s): currency_pair and date should both be strings'
+    )
+  }
+  const currencyTokens = currencyCodeArray(currencyPair)
+  if (currencyTokens.length !== 2) {
+    throw new Error(
+      'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_iso:USD"'
+    )
+  }
+  const parsedDate = normalizeDate(dateStr)
+  if (parsedDate == null) {
+    throw new Error(
+      'date query param malformed.  should be conventional date string, ex:"2019-11-21T15:28:21.123Z"'
+    )
+  }
+  if (Date.parse(parsedDate) > Date.now()) {
+    throw new Error('Future date received. Must send past date.')
+  }
+  return { currencyPair, date: parsedDate }
 }

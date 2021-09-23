@@ -28,7 +28,7 @@ const wazirx = async (
     const json = asWazirxResponse(await response.json())
     rates[currentTime] = wazirxRateMap(json)
   } catch (e) {
-    logger(`No wazirx quote: ${e.message}`)
+    logger('No wazirx quote:', e)
   }
   return rates
 }

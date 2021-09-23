@@ -81,6 +81,7 @@ export const logger = (...args): void => {
   let result = `${isoDate} - `
   for (const arg of args) {
     if (typeof arg === 'string') result += `${arg}, `
+    else if (arg instanceof Error) result += arg.message
     else result += `\n${JSON.stringify(arg)}`
   }
   console.log(result)
@@ -89,12 +90,12 @@ export const logger = (...args): void => {
 type IsoOp = (code: string) => string
 type IsoOpObject = (code: any) => string
 
-export const isFiatCode = (code: string): boolean => code.indexOf('iso:') === 0
+export const isIsoCode = (code: string): boolean => code.indexOf('iso:') === 0
 
 export const subIso: IsoOp = code =>
-  isFiatCode(code) ? code.split(':')[1] : code
+  isIsoCode(code) ? code.split(':')[1] : code
 
-export const addIso: IsoOp = code => (!isFiatCode(code) ? `iso:${code}` : code)
+export const addIso: IsoOp = code => (!isIsoCode(code) ? `iso:${code}` : code)
 
 export const toCurrencyPair = (
   codeA: string,

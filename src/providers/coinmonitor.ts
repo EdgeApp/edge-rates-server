@@ -28,7 +28,7 @@ const coinmonitor = async (
     const json = asCoinmonitorTickerResponse(await response.json())
     rates[currentTime] = coinmonitorRateMap(json)
   } catch (e) {
-    logger(`No coinmonitor quote: ${e.message}`)
+    logger(`No coinmonitor quote`, e)
   }
 
   return rates

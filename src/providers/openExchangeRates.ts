@@ -9,7 +9,7 @@ import {
   dateOnly,
   fromCode,
   fromCryptoToFiatCurrencyPair,
-  isFiatCode,
+  isIsoCode,
   logger,
   subIso,
   toCode
@@ -89,13 +89,13 @@ export const openExchangeRates = async (
     const fromCurrency = fromCode(pair.currency_pair)
     const toCurrency = toCode(pair.currency_pair)
     if (
-      isFiatCode(fromCurrency) &&
+      isIsoCode(fromCurrency) &&
       datesAndCodesWanted[pair.date].indexOf(fromCurrency) === -1
     ) {
       datesAndCodesWanted[pair.date].push(subIso(fromCurrency))
     }
     if (
-      isFiatCode(toCurrency) &&
+      isIsoCode(toCurrency) &&
       datesAndCodesWanted[pair.date].indexOf(toCurrency) === -1
     ) {
       datesAndCodesWanted[pair.date].push(subIso(toCurrency))
@@ -110,7 +110,7 @@ export const openExchangeRates = async (
     const response = await Promise.all(providers)
     combineRates(rates, response)
   } catch (e) {
-    logger('Failed to query openExchangeRates with error', e.message)
+    logger('Failed to query openExchangeRates with error', e)
   }
 
   return rates

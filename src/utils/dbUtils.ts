@@ -1,3 +1,4 @@
+import { asBoolean, asMaybe, asObject, asOptional, asString } from 'cleaners'
 import nano from 'nano'
 import promisify from 'promisify-node'
 
@@ -13,6 +14,13 @@ export interface DbDoc
     nano.MaybeRevisionedDocument {
   [pair: string]: any
   updated?: boolean
+}
+
+export const asDbDoc = (raw): DbDoc => {
+  return {
+    ...asObject({ updated: asOptional(asBoolean), _id: asString })(raw),
+    ...asObject(asMaybe(asString))(raw)
+  }
 }
 
 const { couchUri } = config
@@ -45,8 +53,7 @@ export const saveToDb = (
         )
     })
     .catch(e => {
-      console.log(e.message)
-      logger(e.message)
+      logger(e)
       slackPoster(config.slackWebhookUrl, e).catch(e)
     })
 }
