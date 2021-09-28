@@ -38,6 +38,7 @@ import {
   haveEveryRate,
   invertPair,
   isNotANumber,
+  logger,
   normalizeDate,
   toCode,
   toCurrencyPair
@@ -192,6 +193,7 @@ export const getExchangeRates = async (
     )
     return out
   } catch (e) {
+    logger('getExchangeRates', e)
     return {
       data: [
         {
