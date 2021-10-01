@@ -23,6 +23,7 @@ import {
 import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
 import { wazirx } from './providers/wazirx'
+import { hgetallAsync } from './uidEngine'
 import {
   asDbDoc,
   DbDoc,
@@ -141,7 +142,9 @@ const getRatesFromProviders = async (
     openExchangeRates
   ]
 
-  const { constantCurrencyCodes = {} } = edgeAssetMap
+  let constantCurrencyCodes = await hgetallAsync('constantCurrencyCodes')
+  if (constantCurrencyCodes == null)
+    ({ constantCurrencyCodes = {} } = edgeAssetMap)
 
   for (const provider of rateProviders) {
     console.time(`Queried ${provider.name}`)
@@ -149,7 +152,7 @@ const getRatesFromProviders = async (
       await provider(
         getNullRateArray(rateObj.data),
         currentTime,
-        edgeAssetMap[provider.name] ?? {}
+        (await hgetallAsync(provider.name)) ?? edgeAssetMap[provider.name] ?? {}
       ),
       rateObj.documents,
       provider.name
