@@ -5,13 +5,11 @@ import { config } from '../config'
 import { AssetMap, NewRates, ReturnRate } from '../rates'
 import {
   assetMapReducer,
-  createAssetMaps,
   createReducedRateMapArray,
   fromCode,
   fromCryptoToFiatCurrencyPair,
   isIsoCode,
   logger,
-  memoize,
   subIso
 } from './../utils/utils'
 
@@ -47,8 +45,6 @@ export const nomics = async (
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }
 
-  const assetMap = await createAssetMaps(edgeAssetMap, nomicsAssets)
-
   if (apiKey == null) {
     logger('No Nomics API key')
     return rates
@@ -60,7 +56,7 @@ export const nomics = async (
     if (request.date !== currentTime) continue
     const fromCurrency = fromCode(request.currency_pair)
     if (!isIsoCode(fromCurrency))
-      codesWanted.push(overrideCode(fromCurrency, assetMap))
+      codesWanted.push(overrideCode(fromCurrency, edgeAssetMap))
   }
 
   // Query
@@ -99,7 +95,7 @@ const asNomicsAssetResponse = asArray(
   })
 )
 
-export const nomicsAssets = memoize(async (): Promise<AssetMap> => {
+export const nomicsAssets = async (): Promise<AssetMap> => {
   const response = await fetch(
     `${uri}/v1/currencies/ticker?key=${apiKey}&sort=rank&status=active`
   )
@@ -113,4 +109,4 @@ export const nomicsAssets = memoize(async (): Promise<AssetMap> => {
   }
 
   return assetMapReducer(asNomicsAssetResponse(await response.json()))
-}, 'nomics')
+}

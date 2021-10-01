@@ -6,13 +6,11 @@ import { AssetMap, NewRates, ReturnRate } from './../rates'
 import {
   assetMapReducer,
   combineRates,
-  createAssetMaps,
   createReducedRateMap,
   fromCode,
   fromCryptoToFiatCurrencyPair,
   isIsoCode,
   logger,
-  memoize,
   subIso
 } from './../utils/utils'
 
@@ -181,8 +179,6 @@ export const coinMarketCap = async (
 ): Promise<NewRates> => {
   const rates = {}
 
-  const assetMap = await createAssetMaps(edgeAssetMap, coinMarketCapAssets)
-
   if (historicalApiKey == null) {
     logger('No coinMarketCapHistorical API key')
     return rates
@@ -192,19 +188,23 @@ export const coinMarketCap = async (
   const datesAndCodesWanted: { [key: string]: string[] } = {}
   for (const pair of rateObj) {
     const fromCurrency = fromCode(pair.currency_pair)
-    if (!isIsoCode(fromCurrency) && hasUniqueId(fromCurrency, assetMap)) {
+    if (!isIsoCode(fromCurrency) && hasUniqueId(fromCurrency, edgeAssetMap)) {
       if (datesAndCodesWanted[pair.date] == null) {
         datesAndCodesWanted[pair.date] = []
       }
-      datesAndCodesWanted[pair.date].push(assetMap[fromCurrency])
+      datesAndCodesWanted[pair.date].push(edgeAssetMap[fromCurrency])
     }
   }
 
   // Query
   const providers = Object.keys(datesAndCodesWanted).map(async date => {
     if (date === currentTime)
-      return coinMarketCapCurrent(date, datesAndCodesWanted[date], assetMap)
-    return coinMarketCapHistorical(date, datesAndCodesWanted[date], assetMap)
+      return coinMarketCapCurrent(date, datesAndCodesWanted[date], edgeAssetMap)
+    return coinMarketCapHistorical(
+      date,
+      datesAndCodesWanted[date],
+      edgeAssetMap
+    )
   })
   try {
     const response = await Promise.all(providers)
@@ -220,7 +220,7 @@ const asCoinMarketCapAssetResponse = asObject({
   data: asArray(asObject({ id: asNumber, symbol: asString }))
 })
 
-export const coinMarketCapAssets = memoize(async (): Promise<AssetMap> => {
+export const coinMarketCapAssets = async (): Promise<AssetMap> => {
   const response = await fetch(
     `${historicalUri}/v1/cryptocurrency/map?limit=5000`,
     HISTORICAL_OPTIONS
@@ -232,4 +232,4 @@ export const coinMarketCapAssets = memoize(async (): Promise<AssetMap> => {
   return assetMapReducer(
     asCoinMarketCapAssetResponse(await response.json()).data
   )
-}, 'coinMarketCap')
+}
