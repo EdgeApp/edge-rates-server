@@ -195,9 +195,23 @@ export const memoize = <T>(
   }
 }
 
+const mutexMap = {}
+
 export const createAssetMaps = async (
   edgeMap: AssetMap,
   func: () => Promise<AssetMap>
 ): Promise<AssetMap> => {
-  return assetMapCombiner(edgeMap, await func())
+  if (mutexMap[func.name] === true)
+    throw new Error(`createAssetMaps ${func.name} query already in progress `)
+  mutexMap[func.name] = true
+
+  try {
+    const newAssets = await func()
+    return assetMapCombiner(edgeMap, newAssets)
+  } catch (e) {
+    logger('createAssetMaps ', func.name, e)
+    throw e
+  } finally {
+    mutexMap[func.name] = false
+  }
 }
