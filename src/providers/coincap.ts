@@ -10,7 +10,8 @@ import {
   fromCode,
   fromCryptoToFiatCurrencyPair,
   isIsoCode,
-  logger
+  logger,
+  snooze
 } from './../utils/utils'
 
 /*
@@ -167,10 +168,15 @@ const asCoincapAssetResponse = asObject({
 })
 
 export const coincapAssets = async (): Promise<AssetMap> => {
-  const response = await fetch(`${uri}/v2/assets?limit=2000`)
-  if (response.ok === false) {
-    throw new Error(response.status)
+  while (true) {
+    const response = await fetch(`${uri}/v2/assets?limit=2000`)
+    if (response.status === 429) {
+      await snooze(1000) // rate limits reset every minute
+      continue // retry
+    }
+    if (response.ok === false) {
+      throw new Error(response.status)
+    }
+    return assetMapReducer(asCoincapAssetResponse(await response.json()).data)
   }
-
-  return assetMapReducer(asCoincapAssetResponse(await response.json()).data)
 }
