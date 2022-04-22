@@ -10,6 +10,7 @@
   },
   "plugins": ["simple-import-sort"],
   "rules": {
+    "@typescript-eslint/camelcase": ["error", { "properties": "always", "allow": ["currency_pair"] }],
     "simple-import-sort/sort": "error"
   }
 }

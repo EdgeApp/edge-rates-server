@@ -117,10 +117,10 @@ const exchangeRateCleaner: express.RequestHandler = (req, res, next): void => {
   const exReq = asMaybe(asRatesRequest)(req)
   if (exReq == null) return next(500)
 
-  const { currencyPair, date } = req.query
+  const { currency_pair, date } = req.query
   try {
     exReq.requestedRates = asExchangeRatesReq({
-      data: [{ currency_pair: currencyPair, date }]
+      data: [{ currency_pair, date }]
     })
   } catch (e) {
     res.status(400).send(`Missing Request fields.`)
