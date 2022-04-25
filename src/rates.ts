@@ -147,7 +147,6 @@ const getRatesFromProviders = async (
     ({ constantCurrencyCodes = {} } = edgeAssetMap)
 
   for (const provider of rateProviders) {
-    console.time(`Queried ${provider.name}`)
     addNewRatesToDocs(
       await provider(
         getNullRateArray(rateObj.data),
@@ -158,7 +157,6 @@ const getRatesFromProviders = async (
       provider.name
     )
     currencyBridgeDB(rateObj, constantCurrencyCodes)
-    console.timeEnd(`Queried ${provider.name}`)
     if (haveEveryRate(rateObj.data)) break
   }
 
