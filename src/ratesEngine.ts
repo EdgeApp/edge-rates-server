@@ -1,8 +1,7 @@
 import fetch from 'node-fetch'
 
 import { config } from './config'
-import { existsAsync, hgetallAsync } from './uidEngine'
-import currencyCodeMaps from './utils/currencyCodeMaps.json'
+import { hgetallAsync } from './uidEngine'
 import { getEdgeAssetDoc } from './utils/dbUtils'
 import { snooze } from './utils/utils'
 
@@ -15,10 +14,8 @@ const {
 
 const endPoint = `${ratesServerAddress}/v2/exchangeRates`
 
-const UID_DELAY = 1000 * 60 * 60 * 24 // Delay 1 day
 const LOOP_DELAY = 1000 * 60 // Delay 1 minute
 const bridgeCurrency = DEFAULT_FIAT
-let cacheUpdateTimestamp = Date.now()
 
 interface pairQuery {
   currency_pair: string
@@ -61,13 +58,7 @@ export const ratesEngine = async (): Promise<void> => {
   }
   const currentDate = new Date().toISOString()
   const allCurrencies = await getCurrencyCodeList()
-  const keysExistPromises = Object.keys(currencyCodeMaps).map(async key =>
-    existsAsync(key)
-  )
-  const redisKeysExist = await Promise.all(keysExistPromises)
-  const msSinceLastUpdate = Date.now() - cacheUpdateTimestamp
-  const cacheNeedsUpdate =
-    redisKeysExist.includes(0) || msSinceLastUpdate > UID_DELAY
+
   try {
     const data: pairQuery[] = []
     for (const currencyCode of allCurrencies) {
@@ -77,11 +68,6 @@ export const ratesEngine = async (): Promise<void> => {
       })
     }
     while (data.length > 0) {
-      if (data.length <= 100 && cacheNeedsUpdate) {
-        headers['Cache-Control'] = 'no-cache'
-        cacheUpdateTimestamp = Date.now()
-        console.log('Cache to be updated')
-      }
       const response = await fetch(endPoint, {
         headers,
         method: 'POST',

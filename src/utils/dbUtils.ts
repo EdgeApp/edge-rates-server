@@ -106,6 +106,8 @@ export const saveToDb = (
     })
 }
 
+export const wrappedSaveToDb = (docs: DbDoc[]): void => saveToDb(dbRates, docs)
+
 export const getFromDb = async (
   localDb: nano.DocumentScope<DbDoc>,
   dates: string[]
@@ -129,6 +131,9 @@ export const getFromDb = async (
     return element.doc
   })
 }
+
+export const wrappedGetFromDb = async (dates: string[]): Promise<DbDoc[]> =>
+  getFromDb(dbRates, dates)
 
 const asCurrencyCodeMaps = asObject({
   constantCurrencyCodes: asMaybe(asObject(asString), {}),
