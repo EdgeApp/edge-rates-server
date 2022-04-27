@@ -6,13 +6,12 @@ import { AssetMap, NewRates, ReturnRate } from './../rates'
 import {
   assetMapReducer,
   combineRates,
-  createAssetMaps,
   createReducedRateMap,
   fromCode,
   fromCryptoToFiatCurrencyPair,
   isIsoCode,
   logger,
-  memoize,
+  snooze,
   subIso
 } from './../utils/utils'
 
@@ -181,8 +180,6 @@ export const coinMarketCap = async (
 ): Promise<NewRates> => {
   const rates = {}
 
-  const assetMap = await createAssetMaps(edgeAssetMap, coinMarketCapAssets)
-
   if (historicalApiKey == null) {
     logger('No coinMarketCapHistorical API key')
     return rates
@@ -192,19 +189,23 @@ export const coinMarketCap = async (
   const datesAndCodesWanted: { [key: string]: string[] } = {}
   for (const pair of rateObj) {
     const fromCurrency = fromCode(pair.currency_pair)
-    if (!isIsoCode(fromCurrency) && hasUniqueId(fromCurrency, assetMap)) {
+    if (!isIsoCode(fromCurrency) && hasUniqueId(fromCurrency, edgeAssetMap)) {
       if (datesAndCodesWanted[pair.date] == null) {
         datesAndCodesWanted[pair.date] = []
       }
-      datesAndCodesWanted[pair.date].push(assetMap[fromCurrency])
+      datesAndCodesWanted[pair.date].push(edgeAssetMap[fromCurrency])
     }
   }
 
   // Query
   const providers = Object.keys(datesAndCodesWanted).map(async date => {
     if (date === currentTime)
-      return coinMarketCapCurrent(date, datesAndCodesWanted[date], assetMap)
-    return coinMarketCapHistorical(date, datesAndCodesWanted[date], assetMap)
+      return coinMarketCapCurrent(date, datesAndCodesWanted[date], edgeAssetMap)
+    return coinMarketCapHistorical(
+      date,
+      datesAndCodesWanted[date],
+      edgeAssetMap
+    )
   })
   try {
     const response = await Promise.all(providers)
@@ -220,16 +221,22 @@ const asCoinMarketCapAssetResponse = asObject({
   data: asArray(asObject({ id: asNumber, symbol: asString }))
 })
 
-export const coinMarketCapAssets = memoize(async (): Promise<AssetMap> => {
-  const response = await fetch(
-    `${historicalUri}/v1/cryptocurrency/map?limit=5000`,
-    HISTORICAL_OPTIONS
-  )
-  if (response.ok === false) {
-    throw new Error(response.status)
-  }
+export const coinMarketCapAssets = async (): Promise<AssetMap> => {
+  while (true) {
+    const response = await fetch(
+      `${historicalUri}/v1/cryptocurrency/map?limit=5000`,
+      HISTORICAL_OPTIONS
+    )
+    if (response.status === 429) {
+      await snooze(1000) // rate limits reset every minute
+      continue // retry
+    }
+    if (response.ok === false) {
+      throw new Error(response.status)
+    }
 
-  return assetMapReducer(
-    asCoinMarketCapAssetResponse(await response.json()).data
-  )
-}, 'coinMarketCap')
+    return assetMapReducer(
+      asCoinMarketCapAssetResponse(await response.json()).data
+    )
+  }
+}

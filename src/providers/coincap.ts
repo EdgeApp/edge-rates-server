@@ -6,13 +6,12 @@ import { AssetMap, NewRates, ReturnRate } from '../rates'
 import {
   assetMapReducer,
   combineRates,
-  createAssetMaps,
   createReducedRateMapArray,
   fromCode,
   fromCryptoToFiatCurrencyPair,
   isIsoCode,
   logger,
-  memoize
+  snooze
 } from './../utils/utils'
 
 /*
@@ -129,8 +128,6 @@ export const coincap = async (
 ): Promise<NewRates> => {
   const rates = {}
 
-  const assetMap = await createAssetMaps(edgeAssetMap, coincapAssets)
-
   // Gather codes
   const datesAndCodesWanted: { [key: string]: string[] } = {}
   for (const pair of rateObj) {
@@ -147,10 +144,12 @@ export const coincap = async (
   const providers: Array<Promise<NewRates>> = []
   Object.keys(datesAndCodesWanted).forEach(date => {
     if (date === currentTime) {
-      providers.push(currentQuery(date, datesAndCodesWanted[date], assetMap))
+      providers.push(
+        currentQuery(date, datesAndCodesWanted[date], edgeAssetMap)
+      )
     } else {
       datesAndCodesWanted[date].forEach(code => {
-        providers.push(historicalQuery(date, code, assetMap))
+        providers.push(historicalQuery(date, code, edgeAssetMap))
       })
     }
   })
@@ -168,11 +167,16 @@ const asCoincapAssetResponse = asObject({
   data: asArray(asObject({ id: asString, symbol: asString }))
 })
 
-export const coincapAssets = memoize(async (): Promise<AssetMap> => {
-  const response = await fetch(`${uri}/v2/assets?limit=2000`)
-  if (response.ok === false) {
-    throw new Error(response.status)
+export const coincapAssets = async (): Promise<AssetMap> => {
+  while (true) {
+    const response = await fetch(`${uri}/v2/assets?limit=2000`)
+    if (response.status === 429) {
+      await snooze(1000) // rate limits reset every minute
+      continue // retry
+    }
+    if (response.ok === false) {
+      throw new Error(response.status)
+    }
+    return assetMapReducer(asCoincapAssetResponse(await response.json()).data)
   }
-
-  return assetMapReducer(asCoincapAssetResponse(await response.json()).data)
-}, 'coincap')
+}

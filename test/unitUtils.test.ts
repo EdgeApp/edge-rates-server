@@ -24,7 +24,8 @@ for (const test of fixtures.asRateParam) {
       try {
         result = asRateParam(input)
       } catch (e) {
-        result = e.message
+        if (e instanceof Error) result = e.message
+        else result = String(e)
       }
       if (typeof result !== 'string' && input.date == null) {
         result.date = 'variableDate'

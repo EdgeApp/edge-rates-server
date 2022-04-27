@@ -5,13 +5,11 @@ import { config } from '../config'
 import { AssetMap, NewRates, ReturnRate } from '../rates'
 import {
   assetMapReducer,
-  createAssetMaps,
   createReducedRateMapArray,
   fromCode,
   fromCryptoToFiatCurrencyPair,
   isIsoCode,
   logger,
-  memoize,
   subIso
 } from './../utils/utils'
 
@@ -47,8 +45,6 @@ export const nomics = async (
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }
 
-  const assetMap = await createAssetMaps(edgeAssetMap, nomicsAssets)
-
   if (apiKey == null) {
     logger('No Nomics API key')
     return rates
@@ -60,7 +56,7 @@ export const nomics = async (
     if (request.date !== currentTime) continue
     const fromCurrency = fromCode(request.currency_pair)
     if (!isIsoCode(fromCurrency))
-      codesWanted.push(overrideCode(fromCurrency, assetMap))
+      codesWanted.push(overrideCode(fromCurrency, edgeAssetMap))
   }
 
   // Query
@@ -99,18 +95,27 @@ const asNomicsAssetResponse = asArray(
   })
 )
 
-export const nomicsAssets = memoize(async (): Promise<AssetMap> => {
-  const response = await fetch(
-    `${uri}/v1/currencies/ticker?key=${apiKey}&sort=rank&status=active`
-  )
-  if (
-    response.status === 429 ||
-    response.status === 401 ||
-    response.ok === false
-  ) {
-    logger(`nomicsAssets returned code ${response.status}`)
-    throw new Error(response.statusText)
+export const nomicsAssets = async (): Promise<AssetMap> => {
+  let page = 1
+  let out: ReturnType<typeof asNomicsAssetResponse> = []
+  while (true) {
+    const response = await fetch(
+      `${uri}/v1/currencies/ticker?key=${apiKey}&sort=rank&status=active&page=${page}`
+    )
+    if (response.status === 429) continue // retry. 1 req/sec so no need to delay
+    if (response.status === 401 || response.ok === false) {
+      logger(`nomicsAssets returned code ${response.status}`)
+      throw new Error(response.statusText)
+    }
+    const json = asNomicsAssetResponse(await response.json())
+    out = [...out, ...json]
+    if (Object.keys(json).length < 100) break
+    // It's a long process so we should log the progress
+    console.log(
+      `Querying nomicsAssets page ${page}. Found ${out.length} assets so far`
+    )
+    page++
   }
-
-  return assetMapReducer(asNomicsAssetResponse(await response.json()))
-}, 'nomics')
+  console.log(`Finished nomicsAssets query found ${out.length} assets`)
+  return assetMapReducer(out)
+}

@@ -5,6 +5,7 @@ import promisify from 'promisify-node'
 
 import { config } from './config'
 import { asReturnGetRate, getExchangeRates } from './rates'
+import { uidEngine } from './uidEngine'
 import { asExtendedReq } from './utils/asExtendedReq'
 import { DbDoc } from './utils/dbUtils'
 import {
@@ -173,6 +174,19 @@ const queryExchangeRates: express.RequestHandler = async (
   next()
 }
 
+const updateUidCache: express.RequestHandler = async (
+  req,
+  res,
+  next
+): Promise<void> => {
+  const cacheControl = req.get('Cache-Control')
+  if (cacheControl === 'no-cache') {
+    await uidEngine()
+  }
+
+  next()
+}
+
 const sendExchangeRate: express.RequestHandler = (req, res, next): void => {
   const exReq = asMaybe(asRatesRequest)(req)
   if (exReq?.requestedRatesResult == null) return next(500)
@@ -197,6 +211,7 @@ export const exchangeRateRouterV1 = (): express.Router => {
     v1IsoChecker,
     v1ExchangeRateIsoAdder,
     queryExchangeRates,
+    updateUidCache,
     v1ExchangeRateIsoSubtractor,
     sendExchangeRate
   ])
@@ -206,6 +221,7 @@ export const exchangeRateRouterV1 = (): express.Router => {
     v1IsoChecker,
     v1ExchangeRateIsoAdder,
     queryExchangeRates,
+    updateUidCache,
     v1ExchangeRateIsoSubtractor,
     sendExchangeRates
   ])
@@ -219,12 +235,14 @@ export const exchangeRateRouterV2 = (): express.Router => {
   router.get('/exchangeRate', [
     exchangeRateCleaner,
     queryExchangeRates,
+    updateUidCache,
     sendExchangeRate
   ])
 
   router.post('/exchangeRates', [
     exchangeRatesCleaner,
     queryExchangeRates,
+    updateUidCache,
     sendExchangeRates
   ])
 
