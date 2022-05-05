@@ -52,21 +52,25 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
     const response = await fetch(
       `${uri}/api/v7/convert?q=${codes}&date=${dateOnly(date)}&apiKey=${apiKey}`
     )
-    const { status, error, results } = asCurrencyConverterResponse(
-      await response.json()
-    )
-    if (
-      (status != null && status !== 200) ||
-      (error != null && error !== '') ||
-      response.ok === false
-    ) {
+
+    if (response.ok === false) {
       logger(
         `currencyConverter returned code ${response.status} for ${codes} at ${date}`
       )
       throw new Error(
-        `currencyConverter returned with status: ${JSON.stringify(
-          status ?? response.status
-        )} and error: ${JSON.stringify(error)}`
+        `currencyConverter returned with status: ${response.status}`
+      )
+    }
+
+    const { status, error, results } = asCurrencyConverterResponse(
+      await response.json()
+    )
+    if ((status != null && status !== 200) || (error != null && error !== '')) {
+      logger(
+        `currencyConverter returned code ${status} for ${codes} at ${date}`
+      )
+      throw new Error(
+        `currencyConverter returned with status: ${status} and error: ${error}`
       )
     }
 

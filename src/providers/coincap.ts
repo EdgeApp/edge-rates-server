@@ -104,13 +104,13 @@ const historicalQuery = async (
         ONE_MINUTE}`,
       OPTIONS
     )
-    const json = asCoincapHistoricalResponse(await response.json())
     if (response.ok === false) {
       logger(
         `coincapHistorical returned code ${response.status} for ${id} at ${date}`
       )
       throw new Error(response.status)
     }
+    const json = asCoincapHistoricalResponse(await response.json())
 
     // Add to return object
     rates[date][fromCryptoToFiatCurrencyPair(code, 'USD')] =

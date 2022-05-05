@@ -50,17 +50,15 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
         DEFAULT_FIAT
       )}&symbols=${codeString}`
     )
-    const json = asOpenExchangeRatesResponse(await response.json())
     if (response.ok === false) {
       logger(
         `openExchangeRates returned code ${response.status} for ${codes} at ${date}`
       )
       throw new Error(
-        `openExchangeRates returned with status: ${JSON.stringify(
-          status ?? response.status
-        )} and error: ${JSON.stringify(response.statusText)}`
+        `openExchangeRates returned with status: ${response.status} and error: ${response.statusText}`
       )
     }
+    const json = asOpenExchangeRatesResponse(await response.json())
 
     // Create return object
     rates[date] = openExchangeRatesRateMap(json.rates)
