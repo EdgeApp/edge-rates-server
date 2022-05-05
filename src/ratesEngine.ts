@@ -3,7 +3,7 @@ import fetch from 'node-fetch'
 import { config } from './config'
 import { hgetallAsync } from './uidEngine'
 import { getEdgeAssetDoc } from './utils/dbUtils'
-import { snooze } from './utils/utils'
+import { logger, snooze } from './utils/utils'
 
 const {
   cryptoCurrencyCodes,
@@ -37,7 +37,7 @@ const getCurrencyCodeList = async (): Promise<string[]> => {
       ...fiatCurrencyCodesRedis
     ]
   } catch (e) {
-    console.log(
+    logger(
       `Could not get currency code list from Redis. Attempting to get it from DB.`
     )
     try {
@@ -46,16 +46,13 @@ const getCurrencyCodeList = async (): Promise<string[]> => {
         edgeDoc.fiatCurrencyCodes
       )
     } catch (e) {
-      console.log(`Could not get currency code list from DB. Using defaults.`)
+      logger(`Could not get currency code list from DB. Using defaults.`)
     }
   }
   return currencyCodes
 }
 
 export const ratesEngine = async (): Promise<void> => {
-  const headers = {
-    'Content-Type': 'application/json'
-  }
   const currentDate = new Date().toISOString()
   const allCurrencies = await getCurrencyCodeList()
 
@@ -67,24 +64,24 @@ export const ratesEngine = async (): Promise<void> => {
         date: currentDate
       })
     }
+    const promises: Array<Promise<any>> = []
     while (data.length > 0) {
-      const response = await fetch(endPoint, {
-        headers,
-        method: 'POST',
-        body: JSON.stringify({ data: data.splice(0, 100) })
-      })
-      if (response.ok === true) {
-        console.log(`Successfully saved new currencyPairs`)
-      } else {
-        console.log(`Could not save new currencyPairs`)
-      }
+      promises.push(
+        fetch(endPoint, {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          method: 'POST',
+          body: JSON.stringify({ data: data.splice(0, 100) })
+        }).catch(e => logger('ratesEngine query error', e))
+      )
     }
+    await Promise.all(promises)
   } catch (e) {
-    console.log(currentDate)
-    console.log(e)
+    logger('ratesEngine error: ', e)
   } finally {
-    console.log('SNOOZING ***********************************')
+    logger('RATES ENGINE SNOOZING **********************')
     await snooze(LOOP_DELAY)
-    ratesEngine().catch(e => console.log(e))
+    ratesEngine().catch(e => logger(e))
   }
 }
