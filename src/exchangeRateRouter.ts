@@ -34,6 +34,9 @@ const asRatesRequest = asExtendedReq({
 export type ExchangeRateReq = ReturnType<typeof asExchangeRateReq>
 export type ExchangeRatesReq = ReturnType<typeof asExchangeRatesReq>
 
+// Hack to add type definitions for middleware
+type ExpressRequest = ReturnType<typeof asRatesRequest> | void
+
 const { couchUri, fiatCurrencyCodes: FIAT_CODES } = config
 const EXCHANGE_RATES_BATCH_LIMIT = 100
 
@@ -65,7 +68,7 @@ const v1ExchangeRateIsoAdder: express.RequestHandler = (
   res,
   next
 ): void => {
-  const exReq = asMaybe(asRatesRequest)(req)
+  const exReq = req as ExpressRequest
   if (exReq?.requestedRates == null) return next(500)
 
   exReq.requestedRates.data = exReq.requestedRates.data.map(req => ({
@@ -81,7 +84,7 @@ const v1ExchangeRateIsoSubtractor: express.RequestHandler = (
   res,
   next
 ): void => {
-  const exReq = asMaybe(asRatesRequest)(req)
+  const exReq = req as ExpressRequest
   if (exReq?.requestedRatesResult == null) return next(500)
 
   exReq.requestedRatesResult.data = exReq.requestedRatesResult.data.map(
@@ -95,7 +98,7 @@ const v1ExchangeRateIsoSubtractor: express.RequestHandler = (
 }
 
 const v1IsoChecker: express.RequestHandler = (req, res, next): void => {
-  const exReq = asMaybe(asRatesRequest)(req)
+  const exReq = req as ExpressRequest
   if (exReq?.requestedRates == null) return next(500)
 
   if (
@@ -114,7 +117,7 @@ const v1IsoChecker: express.RequestHandler = (req, res, next): void => {
 //  date: String (optional) ex. "2019-11-21T15:28:21.123Z"
 
 const exchangeRateCleaner: express.RequestHandler = (req, res, next): void => {
-  const exReq = asMaybe(asRatesRequest)(req)
+  const exReq = req as ExpressRequest
   if (exReq == null) return next(500)
 
   const { currency_pair, date } = req.query
@@ -134,7 +137,7 @@ const exchangeRateCleaner: express.RequestHandler = (req, res, next): void => {
 //  { data: [{ currency_pair: string, date? string) }] }
 
 const exchangeRatesCleaner: express.RequestHandler = (req, res, next): void => {
-  const exReq = asRatesRequest(req)
+  const exReq = req as ExpressRequest
   if (exReq == null) return next(500)
 
   try {
@@ -157,7 +160,7 @@ const queryExchangeRates: express.RequestHandler = async (
   res,
   next
 ): Promise<void> => {
-  const exReq = asMaybe(asRatesRequest)(req)
+  const exReq = req as ExpressRequest
   if (exReq?.requestedRates == null) return next(500)
 
   try {
@@ -174,14 +177,14 @@ const queryExchangeRates: express.RequestHandler = async (
 }
 
 const sendExchangeRate: express.RequestHandler = (req, res, next): void => {
-  const exReq = asMaybe(asRatesRequest)(req)
+  const exReq = req as ExpressRequest
   if (exReq?.requestedRatesResult == null) return next(500)
 
   res.json(exReq.requestedRatesResult.data[0])
 }
 
 const sendExchangeRates: express.RequestHandler = (req, res, next): void => {
-  const exReq = asMaybe(asRatesRequest)(req)
+  const exReq = req as ExpressRequest
   if (exReq?.requestedRatesResult == null) return next(500)
 
   res.json({ data: exReq.requestedRatesResult.data })
