@@ -11,16 +11,28 @@ import {
   addIso,
   fromCode,
   isIsoCode,
+  normalizeDate,
   subIso,
   toCode,
   toCurrencyPair,
   toIsoPair
 } from './utils/utils'
 
-export const asExchangeRateReq = asObject({
-  currency_pair: asString,
-  date: asOptional(asString)
-})
+export interface ExchangeRateReq {
+  currency_pair: string
+  date: string
+}
+
+export const asExchangeRateReq = (obj): ExchangeRateReq => {
+  const thirtySecondsAgo = normalizeDate(
+    new Date().toISOString(),
+    30 * 1000 /* thirty seconds */
+  )
+  return asObject({
+    currency_pair: asString,
+    date: asMaybe(asString, thirtySecondsAgo)
+  })(obj)
+}
 
 const asExchangeRatesReq = asObject({
   data: asArray(asExchangeRateReq)
@@ -31,7 +43,6 @@ const asRatesRequest = asExtendedReq({
   requestedRatesResult: asOptional(asReturnGetRate)
 })
 
-export type ExchangeRateReq = ReturnType<typeof asExchangeRateReq>
 export type ExchangeRatesReq = ReturnType<typeof asExchangeRatesReq>
 
 // Hack to add type definitions for middleware

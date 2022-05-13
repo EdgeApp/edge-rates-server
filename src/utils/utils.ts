@@ -7,15 +7,17 @@ const { defaultFiatCode: DEFAULT_FIAT } = config
 
 /*
  * Returns string value of date "normalized" by floor'ing to nearest
- * hour and translating to UTC time.  Or returns undefined if dateSrc
+ * 30 seconds and translating to UTC time.  Or returns undefined if dateSrc
  * is invalid.
  */
-export function normalizeDate(dateSrc: string): string | void {
-  const dateNorm = new Date(dateSrc)
-  if (dateNorm.toString() === 'Invalid Date') {
-    return undefined
-  }
-  dateNorm.setSeconds(0)
+export function normalizeDate(dateSrc: string, backDateMs: number = 0): string {
+  const timestamp = Date.parse(dateSrc) - backDateMs
+  if (isNaN(timestamp))
+    throw new Error(
+      'date query param malformed.  should be conventional date string, ex:"2019-11-21T15:28:21.123Z"'
+    )
+  const dateNorm = new Date(timestamp - backDateMs)
+  dateNorm.setSeconds(dateNorm.getSeconds() < 30 ? 0 : 30)
   dateNorm.setMilliseconds(0)
   return dateNorm.toISOString()
 }

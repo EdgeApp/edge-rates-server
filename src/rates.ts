@@ -294,13 +294,8 @@ interface RateParamReturn {
 
 export const asRateParam = (param: any): RateParamReturn => {
   const { currency_pair: currencyPair, date } = asExchangeRateReq(param)
-  let dateStr: string
-  if (typeof date === 'string') {
-    dateStr = date
-  } else {
-    dateStr = new Date().toISOString()
-  }
-  if (typeof currencyPair !== 'string' || typeof dateStr !== 'string') {
+
+  if (typeof currencyPair !== 'string' || typeof date !== 'string') {
     throw new Error(
       'Missing or invalid query param(s): currency_pair and date should both be strings'
     )
@@ -311,7 +306,7 @@ export const asRateParam = (param: any): RateParamReturn => {
       'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_iso:USD"'
     )
   }
-  const parsedDate = normalizeDate(dateStr)
+  const parsedDate = normalizeDate(date)
   if (parsedDate == null) {
     throw new Error(
       'date query param malformed.  should be conventional date string, ex:"2019-11-21T15:28:21.123Z"'

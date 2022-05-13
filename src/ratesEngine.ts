@@ -3,7 +3,7 @@ import fetch from 'node-fetch'
 import { config } from './config'
 import { hgetallAsync } from './uidEngine'
 import { getEdgeAssetDoc } from './utils/dbUtils'
-import { logger, snooze } from './utils/utils'
+import { logger, normalizeDate, snooze } from './utils/utils'
 
 const {
   cryptoCurrencyCodes,
@@ -14,7 +14,7 @@ const {
 
 const endPoint = `${ratesServerAddress}/v2/exchangeRates`
 
-const LOOP_DELAY = 1000 * 60 // Delay 1 minute
+const LOOP_DELAY = 1000 * 30 // Delay 30 seconds
 const bridgeCurrency = DEFAULT_FIAT
 
 interface pairQuery {
@@ -53,7 +53,7 @@ const getCurrencyCodeList = async (): Promise<string[]> => {
 }
 
 export const ratesEngine = async (): Promise<void> => {
-  const currentDate = new Date().toISOString()
+  const currentDate = normalizeDate(new Date().toISOString())
   const allCurrencies = await getCurrencyCodeList()
 
   try {
