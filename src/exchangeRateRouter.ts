@@ -1,3 +1,4 @@
+import { mul } from 'biggystring'
 import { asArray, asMaybe, asObject, asOptional, asString } from 'cleaners'
 import express from 'express'
 import nano from 'nano'
@@ -5,6 +6,7 @@ import promisify from 'promisify-node'
 
 import { config } from './config'
 import { asReturnGetRate, getExchangeRates } from './rates'
+import { hmgetAsync } from './uidEngine'
 import { asExtendedReq } from './utils/asExtendedReq'
 import { DbDoc } from './utils/dbUtils'
 import {
@@ -166,6 +168,54 @@ const exchangeRatesCleaner: express.RequestHandler = (req, res, next): void => {
   next()
 }
 
+const queryRedis: express.RequestHandler = async (
+  req,
+  res,
+  next
+): Promise<void> => {
+  const exReq = req as ExpressRequest
+  if (exReq?.requestedRates == null) return next(500)
+
+  // Redis will store all crypto code rates in USD and USD to all fiat codes
+  // This middleware splits up incoming pairs into two rates, crypto_USD and USD_fiat,
+  // so each unique timestamp only requires a single query to redis to get all applicable rates.
+
+  const reqMap: { [date: string]: string[] } = {}
+  for (const req of exReq.requestedRates.data) {
+    const [cryptoCode, fiatCode] = req.currency_pair.split('_')
+    if (reqMap[req.date] == null) reqMap[req.date] = []
+    reqMap[req.date].push(`${cryptoCode}_iso:USD`, `iso:USD_${fiatCode}`)
+  }
+
+  // Initialize requestedRatesResult object to collect found rates
+  exReq.requestedRatesResult = { data: [], documents: [] }
+
+  // Initialize bucket of pairs still not found
+  const stillNeeded: ExchangeRateReq[] = []
+
+  for (const date of Object.keys(reqMap)) {
+    const usdRates = await hmgetAsync(date, reqMap[date])
+    for (let i = 0; i < usdRates.length; i++) {
+      if (i % 2 !== 0) continue
+      const cryptoUSD = usdRates[i]
+      const fiatUSD = usdRates[i + 1]
+      if (cryptoUSD == null || fiatUSD == null) {
+        // reqMap is twice as long as the incoming requests array length so we
+        // halve the index when referencing that array
+        stillNeeded.push(exReq.requestedRates.data[i / 2])
+      } else {
+        exReq.requestedRatesResult.data.push({
+          ...exReq.requestedRates.data[i / 2],
+          exchangeRate: mul(cryptoUSD, fiatUSD)
+        })
+      }
+    }
+  }
+  exReq.requestedRates.data = [...stillNeeded]
+
+  next()
+}
+
 const queryExchangeRates: express.RequestHandler = async (
   req,
   res,
@@ -174,16 +224,23 @@ const queryExchangeRates: express.RequestHandler = async (
   const exReq = req as ExpressRequest
   if (exReq?.requestedRates == null) return next(500)
 
+  if (exReq.requestedRates.data.length === 0) {
+    return next()
+  }
+
   try {
-    exReq.requestedRatesResult = await getExchangeRates(
+    const queriedRates = await getExchangeRates(
       exReq.requestedRates.data,
       dbRates
     )
+    exReq.requestedRatesResult = {
+      data: [...(exReq.requestedRatesResult?.data ?? []), ...queriedRates.data],
+      documents: [...queriedRates.documents] // TODO: Change data type since the douch docs aren't needed after this
+    }
   } catch (e) {
     res.status(400).send(e instanceof Error ? e.message : 'Malformed request')
   }
 
-  //
   next()
 }
 
@@ -210,6 +267,7 @@ export const exchangeRateRouterV1 = (): express.Router => {
     exchangeRateCleaner,
     v1IsoChecker,
     v1ExchangeRateIsoAdder,
+    queryRedis,
     queryExchangeRates,
     v1ExchangeRateIsoSubtractor,
     sendExchangeRate
@@ -219,6 +277,7 @@ export const exchangeRateRouterV1 = (): express.Router => {
     exchangeRatesCleaner,
     v1IsoChecker,
     v1ExchangeRateIsoAdder,
+    queryRedis,
     queryExchangeRates,
     v1ExchangeRateIsoSubtractor,
     sendExchangeRates
@@ -232,12 +291,14 @@ export const exchangeRateRouterV2 = (): express.Router => {
 
   router.get('/exchangeRate', [
     exchangeRateCleaner,
+    queryRedis,
     queryExchangeRates,
     sendExchangeRate
   ])
 
   router.post('/exchangeRates', [
     exchangeRatesCleaner,
+    queryRedis,
     queryExchangeRates,
     sendExchangeRates
   ])

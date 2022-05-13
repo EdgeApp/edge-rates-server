@@ -23,7 +23,7 @@ import {
 import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
 import { wazirx } from './providers/wazirx'
-import { hgetallAsync } from './uidEngine'
+import { hgetallAsync, hsetAsync } from './uidEngine'
 import {
   asDbDoc,
   DbDoc,
@@ -183,6 +183,17 @@ export const getExchangeRates = async (
     const documents: DbDoc[] = await getFromDb(localDb, docs)
 
     const out = await getRatesFromProviders({ data, documents }, edgeAssetDoc)
+
+    // Save USD rates to Redis
+    for (const doc of out.documents) {
+      const newRates = Object.keys(doc)
+        .filter(key => key.includes('iso:USD'))
+        .map(pair => [pair, doc[pair]])
+        .flat()
+      hsetAsync(doc._id, newRates).catch(e => logger(e))
+    }
+
+    // Save to Couchdb
     saveToDb(
       localDb,
       out.documents
