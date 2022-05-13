@@ -74,6 +74,9 @@ const removeIsoFromPair = (pair: string): string =>
 const isIsoPair = (pair: string): boolean =>
   isIsoCode(fromCode(pair)) || isIsoCode(toCode(pair))
 
+const combineSplitPair = (pair: string[]): string =>
+  `${pair[0].split('_')[0]}_${pair[1].split('_')[1]}`
+
 // *** MIDDLEWARE ***
 
 const v1ExchangeRateIsoAdder: express.RequestHandler = (
@@ -164,7 +167,6 @@ const exchangeRatesCleaner: express.RequestHandler = (req, res, next): void => {
     return
   }
 
-  //
   next()
 }
 
@@ -199,13 +201,15 @@ const queryRedis: express.RequestHandler = async (
       if (i % 2 !== 0) continue
       const cryptoUSD = usdRates[i]
       const fiatUSD = usdRates[i + 1]
+      const pair = {
+        currency_pair: combineSplitPair(reqMap[date].slice(i, i + 2)),
+        date
+      }
       if (cryptoUSD == null || fiatUSD == null) {
-        // reqMap is twice as long as the incoming requests array length so we
-        // halve the index when referencing that array
-        stillNeeded.push(exReq.requestedRates.data[i / 2])
+        stillNeeded.push(pair)
       } else {
         exReq.requestedRatesResult.data.push({
-          ...exReq.requestedRates.data[i / 2],
+          ...pair,
           exchangeRate: mul(cryptoUSD, fiatUSD)
         })
       }
