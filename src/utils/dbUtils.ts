@@ -1,7 +1,16 @@
-import { asBoolean, asMaybe, asObject, asOptional, asString } from 'cleaners'
+import {
+  asArray,
+  asBoolean,
+  asMaybe,
+  asObject,
+  asOptional,
+  asString
+} from 'cleaners'
+import { syncedDocument } from 'edge-server-tools'
 import nano from 'nano'
 import promisify from 'promisify-node'
 
+import { hsetAsync } from '../uidEngine'
 import { config } from './../config'
 import currencyCodeMaps from './currencyCodeMaps.json'
 import { slackPoster } from './postToSlack'
@@ -97,6 +106,8 @@ export const saveToDb = (
     })
 }
 
+export const wrappedSaveToDb = (docs: DbDoc[]): void => saveToDb(dbRates, docs)
+
 export const getFromDb = async (
   localDb: nano.DocumentScope<DbDoc>,
   dates: string[]
@@ -121,10 +132,45 @@ export const getFromDb = async (
   })
 }
 
+export const wrappedGetFromDb = async (dates: string[]): Promise<DbDoc[]> =>
+  getFromDb(dbRates, dates)
+
+const asCurrencyCodeMaps = asObject({
+  constantCurrencyCodes: asMaybe(asObject(asString), {}),
+  zeroRates: asMaybe(asObject(asString), {}),
+  fallbackConstantRates: asMaybe(asObject(asString), {}),
+  coinMarketCap: asMaybe(asObject(asString), {}),
+  coincap: asMaybe(asObject(asString), {}),
+  nomics: asMaybe(asObject(asString), {}),
+  allEdgeCurrencies: asMaybe(asArray(asString), []),
+  fiatCurrencyCodes: asMaybe(asArray(asString), [])
+})
+
+const syncedCurrencyCodeMaps = syncedDocument(
+  'currencyCodeMaps',
+  asCurrencyCodeMaps
+)
+
+syncedCurrencyCodeMaps.onChange(currencyCodeMaps => {
+  logger('Syncing currency code maps with redis cache...')
+  for (const key of Object.keys(currencyCodeMaps)) {
+    if (Array.isArray(currencyCodeMaps[key])) {
+      hsetAsync(key, Object.assign({}, currencyCodeMaps[key])).catch(e =>
+        logger('syncedCurrencyCodeMaps failed to update', key, e)
+      )
+    } else {
+      hsetAsync(key, currencyCodeMaps[key]).catch(e =>
+        logger('syncedCurrencyCodeMaps failed to update', key, e)
+      )
+    }
+  }
+})
+
 export const ratesDbSetup = {
   name: 'db_rates',
   options: { partitioned: false },
-  documents: { currencyCodeMaps }
+  templates: { currencyCodeMaps },
+  syncedDocuments: [syncedCurrencyCodeMaps]
 }
 
 export const getEdgeAssetDoc = memoize(

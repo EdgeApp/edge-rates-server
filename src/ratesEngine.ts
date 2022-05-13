@@ -1,10 +1,9 @@
 import fetch from 'node-fetch'
 
 import { config } from './config'
-import { existsAsync, hgetallAsync } from './uidEngine'
-import currencyCodeMaps from './utils/currencyCodeMaps.json'
+import { hgetallAsync } from './uidEngine'
 import { getEdgeAssetDoc } from './utils/dbUtils'
-import { snooze } from './utils/utils'
+import { logger, normalizeDate, snooze } from './utils/utils'
 
 const {
   cryptoCurrencyCodes,
@@ -15,10 +14,8 @@ const {
 
 const endPoint = `${ratesServerAddress}/v2/exchangeRates`
 
-const UID_DELAY = 1000 * 60 * 60 * 24 // Delay 1 day
-const LOOP_DELAY = 1000 * 60 // Delay 1 minute
+const LOOP_DELAY = 1000 * 30 // Delay 30 seconds
 const bridgeCurrency = DEFAULT_FIAT
-let cacheUpdateTimestamp = Date.now()
 
 interface pairQuery {
   currency_pair: string
@@ -40,7 +37,7 @@ const getCurrencyCodeList = async (): Promise<string[]> => {
       ...fiatCurrencyCodesRedis
     ]
   } catch (e) {
-    console.log(
+    logger(
       `Could not get currency code list from Redis. Attempting to get it from DB.`
     )
     try {
@@ -49,25 +46,16 @@ const getCurrencyCodeList = async (): Promise<string[]> => {
         edgeDoc.fiatCurrencyCodes
       )
     } catch (e) {
-      console.log(`Could not get currency code list from DB. Using defaults.`)
+      logger(`Could not get currency code list from DB. Using defaults.`)
     }
   }
   return currencyCodes
 }
 
 export const ratesEngine = async (): Promise<void> => {
-  const headers = {
-    'Content-Type': 'application/json'
-  }
-  const currentDate = new Date().toISOString()
+  const currentDate = normalizeDate(new Date().toISOString())
   const allCurrencies = await getCurrencyCodeList()
-  const keysExistPromises = Object.keys(currencyCodeMaps).map(async key =>
-    existsAsync(key)
-  )
-  const redisKeysExist = await Promise.all(keysExistPromises)
-  const msSinceLastUpdate = Date.now() - cacheUpdateTimestamp
-  const cacheNeedsUpdate =
-    redisKeysExist.includes(0) || msSinceLastUpdate > UID_DELAY
+
   try {
     const data: pairQuery[] = []
     for (const currencyCode of allCurrencies) {
@@ -76,29 +64,24 @@ export const ratesEngine = async (): Promise<void> => {
         date: currentDate
       })
     }
+    const promises: Array<Promise<any>> = []
     while (data.length > 0) {
-      if (data.length <= 100 && cacheNeedsUpdate) {
-        headers['Cache-Control'] = 'no-cache'
-        cacheUpdateTimestamp = Date.now()
-        console.log('Cache to be updated')
-      }
-      const response = await fetch(endPoint, {
-        headers,
-        method: 'POST',
-        body: JSON.stringify({ data: data.splice(0, 100) })
-      })
-      if (response.ok === true) {
-        console.log(`Successfully saved new currencyPairs`)
-      } else {
-        console.log(`Could not save new currencyPairs`)
-      }
+      promises.push(
+        fetch(endPoint, {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          method: 'POST',
+          body: JSON.stringify({ data: data.splice(0, 100) })
+        }).catch(e => logger('ratesEngine query error', e))
+      )
     }
+    await Promise.all(promises)
   } catch (e) {
-    console.log(currentDate)
-    console.log(e)
+    logger('ratesEngine error: ', e)
   } finally {
-    console.log('SNOOZING ***********************************')
+    logger('RATES ENGINE SNOOZING **********************')
     await snooze(LOOP_DELAY)
-    ratesEngine().catch(e => console.log(e))
+    ratesEngine().catch(e => logger(e))
   }
 }

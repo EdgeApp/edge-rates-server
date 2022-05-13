@@ -10,7 +10,7 @@
   },
   "plugins": ["simple-import-sort"],
   "rules": {
-    "@typescript-eslint/camelcase": ["error", { "properties": "always", "allow": ["currency_pair"] }],
+    "@typescript-eslint/camelcase": ["error", { "properties": "always", "allow": ["currency_pair", "mediana_prom", "exchange_rate", "underlying_symbol"] }],
     "simple-import-sort/sort": "error"
   }
 }

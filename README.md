@@ -13,33 +13,54 @@ Install Node
     curl -sL https://deb.nodesource.com/setup_10.x -o nodesource_setup.sh
     sudo bash nodesource_setup.sh
 
-Run Yarn
-
-    yarn
-
 Install and run CouchDB v3.1 (use apt install process for Ubuntu 18.04)
 
     https://docs.couchdb.org/en/3.1.0/install/index.html
 
-#### Launch API server
+Install and start Redis
 
-    node lib/index.js
+    https://redis.io/docs/getting-started/installation/install-redis-on-linux/#install-on-ubuntu
 
-#### Install forever-service
+    redis-server
 
-    sudo npm install -g forever
+Install pm2 globally
 
-    sudo npm install -g forever-service
+    npm install pm2 -g
 
-#### Install rates server using `forever-service`
+Install pm2 log rotation (note: the command is pm2 instead of npm)
 
-    sudo forever-service install ratesServer -r [username] --script lib/index.js  --start
+    pm2 install pm2-logrotate
+
+Run Yarn
+
+    yarn && yarn prepare
+
+#### Running Source
+
+    yarn start
+    yarn startEngines
+
+#### Launch API server and rates engine for production
+
+    pm2 start pm2.json
 
 #### Restart, stop, delete service
 
-    sudo service ratesServer restart
-    sudo service ratesServer stop
-    sudo forever-service delete ratesServer
+Control pm2
+
+    pm2 stop     <ratesServer|ratesEngine|'all'>
+    pm2 restart  <ratesServer|ratesEngine|'all'>
+    pm2 delete   <ratesServer|ratesEngine|'all'>
+
+Launch pm2 on restart
+
+    pm2 startup
+    pm2 save
+
+#### Monitor logs and status
+
+    pm2 monit
+    pm2 logs <ratesServer|ratesEngine|'all'>
 
 ### Terminate SSL using Caddy
 

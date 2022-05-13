@@ -1,10 +1,16 @@
 {
   "apps": [
     {
-      "name": "server",
+      "name": "ratesServer",
       "script": "lib/index.js",
       "error_file": "logs/server/error.log",
       "out_file": "logs/server/out.log"
+    },
+    {
+      "name": "ratesEngines",
+      "script": "lib/indexEngines.js",
+      "error_file": "logs/engines/error.log",
+      "out_file": "logs/engines/out.log"
     }
   ]
 }

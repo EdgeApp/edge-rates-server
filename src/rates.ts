@@ -23,7 +23,7 @@ import {
 import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
 import { wazirx } from './providers/wazirx'
-import { hgetallAsync } from './uidEngine'
+import { hgetallAsync, hsetAsync } from './uidEngine'
 import {
   asDbDoc,
   DbDoc,
@@ -147,7 +147,6 @@ const getRatesFromProviders = async (
     ({ constantCurrencyCodes = {} } = edgeAssetMap)
 
   for (const provider of rateProviders) {
-    console.time(`Queried ${provider.name}`)
     addNewRatesToDocs(
       await provider(
         getNullRateArray(rateObj.data),
@@ -158,7 +157,6 @@ const getRatesFromProviders = async (
       provider.name
     )
     currencyBridgeDB(rateObj, constantCurrencyCodes)
-    console.timeEnd(`Queried ${provider.name}`)
     if (haveEveryRate(rateObj.data)) break
   }
 
@@ -185,6 +183,17 @@ export const getExchangeRates = async (
     const documents: DbDoc[] = await getFromDb(localDb, docs)
 
     const out = await getRatesFromProviders({ data, documents }, edgeAssetDoc)
+
+    // Save USD rates to Redis
+    for (const doc of out.documents) {
+      const newRates = Object.keys(doc)
+        .filter(key => key.includes('iso:USD'))
+        .map(pair => [pair, doc[pair]])
+        .flat()
+      hsetAsync(doc._id, newRates).catch(e => logger(e))
+    }
+
+    // Save to Couchdb
     saveToDb(
       localDb,
       out.documents
@@ -296,13 +305,8 @@ interface RateParamReturn {
 
 export const asRateParam = (param: any): RateParamReturn => {
   const { currency_pair: currencyPair, date } = asExchangeRateReq(param)
-  let dateStr: string
-  if (typeof date === 'string') {
-    dateStr = date
-  } else {
-    dateStr = new Date().toISOString()
-  }
-  if (typeof currencyPair !== 'string' || typeof dateStr !== 'string') {
+
+  if (typeof currencyPair !== 'string' || typeof date !== 'string') {
     throw new Error(
       'Missing or invalid query param(s): currency_pair and date should both be strings'
     )
@@ -313,7 +317,7 @@ export const asRateParam = (param: any): RateParamReturn => {
       'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_iso:USD"'
     )
   }
-  const parsedDate = normalizeDate(dateStr)
+  const parsedDate = normalizeDate(date)
   if (parsedDate == null) {
     throw new Error(
       'date query param malformed.  should be conventional date string, ex:"2019-11-21T15:28:21.123Z"'

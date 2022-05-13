@@ -37,7 +37,7 @@ sudo journalctl -fu caddy
 
 ## Configuring CouchDB
 
-CouchDB can listen for HTTPS connections on port 6984, which will conflict with Caddy. To fix this, comment out the following line, as well as everything else in the `[ssl]` section of `/etc/couchdb/local.ini`:
+CouchDB can listen for HTTPS connections on port 6984, which will conflict with Caddy. To fix this, comment out the following line, as well as everything else in the `[ssl]` section of `/opt/couchdb/etc/local.ini`:
 
 ```ini
 [daemons]

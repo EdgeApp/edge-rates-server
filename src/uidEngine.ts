@@ -3,14 +3,17 @@ import { createClient } from 'redis'
 import { coincapAssets } from './providers/coincap'
 import { coinMarketCapAssets } from './providers/coinMarketCap'
 import { nomicsAssets } from './providers/nomics'
-import currencyCodeMaps from './utils/currencyCodeMaps.json'
-import { createAssetMaps, logger } from './utils/utils'
+import { wrappedGetFromDb, wrappedSaveToDb } from './utils/dbUtils'
+import { logger, snooze } from './utils/utils'
+
+const LOOP_DELAY = 1000 * 60 * 60 * 24 // one day
 
 const client = createClient()
 client.connect().catch(e => console.log('redis connect error: ', e))
 
 export const hsetAsync = client.hSet.bind(client)
 export const hgetallAsync = client.hGetAll.bind(client)
+export const hmgetAsync = client.hmGet.bind(client)
 export const existsAsync = client.exists.bind(client)
 
 const providerAssets = {
@@ -19,34 +22,29 @@ const providerAssets = {
   nomics: nomicsAssets
 }
 
-export const uidEngine = (): void => {
+export const uidEngine = async (): Promise<void> => {
   client.on('error', function(error) {
     console.error(error)
   })
-  const currentDate = new Date().toISOString()
 
+  logger('Updating UID Cache')
   try {
-    for (const key of Object.keys(currencyCodeMaps)) {
-      if (Array.isArray(currencyCodeMaps[key])) {
-        hsetAsync(key, Object.assign({}, currencyCodeMaps[key])).catch(e =>
-          logger('uidEngine', key, e)
-        )
-        continue
-      }
-      if (key in providerAssets) {
-        createAssetMaps(currencyCodeMaps[key], providerAssets[key])
-          .then(res => {
-            hsetAsync(key, res).catch(e => logger('uidEngine', key, e))
-          })
-          .catch(e => logger('uidEngine', key, e))
-      } else {
-        hsetAsync(key, currencyCodeMaps[key]).catch(e =>
-          logger('uidEngine', key, e)
-        )
-      }
-    }
+    const edgeDoc = (await wrappedGetFromDb(['currencyCodeMaps']))[0]
+    const promises = Object.keys(providerAssets).map(provider =>
+      providerAssets[provider]()
+        .then(assetMap => {
+          edgeDoc[provider] = { ...assetMap, ...edgeDoc[provider] }
+        })
+        .catch(e => logger(`Failed to update ${provider}`, e))
+        .finally(logger(`${provider} provider updated`))
+    )
+    await Promise.all(promises)
+    wrappedSaveToDb([edgeDoc])
   } catch (e) {
-    console.log(currentDate)
-    console.log(e)
+    logger('uidEngine', e)
+  } finally {
+    console.log('UID ENGINE SNOOZING ************************')
+    await snooze(LOOP_DELAY)
+    uidEngine().catch(e => console.log(e))
   }
 }
