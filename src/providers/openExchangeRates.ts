@@ -40,7 +40,8 @@ const openExchangeRatesRateMap = createReducedRateMap(
 
 const query = async (date: string, codes: string[]): Promise<NewRates> => {
   const rates = { [date]: {} }
-  if (codes.length === 0) return rates
+  if (codes.length === 0 || codes.find(code => code !== 'USD') == null)
+    return rates
   const codeString = codes.join(',')
   try {
     const response = await fetch(
@@ -88,13 +89,13 @@ export const openExchangeRates = async (
     const toCurrency = toCode(pair.currency_pair)
     if (
       isIsoCode(fromCurrency) &&
-      datesAndCodesWanted[pair.date].indexOf(fromCurrency) === -1
+      datesAndCodesWanted[pair.date].indexOf(subIso(fromCurrency)) === -1
     ) {
       datesAndCodesWanted[pair.date].push(subIso(fromCurrency))
     }
     if (
       isIsoCode(toCurrency) &&
-      datesAndCodesWanted[pair.date].indexOf(toCurrency) === -1
+      datesAndCodesWanted[pair.date].indexOf(subIso(toCurrency)) === -1
     ) {
       datesAndCodesWanted[pair.date].push(subIso(toCurrency))
     }

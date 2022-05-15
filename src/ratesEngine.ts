@@ -23,7 +23,7 @@ interface pairQuery {
 }
 
 const getCurrencyCodeList = async (): Promise<string[]> => {
-  let currencyCodes = cryptoCurrencyCodes.concat(fiatCurrencyCodes)
+  // Try Redis first
   try {
     const allEdgeCurrenciesRedis: string[] = Object.values(
       await hgetallAsync('allEdgeCurrencies')
@@ -31,25 +31,32 @@ const getCurrencyCodeList = async (): Promise<string[]> => {
     const fiatCurrencyCodesRedis: string[] = Object.values(
       await hgetallAsync('fiatCurrencyCodes')
     )
-    currencyCodes = [
-      ...currencyCodes,
-      ...allEdgeCurrenciesRedis,
-      ...fiatCurrencyCodesRedis
-    ]
-  } catch (e) {
-    logger(
-      `Could not get currency code list from Redis. Attempting to get it from DB.`
+    if (
+      allEdgeCurrenciesRedis.length === 0 ||
+      fiatCurrencyCodesRedis.length === 0
     )
-    try {
-      const edgeDoc = await getEdgeAssetDoc()
-      currencyCodes = edgeDoc.allEdgeCurrencies.concat(
-        edgeDoc.fiatCurrencyCodes
-      )
-    } catch (e) {
-      logger(`Could not get currency code list from DB. Using defaults.`)
-    }
+      throw new Error('Failed to find default currency code list in Redis')
+
+    return [...allEdgeCurrenciesRedis, ...fiatCurrencyCodesRedis]
+  } catch (e) {
+    logger(e)
   }
-  return currencyCodes
+
+  // If Redis lookup failed, try Couchdb
+  try {
+    const edgeDoc = await getEdgeAssetDoc()
+    if (
+      edgeDoc.allEdgeCurrencies.length === 0 ||
+      edgeDoc.fiatCurrencyCodes.length === 0
+    )
+      throw new Error('Failed to find default currency code maps in couch')
+    return [...edgeDoc.allEdgeCurrencies, ...edgeDoc.fiatCurrencyCodes]
+  } catch (e) {
+    logger(e)
+  }
+
+  // If Couchdb lookup failed, use local defaults
+  return [...cryptoCurrencyCodes, ...fiatCurrencyCodes]
 }
 
 export const ratesEngine = async (): Promise<void> => {

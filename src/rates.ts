@@ -115,6 +115,10 @@ const addNewRatesToDocs = (
       documents[dbIndex] = {
         ...documents[dbIndex],
         ...rateMap,
+        ...bridgeCurrencies.reduce(
+          (out, code) => Object.assign(out, { [`${code}_${code}`]: '1' }),
+          {}
+        ),
         ...{ updated: true }
       }
     }
