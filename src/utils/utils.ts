@@ -115,9 +115,14 @@ export const fromCryptoToFiatCurrencyPair = toIsoPair(subIso, addIso)
 
 export const currencyCodeArray = (pair: string): string[] => pair.split('_')
 
-export const fromCode = (pair: string): string => currencyCodeArray(pair)[0]
+const getUpperCaseCode = (pair: string, index: number): string => {
+  const code = currencyCodeArray(pair)[index]
+  return isIsoCode(code) ? code : code.toUpperCase()
+}
 
-export const toCode = (pair: string): string => currencyCodeArray(pair)[1]
+export const fromCode = (pair: string): string => getUpperCaseCode(pair, 0)
+
+export const toCode = (pair: string): string => getUpperCaseCode(pair, 1)
 
 export const invertPair = (pair: string): string =>
   `${toCode(pair)}_${fromCode(pair)}`
@@ -143,10 +148,9 @@ export const createReducedRateMap = <T>(
   Object.keys(data).reduce((out, code) => {
     return {
       ...out,
-      [createCurrencyPair(uniqueId(code, assetMap))]: createCurrencyQuote(
-        data,
-        code
-      )
+      [createCurrencyPair(
+        uniqueId(code, assetMap).toUpperCase()
+      )]: createCurrencyQuote(data, code)
     }
   }, {})
 

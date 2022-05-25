@@ -48,7 +48,7 @@ const coincapCurrentQuote = (
 
 const coinCapCurrentRatePair = (
   code: ReturnType<typeof asCoincapCurrentQuote>
-): string => fromCryptoToFiatCurrencyPair(code.symbol, 'USD')
+): string => fromCryptoToFiatCurrencyPair(code.symbol.toUpperCase(), 'USD')
 
 const coincapCurrentRateMap = createReducedRateMapArray(
   coinCapCurrentRatePair,
