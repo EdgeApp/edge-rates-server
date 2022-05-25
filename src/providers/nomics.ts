@@ -31,7 +31,7 @@ const nomicsQuote = (code: ReturnType<typeof asNomicsQuote>): string =>
   code.price
 
 const nomicsPair = (code: ReturnType<typeof asNomicsQuote>): string =>
-  fromCryptoToFiatCurrencyPair(code.symbol)
+  fromCryptoToFiatCurrencyPair(code.symbol.toUpperCase())
 
 const nomicsRateMap = createReducedRateMapArray(nomicsPair, nomicsQuote)
 
