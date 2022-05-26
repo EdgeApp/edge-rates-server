@@ -74,9 +74,6 @@ const removeIsoFromPair = (pair: string): string =>
 const isIsoPair = (pair: string): boolean =>
   isIsoCode(fromCode(pair)) || isIsoCode(toCode(pair))
 
-const combineSplitPair = (pair: string[]): string =>
-  `${pair[0].split('_')[0]}_${pair[1].split('_')[1]}`
-
 // *** MIDDLEWARE ***
 
 const v1ExchangeRateIsoAdder: express.RequestHandler = (
@@ -186,7 +183,11 @@ const queryRedis: express.RequestHandler = async (
   for (const req of exReq.requestedRates.data) {
     const [cryptoCode, fiatCode] = req.currency_pair.split('_')
     if (reqMap[req.date] == null) reqMap[req.date] = []
-    reqMap[req.date].push(`${cryptoCode}_iso:USD`, `iso:USD_${fiatCode}`)
+    reqMap[req.date].push(
+      req.currency_pair,
+      `${cryptoCode}_iso:USD`,
+      `iso:USD_${fiatCode}`
+    )
   }
 
   // Initialize requestedRatesResult object to collect found rates
@@ -198,13 +199,24 @@ const queryRedis: express.RequestHandler = async (
   for (const date of Object.keys(reqMap)) {
     const usdRates = await hmgetAsync(date, reqMap[date])
     for (let i = 0; i < usdRates.length; i++) {
-      if (i % 2 !== 0) continue
-      const cryptoUSD = usdRates[i]
-      const fiatUSD = usdRates[i + 1]
+      if (i % 3 !== 0) continue
       const pair = {
-        currency_pair: combineSplitPair(reqMap[date].slice(i, i + 2)),
+        currency_pair: reqMap[date][i],
         date
       }
+
+      // Test if we found the exact request
+      if (usdRates[i] != null) {
+        exReq.requestedRatesResult.data.push({
+          ...pair,
+          exchangeRate: usdRates[i]
+        })
+        continue
+      }
+
+      // Test if we can bridge the rate using USD
+      const cryptoUSD = usdRates[i + 1]
+      const fiatUSD = usdRates[i + 2]
       if (cryptoUSD == null || fiatUSD == null) {
         stillNeeded.push(pair)
       } else {
