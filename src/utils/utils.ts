@@ -40,11 +40,11 @@ export const snooze = async (ms: number): Promise<void> =>
   new Promise((resolve: Function) => setTimeout(resolve, ms))
 
 export const getNullRateArray = (rates: ReturnRate[]): ReturnRate[] => {
-  return rates.filter(rate => rate.exchangeRate === null)
+  return rates.filter(rate => rate.exchangeRate == null)
 }
 
 export const haveEveryRate = (rates: ReturnRate[]): boolean => {
-  return rates.every(rate => rate.exchangeRate !== null)
+  return rates.every(rate => rate.exchangeRate != null)
 }
 
 export const checkConstantCode = (
