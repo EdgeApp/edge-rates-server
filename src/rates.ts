@@ -92,35 +92,34 @@ const addNewRatesToDocs = (
 ): void => {
   for (const date of Object.keys(newRates)) {
     const dbIndex = documents.findIndex(doc => doc._id === date)
-    if (dbIndex >= 0) {
-      // Create map of inverted pairs and rates
-      const rateMap = {}
-      // const rateMap = newRates[date]
-      for (const pair of Object.keys(newRates[date])) {
-        const rate = Number(newRates[date][pair]).toFixed(PRECISION) // Prevent scientific notation
-        // Sanity check value is acceptable and only allow a 0 rate from the zeroRates plugin
-        if (
-          isNotANumber(rate) ||
-          (eq(rate, '0') && providerName !== 'zeroRates')
-        ) {
-          continue
-        }
-        rateMap[pair] = rate
-        rateMap[invertPair(pair)] = eq(rate, '0')
-          ? '0'
-          : div('1', rate, PRECISION)
-      }
+    if (dbIndex === -1 || Object.keys(newRates[date]).length === 0) continue
 
-      // Add new rates and their inverts to the doc and mark updated
-      documents[dbIndex] = {
-        ...documents[dbIndex],
-        ...rateMap,
-        ...bridgeCurrencies.reduce(
-          (out, code) => Object.assign(out, { [`${code}_${code}`]: '1' }),
-          {}
-        ),
-        ...{ updated: true }
+    // Create map of inverted pairs and rates
+    const rateMap = {}
+    for (const pair of Object.keys(newRates[date])) {
+      const rate = Number(newRates[date][pair]).toFixed(PRECISION) // Prevent scientific notation
+      // Sanity check value is acceptable and only allow a 0 rate from the zeroRates plugin
+      if (
+        isNotANumber(rate) ||
+        (eq(rate, '0') && providerName !== 'zeroRates')
+      ) {
+        continue
       }
+      rateMap[pair] = rate
+      rateMap[invertPair(pair)] = eq(rate, '0')
+        ? '0'
+        : div('1', rate, PRECISION)
+    }
+
+    // Add new rates and their inverts to the doc and mark updated
+    documents[dbIndex] = {
+      ...documents[dbIndex],
+      ...rateMap,
+      ...bridgeCurrencies.reduce(
+        (out, code) => Object.assign(out, { [`${code}_${code}`]: '1' }),
+        {}
+      ),
+      ...{ updated: true }
     }
   }
 }
@@ -194,6 +193,21 @@ export const getExchangeRates = async (
         .filter(key => key.includes('iso:USD'))
         .map(pair => [pair, doc[pair]])
         .flat()
+      // Fill in constant rates codes if we already found their equivalent
+      for (const code of Object.keys(edgeAssetDoc.constantCurrencyCodes)) {
+        if (
+          newRates[`${code}_iso:USD`] == null &&
+          newRates[`${edgeAssetDoc.constantCurrencyCodes[code]}_iso:USD`] !=
+            null
+        )
+          newRates[`${code}_iso:USD`] =
+            newRates[`${edgeAssetDoc.constantCurrencyCodes[code]}_iso:USD`]
+      }
+      // Add the zero rates, too
+      for (const code of Object.keys(edgeAssetDoc.zeroRates)) {
+        newRates[`${code}_iso:USD`] = '0'
+      }
+      // Update redis
       hsetAsync(doc._id, newRates).catch(e => logger(e))
     }
 
