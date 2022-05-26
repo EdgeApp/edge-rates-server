@@ -230,7 +230,7 @@ export const currencyBridgeDB = (
 ): void => {
   for (let i = 0; i < rateObj.data.length; i++) {
     const rate = rateObj.data[i]
-    if (rate.exchangeRate !== null) continue
+    if (rate.exchangeRate != null) continue
     const dbIndex = rateObj.documents.findIndex(doc => doc._id === rate.date)
     if (rateObj.documents[dbIndex] == null) continue
     const from = checkConstantCode(
