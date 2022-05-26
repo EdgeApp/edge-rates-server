@@ -9,6 +9,7 @@ const {
   cryptoCurrencyCodes,
   fiatCurrencyCodes,
   ratesServerAddress,
+  preferredCryptoFiatPairs,
   defaultFiatCode: DEFAULT_FIAT
 } = config
 
@@ -64,7 +65,12 @@ export const ratesEngine = async (): Promise<void> => {
   const allCurrencies = await getCurrencyCodeList()
 
   try {
-    const data: pairQuery[] = []
+    const data: pairQuery[] = [
+      ...preferredCryptoFiatPairs.map(currency_pair => ({
+        currency_pair,
+        date: currentDate
+      }))
+    ]
     for (const currencyCode of allCurrencies) {
       data.push({
         currency_pair: `${currencyCode}_${bridgeCurrency}`,
