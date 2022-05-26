@@ -73,6 +73,7 @@ export const coinMarketCapCurrent = async (
   assetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = { [date]: {} }
+  if (ids.length === 0) return rates
 
   if (currentapiKey == null) {
     logger('No coinMarketCapCurrent API key')
@@ -147,7 +148,9 @@ const coinMarketCapHistorical = async (
   ids: string[],
   assetMap: AssetMap
 ): Promise<NewRates> => {
-  const rates = {}
+  const rates = { [date]: {} }
+  if (ids.length === 0) return rates
+
   try {
     const response = await fetch(
       `${historicalUri}/v1/cryptocurrency/quotes/historical?id=${
