@@ -190,7 +190,7 @@ export const getExchangeRates = async (
     // Save USD rates to Redis
     for (const doc of out.documents) {
       const newRates = Object.keys(doc)
-        .filter(key => key.includes('iso:USD'))
+        .filter(pair => pair !== '_id' && pair !== '_rev' && pair !== 'updated')
         .map(pair => [pair, doc[pair]])
         .flat()
       // Fill in constant rates codes if we already found their equivalent
