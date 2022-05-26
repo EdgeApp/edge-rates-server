@@ -104,6 +104,10 @@ export const asConfig = asObject({
       uri: asOptional(asString, 'http://ar.coinmonitor.info')
     })
   }),
+  preferredCryptoFiatPairs: asOptional(asArray(asString), [
+    'BTC_iso:ARS',
+    'BTC_iso:INR'
+  ]),
   defaultFiatCode: asOptional(asString, DEFAULT_FIAT),
   ratesLookbackLimit: asOptional(asNumber, 604800000)
 })
