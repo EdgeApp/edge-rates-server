@@ -3,6 +3,7 @@ import { createClient } from 'redis'
 import { coincapAssets } from './providers/coincap'
 import { coinMarketCapAssets } from './providers/coinMarketCap'
 import { nomicsAssets } from './providers/nomics'
+import currencyCodeMaps from './utils/currencyCodeMaps.json'
 import { wrappedGetFromDb, wrappedSaveToDb } from './utils/dbUtils'
 import { logger, snooze } from './utils/utils'
 
@@ -32,13 +33,25 @@ export const uidEngine = async (): Promise<void> => {
     const edgeDoc = (await wrappedGetFromDb(['currencyCodeMaps']))[0]
     const promises = Object.keys(providerAssets).map(provider =>
       providerAssets[provider]()
-        .then(assetMap => {
-          edgeDoc[provider] = { ...assetMap, ...edgeDoc[provider] }
+        .then(newMap => {
+          // Combine the new UID map with existing UID map
+          const assetMap = { ...edgeDoc[provider], ...newMap }
+
+          // Remove the UIDs for the currency codes we've hardcoded
+          for (let i = 0; i < edgeDoc.allEdgeCurrencies.length; i++) {
+            delete assetMap[edgeDoc.allEdgeCurrencies[i]]
+          }
+
+          // Combine our codes with the new ones
+          edgeDoc[provider] = {
+            ...assetMap,
+            ...currencyCodeMaps[provider]
+          }
         })
         .catch(e => logger(`Failed to update ${provider}`, e))
         .finally(logger(`${provider} provider updated`))
     )
-    await Promise.all(promises)
+    await Promise.allSettled(promises)
     wrappedSaveToDb([edgeDoc])
   } catch (e) {
     logger('uidEngine', e)
