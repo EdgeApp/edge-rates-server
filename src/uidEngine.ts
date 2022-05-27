@@ -17,6 +17,7 @@ export const hsetAsync = client.hSet.bind(client)
 export const hgetallAsync = client.hGetAll.bind(client)
 export const hmgetAsync = client.hmGet.bind(client)
 export const existsAsync = client.exists.bind(client)
+export const delAsync = client.del.bind(client)
 
 const providerAssets = {
   coincap: coincapAssets,
