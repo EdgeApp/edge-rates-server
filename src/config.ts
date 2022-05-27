@@ -94,6 +94,9 @@ export const asConfig = asObject({
       uri: asOptional(asString, 'https://api.nomics.com'),
       apiKey: asOptional(asString, NOMICS_API_KEY)
     }),
+    coingecko: asObject({
+      uri: asOptional(asString, 'https://api.coingecko.com')
+    }),
     compound: asObject({
       uri: asOptional(asString, 'https://api.compound.finance')
     }),
