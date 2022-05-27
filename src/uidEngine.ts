@@ -1,6 +1,7 @@
 import { createClient } from 'redis'
 
 import { coincapAssets } from './providers/coincap'
+import { coingeckoAssets } from './providers/coingecko'
 import { coinMarketCapAssets } from './providers/coinMarketCap'
 import { nomicsAssets } from './providers/nomics'
 import currencyCodeMaps from './utils/currencyCodeMaps.json'
@@ -20,6 +21,7 @@ export const existsAsync = client.exists.bind(client)
 const providerAssets = {
   coincap: coincapAssets,
   coinMarketCap: coinMarketCapAssets,
+  coingecko: coingeckoAssets,
   nomics: nomicsAssets
 }
 

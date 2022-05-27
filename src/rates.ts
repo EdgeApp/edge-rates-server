@@ -12,6 +12,7 @@ import nano from 'nano'
 import { config } from './config'
 import { asExchangeRateReq, ExchangeRateReq } from './exchangeRateRouter'
 import { coincap } from './providers/coincap'
+import { coingecko } from './providers/coingecko'
 import { coinMarketCap } from './providers/coinMarketCap'
 import { coinmonitor } from './providers/coinmonitor'
 import { compound } from './providers/compound'
@@ -138,6 +139,7 @@ const getRatesFromProviders = async (
     wazirx,
     coinMarketCap,
     coincap,
+    coingecko,
     nomics,
     compound,
     fallbackConstantRates,
