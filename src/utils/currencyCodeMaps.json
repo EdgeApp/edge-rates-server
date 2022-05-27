@@ -280,6 +280,7 @@
 		"CUSD": "celo-dollar",
 		"WETH": "weth",
 		"MAI": "mimatic",
+		"SOL": "solana",
 		"RIF": "rsk-infrastructure-framework"
 	},
 	"coingecko": {
@@ -553,6 +554,7 @@
 		"WETH": "WETH",
 		"YAK": "YAK",
 		"YETI": "YETI",
+		"SOL": "SOL",
 		"RIF": "RIF"
 	},
 	"allEdgeCurrencies": [
@@ -706,6 +708,7 @@
 		"TOMB",
 		"MAI",
 		"TLOS",
+		"SOL",
 		"RIF"
 	],
 	"fiatCurrencyCodes": [
