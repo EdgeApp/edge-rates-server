@@ -33,7 +33,10 @@
 	},
 	"zeroRates": {
 		"UFO": "0",
-		"FORK": "0"
+		"FORK": "0",
+		"AGLD": "0",
+		"HERC": "0",
+		"BAD": "0"
 	},
 	"fallbackConstantRates": {
 		"SAI_USD": "1",
@@ -558,7 +561,6 @@
 		"RIF": "RIF"
 	},
 	"allEdgeCurrencies": [
-		"BAD",
 		"BTC",
 		"BCH",
 		"BTG",
@@ -587,16 +589,12 @@
 		"ETH",
 		"ETC",
 		"REP",
-		"REPV2",
-		"HERC",
-		"AGLD",
 		"DAI",
 		"SAI",
 		"WINGS",
 		"USDT",
 		"IND",
 		"HUR",
-		"ANTV1",
 		"ANT",
 		"BAT",
 		"BNT",
