@@ -38,7 +38,12 @@ const getCurrencyCodeList = async (): Promise<string[]> => {
     )
       throw new Error('Failed to find default currency code list in Redis')
 
-    return [...allEdgeCurrenciesRedis, ...fiatCurrencyCodesRedis]
+    const zeroRates = Object.keys(await hgetallAsync('zeroRates'))
+
+    return [
+      ...allEdgeCurrenciesRedis.filter(code => !zeroRates.includes(code)),
+      ...fiatCurrencyCodesRedis
+    ]
   } catch (e) {
     logger(e)
   }
@@ -51,7 +56,12 @@ const getCurrencyCodeList = async (): Promise<string[]> => {
       edgeDoc.fiatCurrencyCodes.length === 0
     )
       throw new Error('Failed to find default currency code maps in couch')
-    return [...edgeDoc.allEdgeCurrencies, ...edgeDoc.fiatCurrencyCodes]
+    return [
+      ...edgeDoc.allEdgeCurrencies.filter(
+        code => Object.keys(edgeDoc.zeroRates).includes(code) === false
+      ),
+      ...edgeDoc.fiatCurrencyCodes
+    ]
   } catch (e) {
     logger(e)
   }
