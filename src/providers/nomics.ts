@@ -8,6 +8,7 @@ import {
   createReducedRateMapArray,
   fromCode,
   fromCryptoToFiatCurrencyPair,
+  hasUniqueId,
   isIsoCode,
   logger,
   subIso
@@ -35,9 +36,6 @@ const nomicsPair = (code: ReturnType<typeof asNomicsQuote>): string =>
 
 const nomicsRateMap = createReducedRateMapArray(nomicsPair, nomicsQuote)
 
-const overrideCode = (code: string, assetMap: AssetMap): string =>
-  assetMap[code] ?? code
-
 export const nomics = async (
   requestedRates: ReturnRate[],
   currentTime: string,
@@ -55,8 +53,8 @@ export const nomics = async (
   for (const request of requestedRates) {
     if (request.date !== currentTime) continue
     const fromCurrency = fromCode(request.currency_pair)
-    if (!isIsoCode(fromCurrency))
-      codesWanted.push(overrideCode(fromCurrency, edgeAssetMap))
+    if (!isIsoCode(fromCurrency) && hasUniqueId(fromCurrency, edgeAssetMap))
+      codesWanted.push(edgeAssetMap[fromCurrency])
   }
 
   // Query
