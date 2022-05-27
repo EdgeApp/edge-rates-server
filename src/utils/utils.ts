@@ -124,8 +124,15 @@ export const fromCode = (pair: string): string => getUpperCaseCode(pair, 0)
 
 export const toCode = (pair: string): string => getUpperCaseCode(pair, 1)
 
+export const hasUniqueId = (code: string, assetMap: AssetMap): boolean =>
+  assetMap[code] != null
+
 export const invertPair = (pair: string): string =>
   `${toCode(pair)}_${fromCode(pair)}`
+
+export const invertCodeMapKey = (id: string, assetMap: AssetMap): string =>
+  Object.keys(assetMap).find(key => assetMap[key] === id) ??
+  'FAKE_CODE_TO_SATISFY_TYPECHECKER'
 
 export const createReducedRateMapArray = <T>(
   createCurrencyPair: IsoOpObject,
