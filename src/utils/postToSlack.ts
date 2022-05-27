@@ -20,12 +20,12 @@ export const slackPoster = async (
   try {
     lastText = text
     lastDate = now
-    await fetch(slackWebhookUrl, {
-      method: 'POST',
-      body: JSON.stringify({
-        text: `${new Date(now).toISOString()} ${JSON.stringify(text)}`
-      })
-    })
+    // await fetch(slackWebhookUrl, {
+    //   method: 'POST',
+    //   body: JSON.stringify({
+    //     text: `${new Date(now).toISOString()} ${JSON.stringify(text)}`
+    //   })
+    // })
   } catch (e) {
     console.log('Could not log DB error to Slack', e)
   }
