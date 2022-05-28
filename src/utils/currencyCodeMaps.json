@@ -43,16 +43,21 @@
 		"BAD": "0"
 	},
 	"fallbackConstantRates": {
-		"SAI_USD": "1",
 		"SAI_iso:USD": "1",
-		"DAI_USD": "1",
 		"DAI_iso:USD": "1",
-		"TESTBTC_USD": "0.01",
 		"TESTBTC_iso:USD": "0.01",
-		"BRZ_BRL": "1",
 		"BRZ_iso:BRL": "1",
-		"MAI_USD": "1",
-		"MAI_iso:USD": "1"
+		"MAI_iso:USD": "1",
+		"BUSD_iso:USD": "1",
+		"CUSD_iso:USD": "1",
+		"CEUR_iso:EUR": "1",
+		"USDT_iso:USD": "1",
+		"USDC_iso:USD": "1",
+		"USDS_iso:USD": "1",
+		"TUSD_iso:USD": "1",
+		"GUSD_iso:USD": "1",
+		"PAX_iso:USD": "1",
+		"SUSD_iso:USD": "1"
 	},
 	"coinMarketCap": {
 		"BTC": "1",
