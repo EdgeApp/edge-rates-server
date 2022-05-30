@@ -111,6 +111,10 @@ const historicalQuery = async (
       throw new Error(response.status)
     }
     const json = asCoincapHistoricalResponse(await response.json())
+    if (json.data.length === 0)
+      throw new Error(
+        `Empty response for ${id}. Check if coincap still supports this asset and remove UID if necessary.`
+      )
 
     // Add to return object
     rates[date][fromCryptoToFiatCurrencyPair(code, 'USD')] =
