@@ -184,6 +184,7 @@
 		"WETH": "2396",
 		"YAK": "11415",
 		"YETI": "7939",
+		"MAI": "10238",
 		"RIF": "3701"
 	},
 	"coincap": {
@@ -194,7 +195,6 @@
 		"DASH": "dash",
 		"DGB": "digibyte",
 		"DOGE": "dogecoin",
-		"EBST": "eboostcoin",
 		"FTC": "feathercoin",
 		"GRS": "groestlcoin",
 		"LTC": "litecoin",
@@ -291,7 +291,6 @@
 		"CELO": "celo",
 		"CUSD": "celo-dollar",
 		"WETH": "weth",
-		"MAI": "mimatic",
 		"SOL": "solana",
 		"RIF": "rsk-infrastructure-framework"
 	},
