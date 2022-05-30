@@ -152,6 +152,9 @@ const asCurrencyCodeMaps = asObject({
   coingecko: asMaybe(asObject(asString), {
     ...(currencyCodeMaps.coingecko ?? {})
   }),
+  compound: asMaybe(asObject(asString), {
+    ...(currencyCodeMaps.compound ?? {})
+  }),
   nomics: asMaybe(asObject(asString), { ...(currencyCodeMaps.nomics ?? {}) }),
   allEdgeCurrencies: asMaybe(asArray(asString), [
     ...(currencyCodeMaps.allEdgeCurrencies ?? [])

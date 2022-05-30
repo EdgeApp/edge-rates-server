@@ -440,6 +440,28 @@
 		"RIF": "rif-token",
 		"SOL": "solana"
 	},
+	"compound": {
+		"CREP": "REP",
+		"CMKR": "MKR",
+		"CWBTC": "WBTC",
+		"CTUSD": "TUSD",
+		"CSUSHI": "SUSHI",
+		"CBAT": "BAT",
+		"CYFI": "YFI",
+		"CUSDP": "USDP",
+		"CSAI": "SAI",
+		"CZRX": "ZRX",
+		"CCOMP": "COMP",
+		"CFEI": "FEI",
+		"CUNI": "UNI",
+		"CAAVE": "AAVE",
+		"CUSDT": "USDT",
+		"CLINK": "LINK",
+		"CWBTC2": "WBTC",
+		"CUSDC": "USDC",
+		"CETH": "ETH",
+		"CDAI": "DAI"
+	},
 	"nomics": {
 		"BTC": "BTC",
 		"BCH": "BCH",

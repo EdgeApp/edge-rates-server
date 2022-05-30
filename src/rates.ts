@@ -189,7 +189,7 @@ export const getExchangeRates = async (
 
     const out = await getRatesFromProviders({ data, documents }, edgeAssetDoc)
 
-    // Save USD rates to Redis
+    // Save rates to Redis
     for (const doc of out.documents) {
       const newRates = Object.keys(doc)
         .filter(pair => pair !== '_id' && pair !== '_rev' && pair !== 'updated')
@@ -208,6 +208,22 @@ export const getExchangeRates = async (
       // Add the zero rates, too
       for (const code of Object.keys(edgeAssetDoc.zeroRates)) {
         newRates[`${code}_iso:USD`] = '0'
+      }
+      // Compound assets
+      for (const code of Object.keys(edgeAssetDoc.compound)) {
+        if (
+          newRates[`${code}_iso:USD`] == null &&
+          newRates[`${edgeAssetDoc.constantCurrencyCodes[code]}_iso:USD`] !=
+            null &&
+          !eq(
+            newRates[`${edgeAssetDoc.constantCurrencyCodes[code]}_iso:USD`],
+            '0'
+          )
+        )
+          newRates[`${code}_iso:USD`] = div(
+            newRates[`${code}_${edgeAssetDoc.constantCurrencyCodes[code]}`],
+            newRates[`${edgeAssetDoc.constantCurrencyCodes[code]}_iso:USD`]
+          )
       }
       // Update redis
       hsetAsync(doc._id, newRates).catch(e => logger(e))
