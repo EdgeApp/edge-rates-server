@@ -60,7 +60,6 @@
     "cors": "^2.8.5",
     "edge-server-tools": "^0.2.10",
     "express": "^4.17.1",
-    "jsonschema": "^1.2.6",
     "morgan": "^1.10.0",
     "nano": "10.0.0",
     "node-fetch": "^2.6.0",

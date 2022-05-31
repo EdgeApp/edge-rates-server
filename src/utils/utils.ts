@@ -1,5 +1,3 @@
-import { validate } from 'jsonschema'
-
 import { AssetMap, NewRates, RateMap, ReturnRate } from '../rates'
 import { config } from './../config'
 
@@ -20,20 +18,6 @@ export function normalizeDate(dateSrc: string, backDateMs: number = 0): string {
   dateNorm.setSeconds(dateNorm.getSeconds() < 30 ? 0 : 30)
   dateNorm.setMilliseconds(0)
   return dateNorm.toISOString()
-}
-
-export function validateObject(object: any, schema: any): boolean {
-  const result = validate(object, schema)
-
-  if (result.errors.length === 0) {
-    return true
-  } else {
-    for (let i = 0; i < result.errors.length; i++) {
-      const errMsg = result.errors[i].message
-      console.log(`ERROR: validateObject: ${errMsg}`)
-    }
-    return false
-  }
 }
 
 export const snooze = async (ms: number): Promise<void> =>
