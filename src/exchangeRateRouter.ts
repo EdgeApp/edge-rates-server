@@ -281,7 +281,7 @@ const queryExchangeRates: express.RequestHandler = async (
       ...queriedRates
     ]
   } catch (e) {
-    res.status(400).send(e instanceof Error ? e.message : 'Malformed request')
+    res.status(500).send('Server error')
   }
 
   next()

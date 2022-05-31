@@ -208,14 +208,7 @@ export const getExchangeRates = async (
     return rates
   } catch (e) {
     logger('getExchangeRates', e)
-    return [
-      {
-        currency_pair: '',
-        date: '',
-        exchangeRate: '',
-        error: e instanceof Error ? e.message : 'Unknown error'
-      }
-    ]
+    throw e
   }
 }
 
