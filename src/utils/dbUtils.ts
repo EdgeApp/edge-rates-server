@@ -16,13 +16,6 @@ import currencyCodeMaps from './currencyCodeMaps.json'
 import { slackPoster } from './postToSlack'
 import { logger, memoize } from './utils'
 
-interface NanoBulkResponse {
-  id: string
-  rev: string
-  error?: string
-  reason?: string
-}
-
 const ONE_HOUR = 1000 * 60 * 60
 
 export interface DbDoc

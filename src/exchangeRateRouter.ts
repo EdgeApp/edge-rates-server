@@ -45,8 +45,6 @@ const asRatesRequest = asExtendedReq({
   requestedRatesResult: asOptional(asReturnGetRate)
 })
 
-export type ExchangeRatesReq = ReturnType<typeof asExchangeRatesReq>
-
 // Hack to add type definitions for middleware
 type ExpressRequest = ReturnType<typeof asRatesRequest> | void
 
