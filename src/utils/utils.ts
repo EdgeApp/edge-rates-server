@@ -21,20 +21,6 @@ export function normalizeDate(dateSrc: string, backDateMs: number = 0): string {
   return dateNorm.toISOString()
 }
 
-export function validateObject(object: any, schema: any): boolean {
-  const result = validate(object, schema)
-
-  if (result.errors.length === 0) {
-    return true
-  } else {
-    for (let i = 0; i < result.errors.length; i++) {
-      const errMsg = result.errors[i].message
-      console.log(`ERROR: validateObject: ${errMsg}`)
-    }
-    return false
-  }
-}
-
 export const snooze = async (ms: number): Promise<void> =>
   new Promise((resolve: Function) => setTimeout(resolve, ms))
 
