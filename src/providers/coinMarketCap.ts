@@ -1,8 +1,9 @@
 import { asArray, asMap, asNumber, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
+import { ExchangeRateReq } from '../exchangeRateRouter'
 import { config } from './../config'
-import { AssetMap, NewRates, ReturnRate } from './../rates'
+import { AssetMap, NewRates } from './../rates'
 import {
   assetMapReducer,
   combineRates,
@@ -172,7 +173,7 @@ const coinMarketCapHistorical = async (
 }
 
 export const coinMarketCap = async (
-  rateObj: ReturnRate[],
+  rateObj: ExchangeRateReq[],
   currentTime: string,
   edgeAssetMap: AssetMap
 ): Promise<NewRates> => {

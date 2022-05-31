@@ -2,7 +2,8 @@ import { asArray, asNumber, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { AssetMap, NewRates, ReturnRate } from '../rates'
+import { ExchangeRateReq } from '../exchangeRateRouter'
+import { AssetMap, NewRates } from '../rates'
 import {
   assetMapReducer,
   createReducedRateMap,
@@ -38,7 +39,7 @@ const coingeckoRateMap = createReducedRateMap(
 )
 
 export const coingecko = async (
-  requestedRates: ReturnRate[],
+  requestedRates: ExchangeRateReq[],
   currentTime: string,
   edgeAssetMap: AssetMap
 ): Promise<NewRates> => {

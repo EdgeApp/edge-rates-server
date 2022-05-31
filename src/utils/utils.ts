@@ -1,6 +1,5 @@
-import { validate } from 'jsonschema'
-
-import { AssetMap, NewRates, RateMap, ReturnRate } from '../rates'
+import { ExchangeRateReq } from '../exchangeRateRouter'
+import { AssetMap, NewRates, RateMap } from '../rates'
 import { config } from './../config'
 
 const { defaultFiatCode: DEFAULT_FIAT } = config
@@ -39,11 +38,13 @@ export function validateObject(object: any, schema: any): boolean {
 export const snooze = async (ms: number): Promise<void> =>
   new Promise((resolve: Function) => setTimeout(resolve, ms))
 
-export const getNullRateArray = (rates: ReturnRate[]): ReturnRate[] => {
+export const getNullRateArray = (
+  rates: ExchangeRateReq[]
+): ExchangeRateReq[] => {
   return rates.filter(rate => rate.exchangeRate == null)
 }
 
-export const haveEveryRate = (rates: ReturnRate[]): boolean => {
+export const haveEveryRate = (rates: ExchangeRateReq[]): boolean => {
   return rates.every(rate => rate.exchangeRate != null)
 }
 

@@ -2,7 +2,8 @@ import { asArray, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { NewRates, ReturnRate } from './../rates'
+import { ExchangeRateReq } from '../exchangeRateRouter'
+import { NewRates } from './../rates'
 import {
   createReducedRateMapArray,
   logger,
@@ -35,7 +36,7 @@ const compoundQuote = (code: ReturnType<typeof asCompoundQuote>): string =>
 const compoundRateMap = createReducedRateMapArray(compoundPair, compoundQuote)
 
 export const compound = async (
-  rateObj: ReturnRate[],
+  rateObj: ExchangeRateReq[],
   currentTime: string
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }

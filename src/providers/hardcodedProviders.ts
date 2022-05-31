@@ -1,3 +1,4 @@
+import { ExchangeRateReq } from '../exchangeRateRouter'
 import {
   currencyCodeArray,
   fromCode,
@@ -5,10 +6,10 @@ import {
   invertPair,
   toCode
 } from '../utils/utils'
-import { AssetMap, NewRates, ReturnRate } from './../rates'
+import { AssetMap, NewRates } from './../rates'
 
 export const zeroRates = (
-  rateObj: ReturnRate[],
+  rateObj: ExchangeRateReq[],
   currentTime: string,
   assetMap: AssetMap
 ): NewRates => {
@@ -27,7 +28,7 @@ export const zeroRates = (
 }
 
 export const fallbackConstantRates = (
-  rateObj: ReturnRate[],
+  rateObj: ExchangeRateReq[],
   currentTime: string,
   assetMap: AssetMap
 ): NewRates => {

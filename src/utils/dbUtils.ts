@@ -1,11 +1,4 @@
-import {
-  asArray,
-  asBoolean,
-  asMaybe,
-  asObject,
-  asOptional,
-  asString
-} from 'cleaners'
+import { asArray, asMaybe, asObject, asString } from 'cleaners'
 import { syncedDocument } from 'edge-server-tools'
 import nano from 'nano'
 import promisify from 'promisify-node'
@@ -23,13 +16,6 @@ export interface DbDoc
     nano.MaybeRevisionedDocument {
   [pair: string]: any
   updated?: boolean
-}
-
-export const asDbDoc = (raw): DbDoc => {
-  return {
-    ...asObject({ updated: asOptional(asBoolean), _id: asString })(raw),
-    ...asObject(asMaybe(asString))(raw)
-  }
 }
 
 const { couchUri } = config

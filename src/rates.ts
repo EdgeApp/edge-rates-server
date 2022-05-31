@@ -1,16 +1,8 @@
 import { div, eq, mul } from 'biggystring'
-import {
-  asArray,
-  asEither,
-  asNull,
-  asObject,
-  asOptional,
-  asString
-} from 'cleaners'
 import nano from 'nano'
 
 import { config } from './config'
-import { asExchangeRateReq, ExchangeRateReq } from './exchangeRateRouter'
+import { ExchangeRateReq } from './exchangeRateRouter'
 import { coincap } from './providers/coincap'
 import { coingecko } from './providers/coingecko'
 import { coinMarketCap } from './providers/coinMarketCap'
@@ -25,13 +17,7 @@ import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
 import { wazirx } from './providers/wazirx'
 import { hgetallAsync, hsetAsync } from './uidEngine'
-import {
-  asDbDoc,
-  DbDoc,
-  getEdgeAssetDoc,
-  getFromDb,
-  saveToDb
-} from './utils/dbUtils'
+import { DbDoc, getEdgeAssetDoc, getFromDb, saveToDb } from './utils/dbUtils'
 import {
   checkConstantCode,
   currencyCodeArray,
@@ -49,30 +35,6 @@ import {
 const { bridgeCurrencies } = config
 
 const PRECISION = 20
-
-export interface ReturnGetRate {
-  data: ReturnRate[]
-  documents: DbDoc[]
-}
-
-export const asReturnGetRate = asObject({
-  data: asArray(
-    asObject<ReturnRate>({
-      currency_pair: asString,
-      date: asString,
-      exchangeRate: asEither(asString, asNull),
-      error: asOptional(asString)
-    })
-  ),
-  documents: asArray(asDbDoc)
-})
-
-export interface ReturnRate {
-  currency_pair: string
-  date: string
-  exchangeRate: string | null
-  error?: string
-}
 
 export interface RateMap {
   [pair: string]: string
@@ -126,9 +88,10 @@ const addNewRatesToDocs = (
 }
 
 const getRatesFromProviders = async (
-  rateObj: ReturnGetRate,
+  rates: ExchangeRateReq[],
+  documents: DbDoc[],
   edgeAssetMap: DbDoc
-): Promise<ReturnGetRate> => {
+): Promise<{ rates: ExchangeRateReq[]; documents: DbDoc[] }> => {
   const currentTime = normalizeDate(new Date().toISOString())
   if (typeof currentTime !== 'string') throw new Error('malformed date')
 
@@ -154,27 +117,27 @@ const getRatesFromProviders = async (
   for (const provider of rateProviders) {
     addNewRatesToDocs(
       await provider(
-        getNullRateArray(rateObj.data),
+        getNullRateArray(rates),
         currentTime,
         (await hgetallAsync(provider.name)) ?? edgeAssetMap[provider.name] ?? {}
       ),
-      rateObj.documents,
+      documents,
       provider.name
     )
-    currencyBridgeDB(rateObj, constantCurrencyCodes)
-    if (haveEveryRate(rateObj.data)) break
+    currencyBridgeDB(rates, documents, constantCurrencyCodes)
+    if (haveEveryRate(rates)) break
   }
 
-  return rateObj
+  return { rates, documents }
 }
 
 export const getExchangeRates = async (
   query: ExchangeRateReq[],
   localDb: nano.DocumentScope<DbDoc>
-): Promise<ReturnGetRate> => {
+): Promise<ExchangeRateReq[]> => {
   try {
     const docs: string[] = []
-    const data = query.map(pair => {
+    const requestedRates = query.map(pair => {
       const { currency_pair, date } = asRateParam(pair)
       if (!docs.includes(date)) docs.push(date)
       return {
@@ -185,12 +148,16 @@ export const getExchangeRates = async (
     })
 
     const edgeAssetDoc = await getEdgeAssetDoc()
-    const documents: DbDoc[] = await getFromDb(localDb, docs)
+    const couchDocuments: DbDoc[] = await getFromDb(localDb, docs)
 
-    const out = await getRatesFromProviders({ data, documents }, edgeAssetDoc)
+    const { rates, documents } = await getRatesFromProviders(
+      requestedRates,
+      couchDocuments,
+      edgeAssetDoc
+    )
 
     // Save rates to Redis
-    for (const doc of out.documents) {
+    for (const doc of documents) {
       const newRates = Object.keys(doc)
         .filter(pair => pair !== '_id' && pair !== '_rev' && pair !== 'updated')
         .map(pair => [pair, doc[pair]])
@@ -232,39 +199,37 @@ export const getExchangeRates = async (
     // Save to Couchdb
     saveToDb(
       localDb,
-      out.documents
+      documents
         .filter(doc => doc.updated === true)
         .map(doc => {
           delete doc.updated
           return doc
         })
     )
-    return out
+    return rates
   } catch (e) {
     logger('getExchangeRates', e)
-    return {
-      data: [
-        {
-          currency_pair: '',
-          date: '',
-          exchangeRate: '',
-          error: e instanceof Error ? e.message : 'Unknown error'
-        }
-      ],
-      documents: []
-    }
+    return [
+      {
+        currency_pair: '',
+        date: '',
+        exchangeRate: '',
+        error: e instanceof Error ? e.message : 'Unknown error'
+      }
+    ]
   }
 }
 
 export const currencyBridgeDB = (
-  rateObj: ReturnGetRate,
+  rates: ExchangeRateReq[],
+  documents: DbDoc[],
   constantCurrencyCodes: AssetMap
 ): void => {
-  for (let i = 0; i < rateObj.data.length; i++) {
-    const rate = rateObj.data[i]
+  for (let i = 0; i < rates.length; i++) {
+    const rate = rates[i]
     if (rate.exchangeRate != null) continue
-    const dbIndex = rateObj.documents.findIndex(doc => doc._id === rate.date)
-    if (rateObj.documents[dbIndex] == null) continue
+    const dbIndex = documents.findIndex(doc => doc._id === rate.date)
+    if (documents[dbIndex] == null) continue
     const from = checkConstantCode(
       fromCode(rate.currency_pair),
       constantCurrencyCodes
@@ -273,7 +238,7 @@ export const currencyBridgeDB = (
       toCode(rate.currency_pair),
       constantCurrencyCodes
     )
-    const doc = rateObj.documents[dbIndex]
+    const doc = documents[dbIndex]
     // Check simple combinations first
     if (doc[toCurrencyPair(from, to)] != null) {
       rate.exchangeRate = doc[`${from}_${to}`]
@@ -334,8 +299,8 @@ export const currencyBridgeDB = (
   }
 }
 
-export const asRateParam = (param: any): ExchangeRateReq => {
-  const { currency_pair, date } = asExchangeRateReq(param)
+export const asRateParam = (param: any): ExchangeRateRequest => {
+  const { currency_pair, date } = asExchangeRateRequest(param)
 
   if (typeof currency_pair !== 'string' || typeof date !== 'string') {
     throw new Error(

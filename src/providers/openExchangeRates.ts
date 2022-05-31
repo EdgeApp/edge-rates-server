@@ -1,8 +1,9 @@
 import { asMap, asNumber, asObject } from 'cleaners'
 import fetch from 'node-fetch'
 
+import { ExchangeRateReq } from '../exchangeRateRouter'
 import { config } from './../config'
-import { NewRates, ReturnRate } from './../rates'
+import { NewRates } from './../rates'
 import {
   combineRates,
   createReducedRateMap,
@@ -70,7 +71,7 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
 }
 
 export const openExchangeRates = async (
-  rateObj: ReturnRate[],
+  rateObj: ExchangeRateReq[],
   currentTime: string
 ): Promise<NewRates> => {
   const rates = {}

@@ -2,7 +2,8 @@ import { asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { NewRates, RateMap, ReturnRate } from './../rates'
+import { ExchangeRateReq } from '../exchangeRateRouter'
+import { NewRates, RateMap } from './../rates'
 import { logger } from './../utils/utils'
 
 const { uri } = config.providers.wazirx
@@ -14,7 +15,7 @@ const wazirxRateMap = (
 ): RateMap => ({ 'BTC_iso:INR': results.btcinr.last })
 
 const wazirx = async (
-  requestedRates: ReturnRate[],
+  requestedRates: ExchangeRateReq[],
   currentTime: string
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }

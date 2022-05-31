@@ -2,7 +2,8 @@ import { asArray, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { AssetMap, NewRates, ReturnRate } from '../rates'
+import { ExchangeRateReq } from '../exchangeRateRouter'
+import { AssetMap, NewRates } from '../rates'
 import {
   assetMapReducer,
   createReducedRateMapArray,
@@ -37,7 +38,7 @@ const nomicsPair = (code: ReturnType<typeof asNomicsQuote>): string =>
 const nomicsRateMap = createReducedRateMapArray(nomicsPair, nomicsQuote)
 
 export const nomics = async (
-  requestedRates: ReturnRate[],
+  requestedRates: ExchangeRateReq[],
   currentTime: string,
   edgeAssetMap: AssetMap
 ): Promise<NewRates> => {
