@@ -57,10 +57,19 @@ export const asExchangeRateReq = (obj): ExchangeRateReq => {
     new Date().toISOString(),
     30 * 1000 /* thirty seconds */
   )
-  return asObject({
+
+  const out = asObject({
     currency_pair: asString,
     date: asMaybe(asString, thirtySecondsAgo)
   })(obj)
+
+  // Test for invalid character in currency_pair (valid characters are 0-9, a-Z, .,  _, -, and :)
+  // This could be a user-defined currency code so we don't want to kill the entire request if one of these is malformed
+  if (!/^[ A-Za-z0-9_:.-]*$/.test(currency_pair)) {
+    return { ...out, exchangeRate: '0' }
+  }
+
+  return out
 }
 
 const asExchangeRatesReq = asObject({
