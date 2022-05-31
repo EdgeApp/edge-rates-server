@@ -11,10 +11,6 @@ const { defaultFiatCode: DEFAULT_FIAT } = config
  */
 export function normalizeDate(dateSrc: string, backDateMs: number = 0): string {
   const timestamp = Date.parse(dateSrc) - backDateMs
-  if (isNaN(timestamp))
-    throw new Error(
-      'date query param malformed.  should be conventional date string, ex:"2019-11-21T15:28:21.123Z"'
-    )
   const dateNorm = new Date(timestamp - backDateMs)
   dateNorm.setSeconds(dateNorm.getSeconds() < 30 ? 0 : 30)
   dateNorm.setMilliseconds(0)

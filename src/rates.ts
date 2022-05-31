@@ -20,7 +20,6 @@ import { hgetallAsync, hsetAsync } from './uidEngine'
 import { DbDoc, getEdgeAssetDoc, getFromDb, saveToDb } from './utils/dbUtils'
 import {
   checkConstantCode,
-  currencyCodeArray,
   fromCode,
   getNullRateArray,
   haveEveryRate,
@@ -138,7 +137,7 @@ export const getExchangeRates = async (
   try {
     const docs: string[] = []
     const requestedRates = query.map(pair => {
-      const { currency_pair, date } = asRateParam(pair)
+      const { currency_pair, date } = pair
       if (!docs.includes(date)) docs.push(date)
       return {
         currency_pair,
@@ -297,30 +296,4 @@ export const currencyBridgeDB = (
         )
     }
   }
-}
-
-export const asRateParam = (param: any): ExchangeRateRequest => {
-  const { currency_pair, date } = asExchangeRateRequest(param)
-
-  if (typeof currency_pair !== 'string' || typeof date !== 'string') {
-    throw new Error(
-      'Missing or invalid query param(s): currency_pair and date should both be strings'
-    )
-  }
-  const currencyTokens = currencyCodeArray(currency_pair)
-  if (currencyTokens.length !== 2) {
-    throw new Error(
-      'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_iso:USD"'
-    )
-  }
-  const parsedDate = normalizeDate(date)
-  if (parsedDate == null) {
-    throw new Error(
-      'date query param malformed.  should be conventional date string, ex:"2019-11-21T15:28:21.123Z"'
-    )
-  }
-  if (Date.parse(parsedDate) > Date.now()) {
-    throw new Error('Future date received. Must send past date.')
-  }
-  return { currency_pair, date: parsedDate }
 }
