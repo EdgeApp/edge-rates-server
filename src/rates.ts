@@ -175,10 +175,10 @@ export const getExchangeRates = async (
   try {
     const docs: string[] = []
     const data = query.map(pair => {
-      const { currencyPair, date } = asRateParam(pair)
+      const { currency_pair, date } = asRateParam(pair)
       if (!docs.includes(date)) docs.push(date)
       return {
-        currency_pair: currencyPair,
+        currency_pair,
         date,
         exchangeRate: null
       }
@@ -334,20 +334,15 @@ export const currencyBridgeDB = (
   }
 }
 
-interface RateParamReturn {
-  currencyPair: string
-  date: string
-}
+export const asRateParam = (param: any): ExchangeRateReq => {
+  const { currency_pair, date } = asExchangeRateReq(param)
 
-export const asRateParam = (param: any): RateParamReturn => {
-  const { currency_pair: currencyPair, date } = asExchangeRateReq(param)
-
-  if (typeof currencyPair !== 'string' || typeof date !== 'string') {
+  if (typeof currency_pair !== 'string' || typeof date !== 'string') {
     throw new Error(
       'Missing or invalid query param(s): currency_pair and date should both be strings'
     )
   }
-  const currencyTokens = currencyCodeArray(currencyPair)
+  const currencyTokens = currencyCodeArray(currency_pair)
   if (currencyTokens.length !== 2) {
     throw new Error(
       'currency_pair query param malformed.  should be [curA]_[curB], ex: "ETH_iso:USD"'
@@ -362,5 +357,5 @@ export const asRateParam = (param: any): RateParamReturn => {
   if (Date.parse(parsedDate) > Date.now()) {
     throw new Error('Future date received. Must send past date.')
   }
-  return { currencyPair, date: parsedDate }
+  return { currency_pair, date: parsedDate }
 }
