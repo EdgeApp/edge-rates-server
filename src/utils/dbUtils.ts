@@ -128,31 +128,25 @@ export const getFromDb = async (
 export const wrappedGetFromDb = async (dates: string[]): Promise<DbDoc[]> =>
   getFromDb(dbRates, dates)
 
-const asCurrencyCodeMaps = asObject({
-  constantCurrencyCodes: asMaybe(asObject(asString), {
-    ...(currencyCodeMaps.constantCurrencyCodes ?? {})
-  }),
-  zeroRates: asMaybe(asObject(asString), {
-    ...(currencyCodeMaps.zeroRates ?? {})
-  }),
-  fallbackConstantRates: asMaybe(asObject(asString), {
-    ...(currencyCodeMaps.fallbackConstantRates ?? {})
-  }),
-  coinMarketCap: asMaybe(asObject(asString), {
-    ...(currencyCodeMaps.coinMarketCap ?? {})
-  }),
-  coincap: asMaybe(asObject(asString), { ...(currencyCodeMaps.coincap ?? {}) }),
-  coingecko: asMaybe(asObject(asString), {
-    ...(currencyCodeMaps.coingecko ?? {})
-  }),
-  nomics: asMaybe(asObject(asString), { ...(currencyCodeMaps.nomics ?? {}) }),
-  allEdgeCurrencies: asMaybe(asArray(asString), [
-    ...(currencyCodeMaps.allEdgeCurrencies ?? [])
-  ]),
-  fiatCurrencyCodes: asMaybe(asArray(asString), [
-    ...(currencyCodeMaps.fiatCurrencyCodes ?? [])
-  ])
+const asCurrencyCodeMapsCleaner = asObject({
+  constantCurrencyCodes: asMaybe(asObject(asString)),
+  zeroRates: asMaybe(asObject(asString)),
+  fallbackConstantRates: asMaybe(asObject(asString)),
+  coinMarketCap: asMaybe(asObject(asString)),
+  coincap: asMaybe(asObject(asString)),
+  coingecko: asMaybe(asObject(asString)),
+  nomics: asMaybe(asObject(asString)),
+  allEdgeCurrencies: asMaybe(asArray(asString)),
+  fiatCurrencyCodes: asMaybe(asArray(asString))
 })
+
+// Pass the defaults json through the cleaner so they're typed
+const defaultCurrencyCodeMaps = asCurrencyCodeMapsCleaner(currencyCodeMaps)
+
+const asCurrencyCodeMaps = asMaybe(
+  asCurrencyCodeMapsCleaner,
+  defaultCurrencyCodeMaps
+)
 
 const syncedCurrencyCodeMaps = syncedDocument(
   'currencyCodeMaps',
