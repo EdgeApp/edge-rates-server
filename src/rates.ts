@@ -78,17 +78,33 @@ export interface AssetMap {
   [currencyCode: string]: string
 }
 
-const sanitizeNewRates = (newRates: RateMap, providerName: string): RateMap => {
+const sanitizeNewRates = (
+  newRates: RateMap,
+  providerName: string,
+  document: DbDoc
+): RateMap => {
   // Create map of inverted pairs and rates
   const rateMap = {}
   for (const pair of Object.keys(newRates)) {
-    const rate = Number(newRates[pair]).toFixed(PRECISION) // Prevent scientific notation
+    let rate = Number(newRates[pair]).toFixed(PRECISION) // Prevent scientific notation
     // Sanity check value is acceptable and only allow a 0 rate from the zeroRates plugin
     if (isNotANumber(rate) || (eq(rate, '0') && providerName !== 'zeroRates')) {
       continue
     }
-    rateMap[pair] = rate
-    rateMap[invertPair(pair)] = eq(rate, '0') ? '0' : div('1', rate, PRECISION)
+
+    // Special case for crypto/crypto rate providers
+    let pairCodes = pair
+    if (providerName === 'compound') {
+      const underlyingUsdRate = document[`${toCode(pair)}_iso:USD`]
+      if (underlyingUsdRate == null) continue
+      rate = mul(newRates[pair], underlyingUsdRate)
+      pairCodes = `${fromCode(pair)}_iso:USD`
+    }
+
+    rateMap[pairCodes] = rate
+    rateMap[invertPair(pairCodes)] = eq(rate, '0')
+      ? '0'
+      : div('1', rate, PRECISION)
   }
 
   return rateMap
@@ -135,7 +151,11 @@ const getRatesFromProviders = async (
 
       rateObj.documents[index] = {
         ...rateObj.documents[index],
-        ...sanitizeNewRates(response[date], provider.name),
+        ...sanitizeNewRates(
+          response[date],
+          provider.name,
+          rateObj.documents[index]
+        ),
         ...bridgeCurrencies.reduce(
           (out, code) => Object.assign(out, { [`${code}_${code}`]: '1' }),
           {}
