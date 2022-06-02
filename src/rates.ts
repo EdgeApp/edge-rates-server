@@ -25,13 +25,7 @@ import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
 import { wazirx } from './providers/wazirx'
 import { hgetallAsync, hsetAsync } from './uidEngine'
-import {
-  asDbDoc,
-  DbDoc,
-  getEdgeAssetDoc,
-  getFromDb,
-  saveToDb
-} from './utils/dbUtils'
+import { asDbDoc, DbDoc, getFromDb, saveToDb } from './utils/dbUtils'
 import {
   checkConstantCode,
   fromCode,
@@ -129,8 +123,8 @@ const getRatesFromProviders = async (
   for (const provider of rateProviders) {
     const remainingRequests = getNullRateArray(rateObj.data)
     if (remainingRequests.length === 0) break
-    const assetMap =
-      (await hgetallAsync(provider.name)) ?? edgeAssetMap[provider.name] ?? {}
+
+    const assetMap = edgeAssetMap[provider.name] ?? {}
 
     const response = await provider(remainingRequests, currentTime, assetMap)
 
@@ -171,10 +165,15 @@ export const getExchangeRates = async (
       }
     })
 
-    const edgeAssetDoc = await getEdgeAssetDoc()
-    const documents: DbDoc[] = await getFromDb(localDb, docs)
+    const documents: DbDoc[] = await getFromDb(localDb, [
+      'currencyCodeMaps',
+      ...docs
+    ])
 
-    const out = await getRatesFromProviders({ data, documents }, edgeAssetDoc)
+    const out = await getRatesFromProviders(
+      { data, documents: documents.slice(1) },
+      documents[0]
+    )
 
     // Save USD rates to Redis
     for (const doc of out.documents) {
