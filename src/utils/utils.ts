@@ -23,10 +23,6 @@ export const getNullRateArray = (rates: ReturnRate[]): ReturnRate[] => {
   return rates.filter(rate => rate.exchangeRate == null)
 }
 
-export const haveEveryRate = (rates: ReturnRate[]): boolean => {
-  return rates.every(rate => rate.exchangeRate != null)
-}
-
 export const checkConstantCode = (
   code: string,
   constantCurrencyCodes: AssetMap

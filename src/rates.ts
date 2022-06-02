@@ -36,7 +36,6 @@ import {
   checkConstantCode,
   fromCode,
   getNullRateArray,
-  haveEveryRate,
   invertPair,
   isNotANumber,
   logger,
@@ -85,44 +84,20 @@ export interface AssetMap {
   [currencyCode: string]: string
 }
 
-const addNewRatesToDocs = (
-  newRates: NewRates,
-  documents: DbDoc[],
-  providerName: string
-): void => {
-  for (const date of Object.keys(newRates)) {
-    const dbIndex = documents.findIndex(doc => doc._id === date)
-    if (dbIndex >= 0) {
-      // Create map of inverted pairs and rates
-      const rateMap = {}
-      // const rateMap = newRates[date]
-      for (const pair of Object.keys(newRates[date])) {
-        const rate = Number(newRates[date][pair]).toFixed(PRECISION) // Prevent scientific notation
-        // Sanity check value is acceptable and only allow a 0 rate from the zeroRates plugin
-        if (
-          isNotANumber(rate) ||
-          (eq(rate, '0') && providerName !== 'zeroRates')
-        ) {
-          continue
-        }
-        rateMap[pair] = rate
-        rateMap[invertPair(pair)] = eq(rate, '0')
-          ? '0'
-          : div('1', rate, PRECISION)
-      }
-
-      // Add new rates and their inverts to the doc and mark updated
-      documents[dbIndex] = {
-        ...documents[dbIndex],
-        ...rateMap,
-        ...bridgeCurrencies.reduce(
-          (out, code) => Object.assign(out, { [`${code}_${code}`]: '1' }),
-          {}
-        ),
-        ...{ updated: true }
-      }
+const sanitizeNewRates = (newRates: RateMap, providerName: string): RateMap => {
+  // Create map of inverted pairs and rates
+  const rateMap = {}
+  for (const pair of Object.keys(newRates)) {
+    const rate = Number(newRates[pair]).toFixed(PRECISION) // Prevent scientific notation
+    // Sanity check value is acceptable and only allow a 0 rate from the zeroRates plugin
+    if (isNotANumber(rate) || (eq(rate, '0') && providerName !== 'zeroRates')) {
+      continue
     }
+    rateMap[pair] = rate
+    rateMap[invertPair(pair)] = eq(rate, '0') ? '0' : div('1', rate, PRECISION)
   }
+
+  return rateMap
 }
 
 const getRatesFromProviders = async (
@@ -152,17 +127,29 @@ const getRatesFromProviders = async (
     ({ constantCurrencyCodes = {} } = edgeAssetMap)
 
   for (const provider of rateProviders) {
-    addNewRatesToDocs(
-      await provider(
-        getNullRateArray(rateObj.data),
-        currentTime,
-        (await hgetallAsync(provider.name)) ?? edgeAssetMap[provider.name] ?? {}
-      ),
-      rateObj.documents,
-      provider.name
-    )
+    const remainingRequests = getNullRateArray(rateObj.data)
+    if (remainingRequests.length === 0) break
+    const assetMap =
+      (await hgetallAsync(provider.name)) ?? edgeAssetMap[provider.name] ?? {}
+
+    const response = await provider(remainingRequests, currentTime, assetMap)
+
+    for (const date of Object.keys(response)) {
+      if (Object.keys(response[date]).length === 0) continue
+      const index = rateObj.documents.findIndex(doc => doc._id === date)
+      if (index === -1) continue
+
+      rateObj.documents[index] = {
+        ...rateObj.documents[index],
+        ...sanitizeNewRates(response[date], provider.name),
+        ...bridgeCurrencies.reduce(
+          (out, code) => Object.assign(out, { [`${code}_${code}`]: '1' }),
+          {}
+        ),
+        ...{ updated: true }
+      }
+    }
     currencyBridgeDB(rateObj, constantCurrencyCodes)
-    if (haveEveryRate(rateObj.data)) break
   }
 
   return rateObj
