@@ -26,6 +26,32 @@ export interface ExchangeRateReq {
 }
 
 export const asExchangeRateReq = (obj): ExchangeRateReq => {
+  const { currency_pair, date } = obj
+
+  if (
+    typeof currency_pair !== 'string' ||
+    (date != null && typeof date !== 'string')
+  )
+    throw new Error(
+      'Missing or invalid query param(s). currency_pair and date should both be strings'
+    )
+
+  if (currency_pair.split('_').length !== 2)
+    throw new Error(
+      'currency_pair query param malformed. Should be [curA]_[curB], ex: "ETH_iso:USD"'
+    )
+
+  if (date != null) {
+    const timestamp = Date.parse(date)
+    if (isNaN(timestamp))
+      throw new Error(
+        'date query param malformed.  Should be conventional date string, ex:"2019-11-21T15:28:21.123Z"'
+      )
+    if (timestamp > Date.now()) {
+      throw new Error('Future date received. Must send past date.')
+    }
+  }
+
   const thirtySecondsAgo = normalizeDate(
     new Date().toISOString(),
     30 * 1000 /* thirty seconds */
@@ -137,7 +163,9 @@ const exchangeRateCleaner: express.RequestHandler = (req, res, next): void => {
       data: [{ currency_pair, date }]
     })
   } catch (e) {
-    res.status(400).send(`Missing Request fields.`)
+    res
+      .status(400)
+      .send(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`)
     return
   }
 
@@ -154,7 +182,9 @@ const exchangeRatesCleaner: express.RequestHandler = (req, res, next): void => {
   try {
     exReq.requestedRates = asExchangeRatesReq(exReq.body)
   } catch (e) {
-    res.status(400).send(`Missing Request fields.`)
+    res
+      .status(400)
+      .send(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`)
     return
   }
   if (exReq.requestedRates.data.length > EXCHANGE_RATES_BATCH_LIMIT) {
