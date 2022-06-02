@@ -282,7 +282,7 @@ const queryExchangeRates: express.RequestHandler = async (
       documents: [...queriedRates.documents] // TODO: Change data type since the douch docs aren't needed after this
     }
   } catch (e) {
-    res.status(400).send(e instanceof Error ? e.message : 'Malformed request')
+    res.status(500).send('Server error')
   }
 
   next()
