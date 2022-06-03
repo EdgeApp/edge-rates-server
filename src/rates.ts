@@ -5,8 +5,10 @@ import {
   asNull,
   asObject,
   asOptional,
-  asString
+  asString,
+  uncleaner
 } from 'cleaners'
+import { asCouchDoc } from 'edge-server-tools'
 import nano from 'nano'
 
 import { config } from './config'
@@ -28,6 +30,7 @@ import { hgetallAsync, hsetAsync } from './uidEngine'
 import { asDbDoc, DbDoc, getFromDb, saveToDb } from './utils/dbUtils'
 import {
   checkConstantCode,
+  currencyCodeArray,
   fromCode,
   getNullRateArray,
   invertPair,
@@ -38,7 +41,7 @@ import {
   toCurrencyPair
 } from './utils/utils'
 
-const { bridgeCurrencies } = config
+const { bridgeCurrencies, preferredCryptoFiatPairs } = config
 
 const PRECISION = 20
 
@@ -195,25 +198,32 @@ export const getExchangeRates = async (
       documents[0]
     )
 
-    // Save USD rates to Redis
-    for (const doc of out.documents) {
-      const newRates = Object.keys(doc)
-        .filter(key => key.includes('iso:USD'))
-        .map(pair => [pair, doc[pair]])
-        .flat()
-      hsetAsync(doc._id, newRates).catch(e => logger(e))
-    }
+    // Filter and clean up docs
+    out.documents = out.documents
+      .filter(doc => doc.updated === true)
+      .map(doc => {
+        delete doc.updated
+        const cleanDoc = asCouchDoc(asObject(asString))(doc)
+        for (const pair of Object.keys(cleanDoc.doc)) {
+          if (
+            currencyCodeArray(pair).includes('iso:USD') ||
+            preferredCryptoFiatPairs.includes(pair)
+          )
+            continue
+          delete cleanDoc.doc[pair]
+        }
+
+        // Save to redis (will be proper middleware eventually)
+        const newRates = Object.keys(doc)
+          .map(pair => [pair, doc[pair]])
+          .flat()
+        hsetAsync(doc._id, newRates).catch(e => logger(e))
+
+        return uncleaner(asCouchDoc(asObject(asString)))(cleanDoc)
+      })
 
     // Save to Couchdb
-    saveToDb(
-      localDb,
-      out.documents
-        .filter(doc => doc.updated === true)
-        .map(doc => {
-          delete doc.updated
-          return doc
-        })
-    )
+    saveToDb(localDb, out.documents)
     return out
   } catch (e) {
     logger('getExchangeRates', e)
