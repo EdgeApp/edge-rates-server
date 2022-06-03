@@ -19,6 +19,10 @@ const wazirx = async (
 ): Promise<NewRates> => {
   const rates = { [currentTime]: {} }
 
+  // This is a BTC-only provider so we can check to exit early
+  if (requestedRates.find(req => req.currency_pair === 'BTC_iso:INR') == null)
+    return rates
+
   // Query
   try {
     const response = await fetch(`${uri}/api/v2/tickers`)

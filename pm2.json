@@ -3,6 +3,8 @@
     {
       "name": "ratesServer",
       "script": "lib/index.js",
+      "instances" : "max",
+      "exec_mode" : "cluster",
       "error_file": "logs/server/error.log",
       "out_file": "logs/server/out.log"
     },

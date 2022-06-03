@@ -1,6 +1,7 @@
 import fetch from 'node-fetch'
 
 import { config } from './config'
+import { ExchangeRateReq } from './exchangeRateRouter'
 import { hgetallAsync } from './uidEngine'
 import { getEdgeAssetDoc } from './utils/dbUtils'
 import { logger, normalizeDate, snooze } from './utils/utils'
@@ -9,6 +10,7 @@ const {
   cryptoCurrencyCodes,
   fiatCurrencyCodes,
   ratesServerAddress,
+  preferredCryptoFiatPairs,
   defaultFiatCode: DEFAULT_FIAT
 } = config
 
@@ -16,11 +18,6 @@ const endPoint = `${ratesServerAddress}/v2/exchangeRates`
 
 const LOOP_DELAY = 1000 * 30 // Delay 30 seconds
 const bridgeCurrency = DEFAULT_FIAT
-
-interface pairQuery {
-  currency_pair: string
-  date: string
-}
 
 const getCurrencyCodeList = async (): Promise<string[]> => {
   // Try Redis first
@@ -64,7 +61,12 @@ export const ratesEngine = async (): Promise<void> => {
   const allCurrencies = await getCurrencyCodeList()
 
   try {
-    const data: pairQuery[] = []
+    const data: ExchangeRateReq[] = [
+      ...preferredCryptoFiatPairs.map(currency_pair => ({
+        currency_pair,
+        date: currentDate
+      }))
+    ]
     for (const currencyCode of allCurrencies) {
       data.push({
         currency_pair: `${currencyCode}_${bridgeCurrency}`,

@@ -1,5 +1,3 @@
-import { validate } from 'jsonschema'
-
 import { AssetMap, NewRates, RateMap, ReturnRate } from '../rates'
 import { config } from './../config'
 
@@ -12,39 +10,17 @@ const { defaultFiatCode: DEFAULT_FIAT } = config
  */
 export function normalizeDate(dateSrc: string, backDateMs: number = 0): string {
   const timestamp = Date.parse(dateSrc) - backDateMs
-  if (isNaN(timestamp))
-    throw new Error(
-      'date query param malformed.  should be conventional date string, ex:"2019-11-21T15:28:21.123Z"'
-    )
   const dateNorm = new Date(timestamp - backDateMs)
   dateNorm.setSeconds(dateNorm.getSeconds() < 30 ? 0 : 30)
   dateNorm.setMilliseconds(0)
   return dateNorm.toISOString()
 }
 
-export function validateObject(object: any, schema: any): boolean {
-  const result = validate(object, schema)
-
-  if (result.errors.length === 0) {
-    return true
-  } else {
-    for (let i = 0; i < result.errors.length; i++) {
-      const errMsg = result.errors[i].message
-      console.log(`ERROR: validateObject: ${errMsg}`)
-    }
-    return false
-  }
-}
-
 export const snooze = async (ms: number): Promise<void> =>
   new Promise((resolve: Function) => setTimeout(resolve, ms))
 
 export const getNullRateArray = (rates: ReturnRate[]): ReturnRate[] => {
-  return rates.filter(rate => rate.exchangeRate === null)
-}
-
-export const haveEveryRate = (rates: ReturnRate[]): boolean => {
-  return rates.every(rate => rate.exchangeRate !== null)
+  return rates.filter(rate => rate.exchangeRate == null)
 }
 
 export const checkConstantCode = (
@@ -115,12 +91,24 @@ export const fromCryptoToFiatCurrencyPair = toIsoPair(subIso, addIso)
 
 export const currencyCodeArray = (pair: string): string[] => pair.split('_')
 
-export const fromCode = (pair: string): string => currencyCodeArray(pair)[0]
+const getUpperCaseCode = (pair: string, index: number): string => {
+  const code = currencyCodeArray(pair)[index]
+  return isIsoCode(code) ? code : code.toUpperCase()
+}
 
-export const toCode = (pair: string): string => currencyCodeArray(pair)[1]
+export const fromCode = (pair: string): string => getUpperCaseCode(pair, 0)
+
+export const toCode = (pair: string): string => getUpperCaseCode(pair, 1)
+
+export const hasUniqueId = (code: string, assetMap: AssetMap): boolean =>
+  assetMap[code] != null
 
 export const invertPair = (pair: string): string =>
   `${toCode(pair)}_${fromCode(pair)}`
+
+export const invertCodeMapKey = (id: string, assetMap: AssetMap): string =>
+  Object.keys(assetMap).find(key => assetMap[key] === id) ??
+  'FAKE_CODE_TO_SATISFY_TYPECHECKER'
 
 export const createReducedRateMapArray = <T>(
   createCurrencyPair: IsoOpObject,
@@ -143,10 +131,9 @@ export const createReducedRateMap = <T>(
   Object.keys(data).reduce((out, code) => {
     return {
       ...out,
-      [createCurrencyPair(uniqueId(code, assetMap))]: createCurrencyQuote(
-        data,
-        code
-      )
+      [createCurrencyPair(
+        uniqueId(code, assetMap).toUpperCase()
+      )]: createCurrencyQuote(data, code)
     }
   }, {})
 

@@ -9,6 +9,8 @@ import {
   createReducedRateMap,
   fromCode,
   fromCryptoToFiatCurrencyPair,
+  hasUniqueId,
+  invertCodeMapKey,
   isIsoCode,
   logger,
   snooze,
@@ -30,13 +32,6 @@ const {
   },
   defaultFiatCode: DEFAULT_FIAT
 } = config
-
-export const hasUniqueId = (code: string, assetMap: AssetMap): boolean =>
-  assetMap[code] != null
-
-export const invertCodeMapKey = (id: string, assetMap: AssetMap): string =>
-  Object.keys(assetMap).find(key => assetMap[key] === id) ??
-  'FAKE_CODE_TO_SATISFY_TYPECHECKER'
 
 const CURRENT_OPTIONS = {
   method: 'GET',
@@ -73,6 +68,7 @@ export const coinMarketCapCurrent = async (
   assetMap: AssetMap
 ): Promise<NewRates> => {
   const rates = { [date]: {} }
+  if (ids.length === 0) return rates
 
   if (currentapiKey == null) {
     logger('No coinMarketCapCurrent API key')
@@ -147,7 +143,9 @@ const coinMarketCapHistorical = async (
   ids: string[],
   assetMap: AssetMap
 ): Promise<NewRates> => {
-  const rates = {}
+  const rates = { [date]: {} }
+  if (ids.length === 0) return rates
+
   try {
     const response = await fetch(
       `${historicalUri}/v1/cryptocurrency/quotes/historical?id=${

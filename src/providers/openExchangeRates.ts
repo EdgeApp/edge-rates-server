@@ -87,16 +87,13 @@ export const openExchangeRates = async (
       datesAndCodesWanted[pair.date] = []
     const fromCurrency = fromCode(pair.currency_pair)
     const toCurrency = toCode(pair.currency_pair)
-    if (
-      isIsoCode(fromCurrency) &&
-      datesAndCodesWanted[pair.date].indexOf(subIso(fromCurrency)) === -1
-    ) {
+    // openexchangerates is a backup fiat pair provider only
+    if (!isIsoCode(fromCurrency) || !isIsoCode(toCurrency)) continue
+
+    if (datesAndCodesWanted[pair.date].indexOf(subIso(fromCurrency)) === -1) {
       datesAndCodesWanted[pair.date].push(subIso(fromCurrency))
     }
-    if (
-      isIsoCode(toCurrency) &&
-      datesAndCodesWanted[pair.date].indexOf(subIso(toCurrency)) === -1
-    ) {
+    if (datesAndCodesWanted[pair.date].indexOf(subIso(toCurrency)) === -1) {
       datesAndCodesWanted[pair.date].push(subIso(toCurrency))
     }
   }

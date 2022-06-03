@@ -94,6 +94,9 @@ export const asConfig = asObject({
       uri: asOptional(asString, 'https://api.nomics.com'),
       apiKey: asOptional(asString, NOMICS_API_KEY)
     }),
+    coingecko: asObject({
+      uri: asOptional(asString, 'https://api.coingecko.com')
+    }),
     compound: asObject({
       uri: asOptional(asString, 'https://api.compound.finance')
     }),
@@ -104,6 +107,10 @@ export const asConfig = asObject({
       uri: asOptional(asString, 'http://ar.coinmonitor.info')
     })
   }),
+  preferredCryptoFiatPairs: asOptional(asArray(asString), [
+    'BTC_iso:ARS',
+    'BTC_iso:INR'
+  ]),
   defaultFiatCode: asOptional(asString, DEFAULT_FIAT),
   ratesLookbackLimit: asOptional(asNumber, 604800000)
 })

@@ -26,6 +26,32 @@ export interface ExchangeRateReq {
 }
 
 export const asExchangeRateReq = (obj): ExchangeRateReq => {
+  const { currency_pair, date } = obj
+
+  if (
+    typeof currency_pair !== 'string' ||
+    (date != null && typeof date !== 'string')
+  )
+    throw new Error(
+      'Missing or invalid query param(s). currency_pair and date should both be strings'
+    )
+
+  if (currency_pair.split('_').length !== 2)
+    throw new Error(
+      'currency_pair query param malformed. Should be [curA]_[curB], ex: "ETH_iso:USD"'
+    )
+
+  if (date != null) {
+    const timestamp = Date.parse(date)
+    if (isNaN(timestamp))
+      throw new Error(
+        'date query param malformed.  Should be conventional date string, ex:"2019-11-21T15:28:21.123Z"'
+      )
+    if (timestamp > Date.now()) {
+      throw new Error('Future date received. Must send past date.')
+    }
+  }
+
   const thirtySecondsAgo = normalizeDate(
     new Date().toISOString(),
     30 * 1000 /* thirty seconds */
@@ -44,8 +70,6 @@ const asRatesRequest = asExtendedReq({
   requestedRates: asOptional(asExchangeRatesReq),
   requestedRatesResult: asOptional(asReturnGetRate)
 })
-
-export type ExchangeRatesReq = ReturnType<typeof asExchangeRatesReq>
 
 // Hack to add type definitions for middleware
 type ExpressRequest = ReturnType<typeof asRatesRequest> | void
@@ -73,9 +97,6 @@ const removeIsoFromPair = (pair: string): string =>
 
 const isIsoPair = (pair: string): boolean =>
   isIsoCode(fromCode(pair)) || isIsoCode(toCode(pair))
-
-const combineSplitPair = (pair: string[]): string =>
-  `${pair[0].split('_')[0]}_${pair[1].split('_')[1]}`
 
 // *** MIDDLEWARE ***
 
@@ -142,7 +163,9 @@ const exchangeRateCleaner: express.RequestHandler = (req, res, next): void => {
       data: [{ currency_pair, date }]
     })
   } catch (e) {
-    res.status(400).send(`Missing Request fields.`)
+    res
+      .status(400)
+      .send(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`)
     return
   }
 
@@ -159,7 +182,9 @@ const exchangeRatesCleaner: express.RequestHandler = (req, res, next): void => {
   try {
     exReq.requestedRates = asExchangeRatesReq(exReq.body)
   } catch (e) {
-    res.status(400).send(`Missing Request fields.`)
+    res
+      .status(400)
+      .send(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`)
     return
   }
   if (exReq.requestedRates.data.length > EXCHANGE_RATES_BATCH_LIMIT) {
@@ -186,7 +211,11 @@ const queryRedis: express.RequestHandler = async (
   for (const req of exReq.requestedRates.data) {
     const [cryptoCode, fiatCode] = req.currency_pair.split('_')
     if (reqMap[req.date] == null) reqMap[req.date] = []
-    reqMap[req.date].push(`${cryptoCode}_iso:USD`, `iso:USD_${fiatCode}`)
+    reqMap[req.date].push(
+      req.currency_pair,
+      `${cryptoCode}_iso:USD`,
+      `iso:USD_${fiatCode}`
+    )
   }
 
   // Initialize requestedRatesResult object to collect found rates
@@ -198,13 +227,24 @@ const queryRedis: express.RequestHandler = async (
   for (const date of Object.keys(reqMap)) {
     const usdRates = await hmgetAsync(date, reqMap[date])
     for (let i = 0; i < usdRates.length; i++) {
-      if (i % 2 !== 0) continue
-      const cryptoUSD = usdRates[i]
-      const fiatUSD = usdRates[i + 1]
+      if (i % 3 !== 0) continue
       const pair = {
-        currency_pair: combineSplitPair(reqMap[date].slice(i, i + 2)),
+        currency_pair: reqMap[date][i],
         date
       }
+
+      // Test if we found the exact request
+      if (usdRates[i] != null) {
+        exReq.requestedRatesResult.data.push({
+          ...pair,
+          exchangeRate: usdRates[i]
+        })
+        continue
+      }
+
+      // Test if we can bridge the rate using USD
+      const cryptoUSD = usdRates[i + 1]
+      const fiatUSD = usdRates[i + 2]
       if (cryptoUSD == null || fiatUSD == null) {
         stillNeeded.push(pair)
       } else {
@@ -242,7 +282,7 @@ const queryExchangeRates: express.RequestHandler = async (
       documents: [...queriedRates.documents] // TODO: Change data type since the douch docs aren't needed after this
     }
   } catch (e) {
-    res.status(400).send(e instanceof Error ? e.message : 'Malformed request')
+    res.status(500).send('Server error')
   }
 
   next()

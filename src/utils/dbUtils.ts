@@ -10,18 +10,11 @@ import { syncedDocument } from 'edge-server-tools'
 import nano from 'nano'
 import promisify from 'promisify-node'
 
-import { hsetAsync } from '../uidEngine'
+import { delAsync, hsetAsync } from '../uidEngine'
 import { config } from './../config'
 import currencyCodeMaps from './currencyCodeMaps.json'
 import { slackPoster } from './postToSlack'
 import { logger, memoize } from './utils'
-
-interface NanoBulkResponse {
-  id: string
-  rev: string
-  error?: string
-  reason?: string
-}
 
 const ONE_HOUR = 1000 * 60 * 60
 
@@ -135,16 +128,25 @@ export const getFromDb = async (
 export const wrappedGetFromDb = async (dates: string[]): Promise<DbDoc[]> =>
   getFromDb(dbRates, dates)
 
-const asCurrencyCodeMaps = asObject({
-  constantCurrencyCodes: asMaybe(asObject(asString), {}),
-  zeroRates: asMaybe(asObject(asString), {}),
-  fallbackConstantRates: asMaybe(asObject(asString), {}),
-  coinMarketCap: asMaybe(asObject(asString), {}),
-  coincap: asMaybe(asObject(asString), {}),
-  nomics: asMaybe(asObject(asString), {}),
-  allEdgeCurrencies: asMaybe(asArray(asString), []),
-  fiatCurrencyCodes: asMaybe(asArray(asString), [])
+const asCurrencyCodeMapsCleaner = asObject({
+  constantCurrencyCodes: asMaybe(asObject(asString)),
+  zeroRates: asMaybe(asObject(asString)),
+  fallbackConstantRates: asMaybe(asObject(asString)),
+  coinMarketCap: asMaybe(asObject(asString)),
+  coincap: asMaybe(asObject(asString)),
+  coingecko: asMaybe(asObject(asString)),
+  nomics: asMaybe(asObject(asString)),
+  allEdgeCurrencies: asMaybe(asArray(asString)),
+  fiatCurrencyCodes: asMaybe(asArray(asString))
 })
+
+// Pass the defaults json through the cleaner so they're typed
+const defaultCurrencyCodeMaps = asCurrencyCodeMapsCleaner(currencyCodeMaps)
+
+const asCurrencyCodeMaps = asMaybe(
+  asCurrencyCodeMapsCleaner,
+  defaultCurrencyCodeMaps
+)
 
 const syncedCurrencyCodeMaps = syncedDocument(
   'currencyCodeMaps',
@@ -154,15 +156,19 @@ const syncedCurrencyCodeMaps = syncedDocument(
 syncedCurrencyCodeMaps.onChange(currencyCodeMaps => {
   logger('Syncing currency code maps with redis cache...')
   for (const key of Object.keys(currencyCodeMaps)) {
-    if (Array.isArray(currencyCodeMaps[key])) {
-      hsetAsync(key, Object.assign({}, currencyCodeMaps[key])).catch(e =>
-        logger('syncedCurrencyCodeMaps failed to update', key, e)
-      )
-    } else {
-      hsetAsync(key, currencyCodeMaps[key]).catch(e =>
-        logger('syncedCurrencyCodeMaps failed to update', key, e)
-      )
-    }
+    delAsync(key)
+      .then(() => {
+        if (Array.isArray(currencyCodeMaps[key])) {
+          hsetAsync(key, Object.assign({}, currencyCodeMaps[key])).catch(e =>
+            logger('syncedCurrencyCodeMaps failed to update', key, e)
+          )
+        } else {
+          hsetAsync(key, currencyCodeMaps[key]).catch(e =>
+            logger('syncedCurrencyCodeMaps failed to update', key, e)
+          )
+        }
+      })
+      .catch(e => logger('syncedCurrencyCodeMaps delete failed', key, e))
   }
 })
 
