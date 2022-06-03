@@ -37,6 +37,7 @@ import {
   isNotANumber,
   logger,
   normalizeDate,
+  safeUpperCase,
   toCode,
   toCurrencyPair
 } from './utils/utils'
@@ -244,13 +245,8 @@ export const currencyBridgeDB = (
     if (rate.exchangeRate != null) continue
     const dbIndex = rateObj.documents.findIndex(doc => doc._id === rate.date)
     if (rateObj.documents[dbIndex] == null) continue
-    const from = checkConstantCode(
-      fromCode(rate.currency_pair),
-      constantCurrencyCodes
-    )
-    const to = checkConstantCode(
-      toCode(rate.currency_pair),
-      constantCurrencyCodes
+    const [from, to] = currencyCodeArray(rate.currency_pair).map(code =>
+      safeUpperCase(checkConstantCode(code, constantCurrencyCodes))
     )
     const doc = rateObj.documents[dbIndex]
     // Check simple combinations first

@@ -75,6 +75,10 @@ export const subIso: IsoOp = code =>
 
 export const addIso: IsoOp = code => (!isIsoCode(code) ? `iso:${code}` : code)
 
+// Will uppercase a crypto code but not an iso: fiat code
+export const safeUpperCase = (code: string): string =>
+  isIsoCode(code) ? code : code.toUpperCase()
+
 export const toCurrencyPair = (
   codeA: string,
   codeB: string = DEFAULT_FIAT
