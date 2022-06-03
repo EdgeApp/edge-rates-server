@@ -150,7 +150,7 @@ interface Asset {
   symbol: string
 }
 
-const assetCode = (asset: Asset): string => asset.symbol
+const assetCode = (asset: Asset): string => asset.symbol.toUpperCase()
 
 const assetId = (asset: Asset): string => asset.id.toString()
 
