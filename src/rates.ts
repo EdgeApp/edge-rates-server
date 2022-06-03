@@ -198,6 +198,8 @@ export const getExchangeRates = async (
       documents[0]
     )
 
+    const redisPromises: Array<Promise<number>> = []
+
     // Filter and clean up docs
     out.documents = out.documents
       .filter(doc => doc.updated === true)
@@ -217,10 +219,12 @@ export const getExchangeRates = async (
         const newRates = Object.keys(doc)
           .map(pair => [pair, doc[pair]])
           .flat()
-        hsetAsync(doc._id, newRates).catch(e => logger(e))
+        redisPromises.push(hsetAsync(doc._id, newRates))
 
         return uncleaner(asCouchDoc(asObject(asString)))(cleanDoc)
       })
+
+    Promise.all(redisPromises).catch(e => console.log(e))
 
     // Save to Couchdb
     saveToDb(localDb, out.documents)
