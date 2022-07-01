@@ -7,9 +7,7 @@ import { nomicsAssets } from './providers/nomics'
 import currencyCodeMaps from './utils/currencyCodeMaps.json'
 import { wrappedGetFromDb, wrappedSaveToDb } from './utils/dbUtils'
 import { slackPoster } from './utils/postToSlack'
-import { logger, snooze } from './utils/utils'
-
-const LOOP_DELAY = 1000 * 60 * 60 * 24 // one day
+import { logger } from './utils/utils'
 
 const client = createClient()
 client.connect().catch(e => logger('redis connect error: ', e))
@@ -61,9 +59,5 @@ export const uidEngine = async (): Promise<void> => {
     const message = `ratesEngine failure: ${e}`
     slackPoster(message).catch(e => logger(e))
     logger(message)
-  } finally {
-    logger('UID ENGINE SNOOZING ************************')
-    await snooze(LOOP_DELAY)
-    uidEngine().catch(e => logger(e))
   }
 }
