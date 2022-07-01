@@ -57,10 +57,10 @@ const getCurrencyCodeList = async (): Promise<string[]> => {
 }
 
 export const ratesEngine = async (): Promise<void> => {
-  const currentDate = normalizeDate(new Date().toISOString())
-  const allCurrencies = await getCurrencyCodeList()
-
   try {
+    const currentDate = normalizeDate(new Date().toISOString())
+    const allCurrencies = await getCurrencyCodeList()
+
     const data: ExchangeRateReq[] = [
       ...preferredCryptoFiatPairs.map(currency_pair => ({
         currency_pair,
