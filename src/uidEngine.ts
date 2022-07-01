@@ -6,6 +6,7 @@ import { coinMarketCapAssets } from './providers/coinMarketCap'
 import { nomicsAssets } from './providers/nomics'
 import currencyCodeMaps from './utils/currencyCodeMaps.json'
 import { wrappedGetFromDb, wrappedSaveToDb } from './utils/dbUtils'
+import { slackPoster } from './utils/postToSlack'
 import { logger, snooze } from './utils/utils'
 
 const LOOP_DELAY = 1000 * 60 * 60 * 24 // one day
@@ -57,7 +58,9 @@ export const uidEngine = async (): Promise<void> => {
     await Promise.allSettled(promises)
     wrappedSaveToDb([edgeDoc])
   } catch (e) {
-    logger('uidEngine', e)
+    const message = `ratesEngine failure: ${e}`
+    slackPoster(message).catch(e => logger(e))
+    logger(message)
   } finally {
     logger('UID ENGINE SNOOZING ************************')
     await snooze(LOOP_DELAY)
