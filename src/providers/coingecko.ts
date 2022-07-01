@@ -105,11 +105,11 @@ export const coingeckoAssets = async (): Promise<AssetMap> => {
     out = [...out, ...json]
     if (Object.keys(json).length < perPage) break
     // It's a long process so we should log the progress
-    console.log(
+    logger(
       `Querying coingeckoAssets page ${page}. Found ${out.length} assets so far`
     )
     page++
   }
-  console.log(`Finished coingeckoAssets query found ${out.length} assets`)
+  logger(`Finished coingeckoAssets query found ${out.length} assets`)
   return assetMapReducer(out)
 }

@@ -90,7 +90,7 @@ export const saveToDb = (
     .then(response => {
       dbResponseLogger(response)
       resolveConflicts(response, docs).catch(e =>
-        console.log('Error resolving conflicts', e.message)
+        logger('Error resolving conflicts', e.message)
       )
     })
     .catch(e => {

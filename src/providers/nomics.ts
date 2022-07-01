@@ -109,11 +109,11 @@ export const nomicsAssets = async (): Promise<AssetMap> => {
     out = [...out, ...json]
     if (Object.keys(json).length < 100) break
     // It's a long process so we should log the progress
-    console.log(
+    logger(
       `Querying nomicsAssets page ${page}. Found ${out.length} assets so far`
     )
     page++
   }
-  console.log(`Finished nomicsAssets query found ${out.length} assets`)
+  logger(`Finished nomicsAssets query found ${out.length} assets`)
   return assetMapReducer(out)
 }
