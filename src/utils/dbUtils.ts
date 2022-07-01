@@ -90,12 +90,12 @@ export const saveToDb = (
     .then(response => {
       dbResponseLogger(response)
       resolveConflicts(response, docs).catch(e =>
-        console.log('Error resolving conflicts', e.message)
+        logger('Error resolving conflicts', e.message)
       )
     })
     .catch(e => {
       logger(e)
-      slackPoster(config.slackWebhookUrl, e).catch(e)
+      slackPoster(e).catch(e)
     })
 }
 
@@ -108,7 +108,7 @@ export const getFromDb = async (
   // Grab existing db data for requested dates
   const response = await localDb.fetch({ keys: dates }).catch(e => {
     if (e.error !== 'not_found') {
-      slackPoster(config.slackWebhookUrl, e).catch(e)
+      slackPoster(e).catch(e)
     }
   })
   if (response == null)

@@ -6,12 +6,11 @@ import { coinMarketCapAssets } from './providers/coinMarketCap'
 import { nomicsAssets } from './providers/nomics'
 import currencyCodeMaps from './utils/currencyCodeMaps.json'
 import { wrappedGetFromDb, wrappedSaveToDb } from './utils/dbUtils'
-import { logger, snooze } from './utils/utils'
-
-const LOOP_DELAY = 1000 * 60 * 60 * 24 // one day
+import { slackPoster } from './utils/postToSlack'
+import { logger } from './utils/utils'
 
 const client = createClient()
-client.connect().catch(e => console.log('redis connect error: ', e))
+client.connect().catch(e => logger('redis connect error: ', e))
 
 export const hsetAsync = client.hSet.bind(client)
 export const hgetallAsync = client.hGetAll.bind(client)
@@ -28,7 +27,7 @@ const providerAssets = {
 
 export const uidEngine = async (): Promise<void> => {
   client.on('error', function(error) {
-    console.error(error)
+    logger('redis client error', error)
   })
 
   logger('Updating UID Cache')
@@ -57,10 +56,8 @@ export const uidEngine = async (): Promise<void> => {
     await Promise.allSettled(promises)
     wrappedSaveToDb([edgeDoc])
   } catch (e) {
-    logger('uidEngine', e)
-  } finally {
-    console.log('UID ENGINE SNOOZING ************************')
-    await snooze(LOOP_DELAY)
-    uidEngine().catch(e => console.log(e))
+    const message = `ratesEngine failure: ${e}`
+    slackPoster(message).catch(e => logger(e))
+    logger(message)
   }
 }

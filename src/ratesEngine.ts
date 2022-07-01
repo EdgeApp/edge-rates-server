@@ -4,6 +4,7 @@ import { config } from './config'
 import { ExchangeRateReq } from './exchangeRateRouter'
 import { hgetallAsync } from './uidEngine'
 import { getEdgeAssetDoc } from './utils/dbUtils'
+import { slackPoster } from './utils/postToSlack'
 import { logger, normalizeDate, snooze } from './utils/utils'
 
 const {
@@ -57,10 +58,10 @@ const getCurrencyCodeList = async (): Promise<string[]> => {
 }
 
 export const ratesEngine = async (): Promise<void> => {
-  const currentDate = normalizeDate(new Date().toISOString())
-  const allCurrencies = await getCurrencyCodeList()
-
   try {
+    const currentDate = normalizeDate(new Date().toISOString())
+    const allCurrencies = await getCurrencyCodeList()
+
     const data: ExchangeRateReq[] = [
       ...preferredCryptoFiatPairs.map(currency_pair => ({
         currency_pair,
@@ -87,7 +88,9 @@ export const ratesEngine = async (): Promise<void> => {
     }
     await Promise.all(promises)
   } catch (e) {
-    logger('ratesEngine error: ', e)
+    const message = `ratesEngine failure: ${e}`
+    slackPoster(message).catch(e => logger(e))
+    logger(message)
   } finally {
     logger('RATES ENGINE SNOOZING **********************')
     await snooze(LOOP_DELAY)

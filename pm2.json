@@ -11,6 +11,7 @@
     {
       "name": "ratesEngines",
       "script": "lib/indexEngines.js",
+      "cron_restart": "0 0 15 * * ?",
       "error_file": "logs/engines/error.log",
       "out_file": "logs/engines/out.log"
     }
