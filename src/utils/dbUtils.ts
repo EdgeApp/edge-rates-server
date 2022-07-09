@@ -10,13 +10,19 @@ import { syncedDocument } from 'edge-server-tools'
 import nano from 'nano'
 import promisify from 'promisify-node'
 
-import { delAsync, hsetAsync } from '../uidEngine'
+import { delAsync, existsAsync, hsetAsync, setAsync } from '../uidEngine'
 import { config } from './../config'
+import { createThrottledMessage } from './createThrottledMessage'
 import currencyCodeMaps from './currencyCodeMaps.json'
 import { slackPoster } from './postToSlack'
 import { logger, memoize } from './utils'
 
 const ONE_HOUR = 1000 * 60 * 60
+
+const slackMessage = createThrottledMessage(
+  { set: setAsync, exists: existsAsync },
+  slackPoster
+)
 
 export interface DbDoc
   extends nano.IdentifiedDocument,
@@ -95,7 +101,7 @@ export const saveToDb = (
     })
     .catch(e => {
       logger(e)
-      slackPoster(e).catch(e)
+      slackMessage(e).catch(e)
     })
 }
 
@@ -108,7 +114,7 @@ export const getFromDb = async (
   // Grab existing db data for requested dates
   const response = await localDb.fetch({ keys: dates }).catch(e => {
     if (e.error !== 'not_found') {
-      slackPoster(e).catch(e)
+      slackMessage(e).catch(e)
     }
   })
   if (response == null)
