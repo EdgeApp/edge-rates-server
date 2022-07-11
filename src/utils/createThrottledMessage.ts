@@ -58,13 +58,13 @@ export const createThrottledMessage = (
   callback: (message: string) => Promise<void>,
   expiration: number = EXPIRATION_TIME_IN_SECONDS
 ) => async (message: string): Promise<void> => {
-  const messageExists = await client.exists(message)
-  if (messageExists === 0) {
-    try {
+  try {
+    const messageExists = await client.exists(message)
+    if (messageExists === 0) {
       await client.set(message, DEFAULT_VALUE, { EX: expiration })
       await callback(message)
-    } catch (e) {
-      logger(`Error setting a message or executing a callback: ${e}`)
     }
+  } catch (e) {
+    logger(`Error setting a message or executing a callback: ${e}`)
   }
 }
