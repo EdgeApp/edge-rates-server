@@ -116,7 +116,8 @@ const sanitizeNewRates = (
 
 const getRatesFromProviders = async (
   rateObj: ReturnGetRate,
-  edgeAssetMap: DbDoc
+  edgeAssetMap: DbDoc,
+  excludedProviders: string[] = []
 ): Promise<ReturnGetRate> => {
   const currentTime = normalizeDate(new Date().toISOString())
   if (typeof currentTime !== 'string') throw new Error('malformed date')
@@ -140,7 +141,10 @@ const getRatesFromProviders = async (
   if (constantCurrencyCodes == null)
     ({ constantCurrencyCodes = {} } = edgeAssetMap)
 
-  for (const provider of rateProviders) {
+  const eligibleProviders = rateProviders.filter(
+    provider => !excludedProviders.includes(provider.name)
+  )
+  for (const provider of eligibleProviders) {
     const remainingRequests = getNullRateArray(rateObj.data)
     if (remainingRequests.length === 0) break
 
@@ -196,7 +200,8 @@ export const getExchangeRates = async (
 
     const out = await getRatesFromProviders(
       { data, documents: documents.slice(1) },
-      documents[0]
+      documents[0],
+      ['zeroRates', 'fallbackConstantRates']
     )
 
     const redisPromises: Array<Promise<number>> = []
