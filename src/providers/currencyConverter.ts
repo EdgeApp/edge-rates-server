@@ -6,7 +6,7 @@ import { NewRates, ReturnRate } from './../rates'
 import {
   combineRates,
   createReducedRateMap,
-  // dateOnly, // Currency Convertor broke their historical rates. We hope one day that they'll fix them.
+  dateOnly, // Currency Convertor broke their historical rates. We hope one day that they'll fix them.
   fromCode,
   fromFiatToFiat,
   invertPair,
@@ -59,12 +59,20 @@ const currencyConverterRateMapBroken = createReducedRateMap(
   currencyConverterQuoteBroken
 )
 
-const query = async (date: string, codes: string[]): Promise<NewRates> => {
+const query = async (
+  date: string,
+  codes: string[],
+  currentTime: string
+): Promise<NewRates> => {
   const rates = { [date]: {} }
   if (codes.length === 0) return rates
+  let dateString = ''
+  if (date !== currentTime) {
+    dateString = `&date=${dateOnly(date)}`
+  }
   try {
     const response = await fetch(
-      `${uri}/api/v7/convert?q=${codes}&apiKey=${apiKey}`
+      `${uri}/api/v7/convert?q=${codes}${dateString}&apiKey=${apiKey}`
     )
 
     if (response.ok === false) {
@@ -174,7 +182,7 @@ export const currencyConverter = async (
 
   // Query
   const providers = Object.keys(datesAndCodesWanted).map(async date =>
-    query(date, datesAndCodesWanted[date])
+    query(date, datesAndCodesWanted[date], currentTime)
   )
   try {
     const response = await Promise.all(providers)
