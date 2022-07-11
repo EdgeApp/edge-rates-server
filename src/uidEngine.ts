@@ -4,6 +4,7 @@ import { coincapAssets } from './providers/coincap'
 import { coingeckoAssets } from './providers/coingecko'
 import { coinMarketCapAssets } from './providers/coinMarketCap'
 import { nomicsAssets } from './providers/nomics'
+import { createThrottledMessage } from './utils/createThrottledMessage'
 import currencyCodeMaps from './utils/currencyCodeMaps.json'
 import { wrappedGetFromDb, wrappedSaveToDb } from './utils/dbUtils'
 import { slackPoster } from './utils/postToSlack'
@@ -17,6 +18,10 @@ export const hgetallAsync = client.hGetAll.bind(client)
 export const hmgetAsync = client.hmGet.bind(client)
 export const existsAsync = client.exists.bind(client)
 export const delAsync = client.del.bind(client)
+// Set type to `any` to avoid the TS4023 error
+export const setAsync: any = client.set.bind(client)
+
+const slackMessage = createThrottledMessage(client, slackPoster)
 
 const providerAssets = {
   coincap: coincapAssets,
@@ -57,7 +62,7 @@ export const uidEngine = async (): Promise<void> => {
     wrappedSaveToDb([edgeDoc])
   } catch (e) {
     const message = `ratesEngine failure: ${e}`
-    slackPoster(message).catch(e => logger(e))
+    slackMessage(message).catch(e => logger(e))
     logger(message)
   }
 }

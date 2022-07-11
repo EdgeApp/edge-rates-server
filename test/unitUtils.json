@@ -25,6 +25,20 @@
           "output": "2011-01-01T00:00:00.000Z"
        }
     ],
+    "errorMessages": [
+         {
+            "input": "date query param malformed.  Should be conventional date string, ex:\"2019-11-21T15:28:21.123Z\"",
+            "output": "date query param malformed.  Should be conventional date string, ex:\"2019-11-21T15:28:21.123Z\""         
+         },
+         {
+            "input": "Missing or invalid query param(s). currency_pair and date should both be strings",
+            "output": "Missing or invalid query param(s). currency_pair and date should both be strings"
+         },
+         {
+            "input": "Future date received. Must send past date.",
+            "output": "Future date received. Must send past date."
+         }
+    ],
     "asRateParam": [
         {
            "input": {

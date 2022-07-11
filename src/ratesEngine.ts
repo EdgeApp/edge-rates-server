@@ -2,7 +2,8 @@ import fetch from 'node-fetch'
 
 import { config } from './config'
 import { ExchangeRateReq } from './exchangeRateRouter'
-import { hgetallAsync } from './uidEngine'
+import { existsAsync, hgetallAsync, setAsync } from './uidEngine'
+import { createThrottledMessage } from './utils/createThrottledMessage'
 import { getEdgeAssetDoc } from './utils/dbUtils'
 import { slackPoster } from './utils/postToSlack'
 import { logger, normalizeDate, snooze } from './utils/utils'
@@ -16,6 +17,10 @@ const {
 } = config
 
 const endPoint = `${ratesServerAddress}/v2/exchangeRates`
+const slackMessage = createThrottledMessage(
+  { set: setAsync, exists: existsAsync },
+  slackPoster
+)
 
 const LOOP_DELAY = 1000 * 30 // Delay 30 seconds
 const bridgeCurrency = DEFAULT_FIAT
@@ -89,7 +94,7 @@ export const ratesEngine = async (): Promise<void> => {
     await Promise.all(promises)
   } catch (e) {
     const message = `ratesEngine failure: ${e}`
-    slackPoster(message).catch(e => logger(e))
+    slackMessage(message).catch(e => logger(e))
     logger(message)
   } finally {
     logger('RATES ENGINE SNOOZING **********************')

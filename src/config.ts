@@ -18,6 +18,44 @@ const {
   DEFAULT_FIAT = 'iso:USD'
 } = process.env
 
+const proivderDefaults = {
+  coincap: {
+    uri: 'https://api.coincap.io'
+  },
+  currencyConverter: {
+    uri: 'https://api.currconv.com',
+    apiKey: CURRENCY_CONVERTER_API_KEY
+  },
+  coinMarketCapCurrent: {
+    uri: 'https://pro-api.coinmarketcap.com',
+    apiKey: COIN_MARKET_CAP_API_KEY
+  },
+  coinMarketCapHistorical: {
+    uri: 'https://pro-api.coinmarketcap.com',
+    apiKey: COIN_MARKET_CAP_HISTORICAL_API_KEY
+  },
+  openExchangeRates: {
+    uri: 'https://openexchangerates.org',
+    apiKey: OPEN_EXCHANGE_RATES_API_KEY
+  },
+  nomics: {
+    uri: 'https://api.nomics.com',
+    apiKey: NOMICS_API_KEY
+  },
+  coingecko: {
+    uri: 'https://api.coingecko.com'
+  },
+  compound: {
+    uri: 'https://api.compound.finance'
+  },
+  wazirx: {
+    uri: 'https://api.wazirx.com'
+  },
+  coinmonitor: {
+    uri: 'http://ar.coinmonitor.info'
+  }
+}
+
 // Config:
 
 export const asConfig = asObject({
@@ -70,43 +108,46 @@ export const asConfig = asObject({
   ]),
   ratesServerAddress: asOptional(asString, RATES_SERVER_ADDRESS),
   slackWebhookUrl: asOptional(asString, SLACK_WEBHOOK_URL),
-  providers: asObject({
-    coincap: asObject({
-      uri: asOptional(asString, 'https://api.coincap.io')
+  providers: asOptional(
+    asObject({
+      coincap: asObject({
+        uri: asString
+      }),
+      currencyConverter: asObject({
+        uri: asString,
+        apiKey: asString
+      }),
+      coinMarketCapCurrent: asObject({
+        uri: asString,
+        apiKey: asString
+      }),
+      coinMarketCapHistorical: asObject({
+        uri: asString,
+        apiKey: asString
+      }),
+      openExchangeRates: asObject({
+        uri: asString,
+        apiKey: asString
+      }),
+      nomics: asObject({
+        uri: asString,
+        apiKey: asString
+      }),
+      coingecko: asObject({
+        uri: asString
+      }),
+      compound: asObject({
+        uri: asString
+      }),
+      wazirx: asObject({
+        uri: asString
+      }),
+      coinmonitor: asObject({
+        uri: asString
+      })
     }),
-    currencyConverter: asObject({
-      uri: asOptional(asString, 'https://api.currconv.com'),
-      apiKey: asOptional(asString, CURRENCY_CONVERTER_API_KEY)
-    }),
-    coinMarketCapCurrent: asObject({
-      uri: asOptional(asString, 'https://pro-api.coinmarketcap.com'),
-      apiKey: asOptional(asString, COIN_MARKET_CAP_API_KEY)
-    }),
-    coinMarketCapHistorical: asObject({
-      uri: asOptional(asString, 'https://pro-api.coinmarketcap.com'),
-      apiKey: asOptional(asString, COIN_MARKET_CAP_HISTORICAL_API_KEY)
-    }),
-    openExchangeRates: asObject({
-      uri: asOptional(asString, 'https://openexchangerates.org'),
-      apiKey: asOptional(asString, OPEN_EXCHANGE_RATES_API_KEY)
-    }),
-    nomics: asObject({
-      uri: asOptional(asString, 'https://api.nomics.com'),
-      apiKey: asOptional(asString, NOMICS_API_KEY)
-    }),
-    coingecko: asObject({
-      uri: asOptional(asString, 'https://api.coingecko.com')
-    }),
-    compound: asObject({
-      uri: asOptional(asString, 'https://api.compound.finance')
-    }),
-    wazirx: asObject({
-      uri: asOptional(asString, 'https://api.wazirx.com')
-    }),
-    coinmonitor: asObject({
-      uri: asOptional(asString, 'http://ar.coinmonitor.info')
-    })
-  }),
+    proivderDefaults
+  ),
   preferredCryptoFiatPairs: asOptional(asArray(asString), [
     'BTC_iso:ARS',
     'BTC_iso:INR'
