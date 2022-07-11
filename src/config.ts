@@ -1,8 +1,6 @@
 import { makeConfig } from 'cleaner-config'
 import { asArray, asNumber, asObject, asOptional, asString } from 'cleaners'
 
-import { asHealingObject } from './utils/asHealingObject'
-
 // Customization:
 
 const {
@@ -19,6 +17,44 @@ const {
   NOMICS_API_KEY,
   DEFAULT_FIAT = 'iso:USD'
 } = process.env
+
+const proivderDefaults = {
+  coincap: {
+    uri: 'https://api.coincap.io'
+  },
+  currencyConverter: {
+    uri: 'https://api.currconv.com',
+    apiKey: CURRENCY_CONVERTER_API_KEY
+  },
+  coinMarketCapCurrent: {
+    uri: 'https://pro-api.coinmarketcap.com',
+    apiKey: COIN_MARKET_CAP_API_KEY
+  },
+  coinMarketCapHistorical: {
+    uri: 'https://pro-api.coinmarketcap.com',
+    apiKey: COIN_MARKET_CAP_HISTORICAL_API_KEY
+  },
+  openExchangeRates: {
+    uri: 'https://openexchangerates.org',
+    apiKey: OPEN_EXCHANGE_RATES_API_KEY
+  },
+  nomics: {
+    uri: 'https://api.nomics.com',
+    apiKey: NOMICS_API_KEY
+  },
+  coingecko: {
+    uri: 'https://api.coingecko.com'
+  },
+  compound: {
+    uri: 'https://api.compound.finance'
+  },
+  wazirx: {
+    uri: 'https://api.wazirx.com'
+  },
+  coinmonitor: {
+    uri: 'http://ar.coinmonitor.info'
+  }
+}
 
 // Config:
 
@@ -72,8 +108,8 @@ export const asConfig = asObject({
   ]),
   ratesServerAddress: asOptional(asString, RATES_SERVER_ADDRESS),
   slackWebhookUrl: asOptional(asString, SLACK_WEBHOOK_URL),
-  providers: asHealingObject(
-    {
+  providers: asOptional(
+    asObject({
       coincap: asObject({
         uri: asString
       }),
@@ -109,44 +145,8 @@ export const asConfig = asObject({
       coinmonitor: asObject({
         uri: asString
       })
-    },
-    {
-      coincap: {
-        uri: 'https://api.coincap.io'
-      },
-      currencyConverter: {
-        uri: 'https://api.currconv.com',
-        apiKey: CURRENCY_CONVERTER_API_KEY
-      },
-      coinMarketCapCurrent: {
-        uri: 'https://pro-api.coinmarketcap.com',
-        apiKey: COIN_MARKET_CAP_API_KEY
-      },
-      coinMarketCapHistorical: {
-        uri: 'https://pro-api.coinmarketcap.com',
-        apiKey: COIN_MARKET_CAP_HISTORICAL_API_KEY
-      },
-      openExchangeRates: {
-        uri: 'https://openexchangerates.org',
-        apiKey: OPEN_EXCHANGE_RATES_API_KEY
-      },
-      nomics: {
-        uri: 'https://api.nomics.com',
-        apiKey: NOMICS_API_KEY
-      },
-      coingecko: {
-        uri: 'https://api.coingecko.com'
-      },
-      compound: {
-        uri: 'https://api.compound.finance'
-      },
-      wazirx: {
-        uri: 'https://api.wazirx.com'
-      },
-      coinmonitor: {
-        uri: 'http://ar.coinmonitor.info'
-      }
-    }
+    }),
+    proivderDefaults
   ),
   preferredCryptoFiatPairs: asOptional(asArray(asString), [
     'BTC_iso:ARS',
