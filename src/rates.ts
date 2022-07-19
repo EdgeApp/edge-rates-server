@@ -19,10 +19,6 @@ import { coinMarketCap } from './providers/coinMarketCap'
 import { coinmonitor } from './providers/coinmonitor'
 import { compound } from './providers/compound'
 import { currencyConverter } from './providers/currencyConverter'
-import {
-  fallbackConstantRates,
-  zeroRates
-} from './providers/hardcodedProviders'
 import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
 import { wazirx } from './providers/wazirx'
@@ -116,15 +112,13 @@ const sanitizeNewRates = (
 
 const getRatesFromProviders = async (
   rateObj: ReturnGetRate,
-  edgeAssetMap: DbDoc,
-  excludedProviders: string[] = []
+  edgeAssetMap: DbDoc
 ): Promise<ReturnGetRate> => {
   const currentTime = normalizeDate(new Date().toISOString())
   if (typeof currentTime !== 'string') throw new Error('malformed date')
 
   // Retrieve new rates
   const rateProviders = [
-    zeroRates,
     coinmonitor,
     wazirx,
     coingecko,
@@ -132,7 +126,6 @@ const getRatesFromProviders = async (
     coinMarketCap,
     nomics,
     compound,
-    fallbackConstantRates,
     currencyConverter,
     openExchangeRates
   ]
@@ -141,10 +134,7 @@ const getRatesFromProviders = async (
   if (constantCurrencyCodes == null)
     ({ constantCurrencyCodes = {} } = edgeAssetMap)
 
-  const eligibleProviders = rateProviders.filter(
-    provider => !excludedProviders.includes(provider.name)
-  )
-  for (const provider of eligibleProviders) {
+  for (const provider of rateProviders) {
     const remainingRequests = getNullRateArray(rateObj.data)
     if (remainingRequests.length === 0) break
 
@@ -200,8 +190,7 @@ export const getExchangeRates = async (
 
     const out = await getRatesFromProviders(
       { data, documents: documents.slice(1) },
-      documents[0],
-      ['zeroRates', 'fallbackConstantRates']
+      documents[0]
     )
 
     const redisPromises: Array<Promise<number>> = []

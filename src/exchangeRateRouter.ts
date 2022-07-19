@@ -5,9 +5,20 @@ import nano from 'nano'
 import promisify from 'promisify-node'
 
 import { config } from './config'
-import { asReturnGetRate, getExchangeRates } from './rates'
-import { hmgetAsync } from './uidEngine'
+import {
+  fallbackConstantRates,
+  zeroRates
+} from './providers/hardcodedProviders'
+import {
+  asReturnGetRate,
+  AssetMap,
+  getExchangeRates,
+  NewRates,
+  ReturnRate
+} from './rates'
+import { hgetallAsync, hmgetAsync } from './uidEngine'
 import { asExtendedReq } from './utils/asExtendedReq'
+import currencyCodeMaps from './utils/currencyCodeMaps.json'
 import { DbDoc } from './utils/dbUtils'
 import {
   addIso,
@@ -302,6 +313,59 @@ const sendExchangeRates: express.RequestHandler = (req, res, next): void => {
   res.json({ data: exReq.requestedRatesResult.data })
 }
 
+/**
+ * Produces an Express request handler to be used as a middleware. The
+ * handler will get rates from the provider and store them in
+ * `req.requestedRatesResult.data`.
+ *
+ * @remarks
+ * Currenlty, this function is used to query rates from
+ * {@link zeroRates} and {@link fallbackConstantRates} providers. The
+ * returned middleware for `zeroRates` will be used before
+ * {@link queryRedis} and `fallbackConstantRates` after
+ * {@link queryExchangeRates} so that
+ * the rates won't be stored in redis and couchdb.
+ *
+ * @param provider The provider function that will return a NewRates
+ * object
+ * @returns An Express request handler to be used as a middleware.
+ */
+const queryRatesFromProvder = (
+  provider: (
+    rateObj: ReturnRate[],
+    currentTime: string,
+    assetMap: AssetMap
+  ) => NewRates
+): express.RequestHandler => async (req, res, next): Promise<void> => {
+  const rateReq = req as ExpressRequest
+  if (rateReq?.requestedRatesResult == null) return next(500)
+
+  const currentTime = normalizeDate(new Date().toISOString())
+  if (typeof currentTime !== 'string') throw new Error('malformed date')
+
+  let constantCurrencyCodes = await hgetallAsync('constantCurrencyCodes')
+  if (constantCurrencyCodes == null)
+    constantCurrencyCodes = JSON.parse(currencyCodeMaps.toString())
+
+  const result = provider(
+    rateReq.requestedRatesResult?.data ?? [],
+    currentTime,
+    constantCurrencyCodes
+  )
+
+  for (const date of Object.keys(result)) {
+    const pairs = result[date]
+    for (const pair of Object.keys(pairs)) {
+      rateReq.requestedRatesResult.data.push({
+        currency_pair: pair,
+        date,
+        exchangeRate: pairs[pair]
+      })
+    }
+  }
+  next()
+}
+
 // *** ROUTES ***
 
 export const exchangeRateRouterV1 = (): express.Router => {
@@ -311,8 +375,10 @@ export const exchangeRateRouterV1 = (): express.Router => {
     exchangeRateCleaner,
     v1IsoChecker,
     v1ExchangeRateIsoAdder,
+    queryRatesFromProvder(zeroRates),
     queryRedis,
     queryExchangeRates,
+    queryRatesFromProvder(fallbackConstantRates),
     v1ExchangeRateIsoSubtractor,
     sendExchangeRate
   ])
@@ -321,8 +387,10 @@ export const exchangeRateRouterV1 = (): express.Router => {
     exchangeRatesCleaner,
     v1IsoChecker,
     v1ExchangeRateIsoAdder,
+    queryRatesFromProvder(zeroRates),
     queryRedis,
     queryExchangeRates,
+    queryRatesFromProvder(fallbackConstantRates),
     v1ExchangeRateIsoSubtractor,
     sendExchangeRates
   ])
@@ -335,15 +403,19 @@ export const exchangeRateRouterV2 = (): express.Router => {
 
   router.get('/exchangeRate', [
     exchangeRateCleaner,
+    queryRatesFromProvder(zeroRates),
     queryRedis,
     queryExchangeRates,
+    queryRatesFromProvder(fallbackConstantRates),
     sendExchangeRate
   ])
 
   router.post('/exchangeRates', [
     exchangeRatesCleaner,
+    queryRatesFromProvder(zeroRates),
     queryRedis,
     queryExchangeRates,
+    queryRatesFromProvder(fallbackConstantRates),
     sendExchangeRates
   ])
 
