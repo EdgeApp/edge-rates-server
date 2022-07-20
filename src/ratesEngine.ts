@@ -6,7 +6,7 @@ import { existsAsync, hgetallAsync, setAsync } from './indexEngines'
 import { createThrottledMessage } from './utils/createThrottledMessage'
 import { getEdgeAssetDoc } from './utils/dbUtils'
 import { slackPoster } from './utils/postToSlack'
-import { logger, normalizeDate, snooze } from './utils/utils'
+import { logger, normalizeDate } from './utils/utils'
 
 const {
   cryptoCurrencyCodes,
@@ -22,7 +22,6 @@ const slackMessage = createThrottledMessage(
   slackPoster
 )
 
-const LOOP_DELAY = 1000 * 30 // Delay 30 seconds
 const bridgeCurrency = DEFAULT_FIAT
 
 const getCurrencyCodeList = async (): Promise<string[]> => {
@@ -98,7 +97,11 @@ export const ratesEngine = async (): Promise<void> => {
     logger(message)
   } finally {
     logger('RATES ENGINE SNOOZING **********************')
-    await snooze(LOOP_DELAY)
-    ratesEngine().catch(e => logger(e))
   }
 }
+
+ratesEngine()
+  .then(() => process.exit(0))
+  .catch(e => logger('ratesEngineCronError', e))
+
+process.on('SIGINT', () => logger('ratesEngine killed via SIGINT'))

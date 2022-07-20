@@ -9,9 +9,29 @@
       "out_file": "logs/server/out.log"
     },
     {
-      "name": "ratesEngines",
+      "name": "ratesStorage",
       "script": "lib/indexEngines.js",
-      "cron_restart": "0 0 15 * * ?",
+      "instances" : 1,
+      "error_file": "logs/engines/error.log",
+      "out_file": "logs/engines/out.log"
+    },
+    {
+      "name": "ratesEngine",
+      "script": "lib/ratesEngine.js",
+      "instances" : 1,
+      "cron_restart": "*/30 * * * * *",
+      "watch": false,
+      "autorestart": false,
+      "error_file": "logs/engines/error.log",
+      "out_file": "logs/engines/out.log"
+    },
+    {
+      "name": "ratesUidEngine",
+      "script": "lib/uidEngine.js",
+      "instances" : 1,
+      "cron_restart": "0 10 * * *",     
+      "watch": false,
+      "autorestart": false,
       "error_file": "logs/engines/error.log",
       "out_file": "logs/engines/out.log"
     }

@@ -48,8 +48,14 @@ export const uidEngine = async (): Promise<void> => {
     await Promise.allSettled(promises)
     wrappedSaveToDb([edgeDoc])
   } catch (e) {
-    const message = `ratesEngine failure: ${e}`
+    const message = `uidEngine failure: ${e}`
     slackMessage(message).catch(e => logger(e))
     logger(message)
   }
 }
+
+uidEngine()
+  .then(() => process.exit(0))
+  .catch(e => logger('uidEngineCronError', e))
+
+process.on('SIGINT', () => logger('uidEngine killed via SIGINT'))
