@@ -2,7 +2,7 @@ import fetch from 'node-fetch'
 
 import { config } from './config'
 import { ExchangeRateReq } from './exchangeRateRouter'
-import { existsAsync, hgetallAsync, setAsync } from './uidEngine'
+import { existsAsync, hgetallAsync, setAsync } from './indexEngines'
 import { createThrottledMessage } from './utils/createThrottledMessage'
 import { getEdgeAssetDoc } from './utils/dbUtils'
 import { slackPoster } from './utils/postToSlack'

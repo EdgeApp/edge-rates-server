@@ -13,6 +13,7 @@ import nano from 'nano'
 
 import { config } from './config'
 import { ExchangeRateReq } from './exchangeRateRouter'
+import { hgetallAsync, hsetAsync } from './indexEngines'
 import { coincap } from './providers/coincap'
 import { coingecko } from './providers/coingecko'
 import { coinMarketCap } from './providers/coinMarketCap'
@@ -26,7 +27,6 @@ import {
 import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
 import { wazirx } from './providers/wazirx'
-import { hgetallAsync, hsetAsync } from './uidEngine'
 import { asDbDoc, DbDoc, getFromDb, saveToDb } from './utils/dbUtils'
 import {
   checkConstantCode,

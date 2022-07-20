@@ -5,8 +5,8 @@ import nano from 'nano'
 import promisify from 'promisify-node'
 
 import { config } from './config'
+import { hmgetAsync } from './indexEngines'
 import { asReturnGetRate, getExchangeRates } from './rates'
-import { hmgetAsync } from './uidEngine'
 import { asExtendedReq } from './utils/asExtendedReq'
 import { DbDoc } from './utils/dbUtils'
 import {

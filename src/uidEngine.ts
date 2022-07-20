@@ -1,5 +1,4 @@
-import { createClient } from 'redis'
-
+import { existsAsync, setAsync } from './indexEngines'
 import { coincapAssets } from './providers/coincap'
 import { coingeckoAssets } from './providers/coingecko'
 import { coinMarketCapAssets } from './providers/coinMarketCap'
@@ -10,19 +9,6 @@ import { wrappedGetFromDb, wrappedSaveToDb } from './utils/dbUtils'
 import { slackPoster } from './utils/postToSlack'
 import { logger } from './utils/utils'
 
-const client = createClient()
-client.connect().catch(e => logger('redis connect error: ', e))
-
-export const hsetAsync = client.hSet.bind(client)
-export const hgetallAsync = client.hGetAll.bind(client)
-export const hmgetAsync = client.hmGet.bind(client)
-export const existsAsync = client.exists.bind(client)
-export const delAsync = client.del.bind(client)
-// Set type to `any` to avoid the TS4023 error
-export const setAsync: any = client.set.bind(client)
-
-const slackMessage = createThrottledMessage(client, slackPoster)
-
 const providerAssets = {
   coincap: coincapAssets,
   coinMarketCap: coinMarketCapAssets,
@@ -30,11 +16,12 @@ const providerAssets = {
   nomics: nomicsAssets
 }
 
-export const uidEngine = async (): Promise<void> => {
-  client.on('error', function(error) {
-    logger('redis client error', error)
-  })
+const slackMessage = createThrottledMessage(
+  { set: setAsync, exists: existsAsync },
+  slackPoster
+)
 
+export const uidEngine = async (): Promise<void> => {
   logger('Updating UID Cache')
   try {
     const edgeDoc = (await wrappedGetFromDb(['currencyCodeMaps']))[0]

@@ -10,7 +10,7 @@ import { syncedDocument } from 'edge-server-tools'
 import nano from 'nano'
 import promisify from 'promisify-node'
 
-import { delAsync, existsAsync, hsetAsync, setAsync } from '../uidEngine'
+import { delAsync, existsAsync, hsetAsync, setAsync } from '../indexEngines'
 import { config } from './../config'
 import { createThrottledMessage } from './createThrottledMessage'
 import currencyCodeMaps from './currencyCodeMaps.json'
