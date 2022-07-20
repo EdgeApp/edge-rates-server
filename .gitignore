@@ -5,6 +5,8 @@
 /serverConfig.json
 /.nyc_output
 /coverage
+logs/
+dump.rdb
 
 # Package managers:
 node_modules/
