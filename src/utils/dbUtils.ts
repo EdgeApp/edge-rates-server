@@ -96,11 +96,11 @@ export const saveToDb = (
     .then(response => {
       dbResponseLogger(response)
       resolveConflicts(response, docs).catch(e =>
-        logger('Error resolving conflicts', e.message)
+        logger.error('Error resolving conflicts', e.message)
       )
     })
     .catch(e => {
-      logger(e)
+      logger.error(e)
       slackMessage(e).catch(e)
     })
 }
@@ -166,15 +166,15 @@ syncedCurrencyCodeMaps.onChange(currencyCodeMaps => {
       .then(() => {
         if (Array.isArray(currencyCodeMaps[key])) {
           hsetAsync(key, Object.assign({}, currencyCodeMaps[key])).catch(e =>
-            logger('syncedCurrencyCodeMaps failed to update', key, e)
+            logger.error('syncedCurrencyCodeMaps failed to update', key, e)
           )
         } else {
           hsetAsync(key, currencyCodeMaps[key]).catch(e =>
-            logger('syncedCurrencyCodeMaps failed to update', key, e)
+            logger.error('syncedCurrencyCodeMaps failed to update', key, e)
           )
         }
       })
-      .catch(e => logger('syncedCurrencyCodeMaps delete failed', key, e))
+      .catch(e => logger.error('syncedCurrencyCodeMaps delete failed', key, e))
   }
 })
 

@@ -7,7 +7,7 @@ import { logger } from './utils/utils'
 
 // Initialize Redis
 const client = createClient()
-client.connect().catch(e => logger('redis connect error: ', e))
+client.connect().catch(e => logger.error('redis connect error: ', e))
 
 client.on('error', function(error) {
   logger('redis client error', error)
@@ -26,4 +26,4 @@ async function initDb(): Promise<void> {
   await setupDatabase(config.couchUri, ratesDbSetup)
 }
 
-initDb().catch(e => logger('initDb failure', e))
+initDb().catch(e => logger.error('initDb failure', e))

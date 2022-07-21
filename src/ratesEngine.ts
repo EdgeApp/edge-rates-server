@@ -30,8 +30,14 @@ const getCurrencyCodeList = async (): Promise<string[]> => {
     const allEdgeCurrenciesRedis: string[] = Object.values(
       await hgetallAsync('allEdgeCurrencies')
     )
+    logger(
+      `getCurrencyCodeList allEdgeCurrenciesRedis retrieved ${allEdgeCurrenciesRedis.length} pairs`
+    )
     const fiatCurrencyCodesRedis: string[] = Object.values(
       await hgetallAsync('fiatCurrencyCodes')
+    )
+    logger(
+      `getCurrencyCodeList fiatCurrencyCodesRedis retrieved ${fiatCurrencyCodesRedis.length} pairs`
     )
     if (
       allEdgeCurrenciesRedis.length === 0 ||
@@ -41,7 +47,7 @@ const getCurrencyCodeList = async (): Promise<string[]> => {
 
     return [...allEdgeCurrenciesRedis, ...fiatCurrencyCodesRedis]
   } catch (e) {
-    logger(e)
+    logger.error('getCurrencyCodeList redis error', e)
   }
 
   // If Redis lookup failed, try Couchdb
@@ -52,9 +58,10 @@ const getCurrencyCodeList = async (): Promise<string[]> => {
       edgeDoc.fiatCurrencyCodes.length === 0
     )
       throw new Error('Failed to find default currency code maps in couch')
+    logger(`getCurrencyCodeList got pairs from getEdgeAssetDoc`)
     return [...edgeDoc.allEdgeCurrencies, ...edgeDoc.fiatCurrencyCodes]
   } catch (e) {
-    logger(e)
+    logger.error('getCurrencyCodeList couchdb error', e)
   }
 
   // If Couchdb lookup failed, use local defaults
@@ -62,9 +69,11 @@ const getCurrencyCodeList = async (): Promise<string[]> => {
 }
 
 export const ratesEngine = async (): Promise<void> => {
+  logger('RATES ENGINE STARTING **********************')
   try {
     const currentDate = normalizeDate(new Date().toISOString())
     const allCurrencies = await getCurrencyCodeList()
+    logger(`ratesEngine requesting ${allCurrencies.length} pairs`)
 
     const data: ExchangeRateReq[] = [
       ...preferredCryptoFiatPairs.map(currency_pair => ({
@@ -87,14 +96,14 @@ export const ratesEngine = async (): Promise<void> => {
           },
           method: 'POST',
           body: JSON.stringify({ data: data.splice(0, 100) })
-        }).catch(e => logger('ratesEngine query error', e))
+        }).catch(e => logger.error('ratesEngine query error', e))
       )
     }
     await Promise.all(promises)
   } catch (e) {
     const message = `ratesEngine failure: ${e}`
-    slackMessage(message).catch(e => logger(e))
-    logger(message)
+    slackMessage(message).catch(e => logger.error('slackMessage error:', e))
+    logger.error(message)
   } finally {
     logger('RATES ENGINE SNOOZING **********************')
   }
@@ -104,4 +113,4 @@ ratesEngine()
   .then(() => process.exit(0))
   .catch(e => logger('ratesEngineCronError', e))
 
-process.on('SIGINT', () => logger('ratesEngine killed via SIGINT'))
+process.on('SIGINT', () => logger.error('ratesEngine killed via SIGINT'))

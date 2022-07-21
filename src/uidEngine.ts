@@ -42,15 +42,15 @@ export const uidEngine = async (): Promise<void> => {
             ...currencyCodeMaps[provider]
           }
         })
-        .catch(e => logger(`Failed to update ${provider}`, e))
+        .catch(e => logger.error(`Failed to update ${provider}`, e))
         .finally(logger(`${provider} provider updated`))
     )
     await Promise.allSettled(promises)
     wrappedSaveToDb([edgeDoc])
   } catch (e) {
     const message = `uidEngine failure: ${e}`
-    slackMessage(message).catch(e => logger(e))
-    logger(message)
+    slackMessage(message).catch(e => logger.error(e))
+    logger.error(message)
   }
 }
 
@@ -58,4 +58,4 @@ uidEngine()
   .then(() => process.exit(0))
   .catch(e => logger('uidEngineCronError', e))
 
-process.on('SIGINT', () => logger('uidEngine killed via SIGINT'))
+process.on('SIGINT', () => logger.error('uidEngine killed via SIGINT'))

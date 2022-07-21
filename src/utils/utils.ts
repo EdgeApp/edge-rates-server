@@ -54,7 +54,7 @@ export const combineRates = (
   return currentRates
 }
 
-export const logger = (...args): void => {
+const innerLog = (args): string => {
   const isoDate = new Date().toISOString()
   let result = `${isoDate} - `
   for (const arg of args) {
@@ -62,8 +62,11 @@ export const logger = (...args): void => {
     else if (arg instanceof Error) result += arg.message
     else result += `\n${JSON.stringify(arg)}`
   }
-  console.log(result)
+  return result
 }
+
+export const logger = (...args): void => console.log(innerLog(args))
+logger.error = (...args): void => console.error(innerLog(args))
 
 type IsoOp = (code: string) => string
 type IsoOpObject = (code: any) => string
@@ -182,7 +185,7 @@ export const memoize = <T>(
         }
       }
     } catch (e) {
-      logger('memoize', key, e)
+      logger.error('memoize', key, e)
     }
     return cache[key] ?? {}
   }
@@ -202,7 +205,7 @@ export const createAssetMaps = async (
     const newAssets = await func()
     return assetMapCombiner(edgeMap, newAssets)
   } catch (e) {
-    logger('createAssetMaps ', func.name, e)
+    logger.error('createAssetMaps ', func.name, e)
     throw e
   } finally {
     mutexMap[func.name] = false

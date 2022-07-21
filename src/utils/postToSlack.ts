@@ -29,6 +29,6 @@ export const slackPoster = async (text: string): Promise<void> => {
       })
     })
   } catch (e) {
-    logger('Could not log DB error to Slack', e)
+    logger.error('Could not log DB error to Slack', e)
   }
 }

@@ -225,13 +225,15 @@ export const getExchangeRates = async (
         return uncleaner(asCouchDoc(asObject(asString)))(cleanDoc)
       })
 
-    Promise.all(redisPromises).catch(e => logger('redis hsetAsync error:', e))
+    Promise.all(redisPromises).catch(e =>
+      logger.error('redis hsetAsync error:', e)
+    )
 
     // Save to Couchdb
     saveToDb(localDb, out.documents)
     return out
   } catch (e) {
-    logger('getExchangeRates', e)
+    logger.error('getExchangeRates', e)
     throw e
   }
 }

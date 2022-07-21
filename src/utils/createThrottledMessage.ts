@@ -65,6 +65,6 @@ export const createThrottledMessage = (
       await callback(message)
     }
   } catch (e) {
-    logger(`Error setting a message or executing a callback: ${e}`)
+    logger.error(`Error setting a message or executing a callback: ${e}`)
   }
 }
