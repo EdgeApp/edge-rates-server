@@ -17,9 +17,21 @@ Install and run CouchDB v3.1 (use apt install process for Ubuntu 18.04)
 
     https://docs.couchdb.org/en/3.1.0/install/index.html
 
-Install and start Redis
+Install Redis
 
     https://redis.io/docs/getting-started/installation/install-redis-on-linux/#install-on-ubuntu
+
+Update redis.conf
+
+    Comment out the following lines from the SNAPSHOTTING section of the redis config to disable persistence (/etc/redis/redis.config)
+
+```ini
+# save 900 1
+# save 300 10
+# save 60 10000
+```
+
+Start Redis
 
     redis-server
 
