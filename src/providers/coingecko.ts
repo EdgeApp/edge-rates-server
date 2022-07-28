@@ -101,7 +101,11 @@ export const coingeckoAssets = async (): Promise<AssetMap> => {
       logger(`coingeckoAssets returned code ${response.status}`)
       throw new Error(response.statusText)
     }
-    const json = asCoingeckoAssetResponse(await response.json())
+    const json = asCoingeckoAssetResponse(await response.json()).map(uid => ({
+      id: uid.id,
+      symbol: uid.symbol.toUpperCase()
+    }))
+
     out = [...out, ...json]
     if (Object.keys(json).length < perPage) break
     // It's a long process so we should log the progress
