@@ -349,3 +349,20 @@ export const exchangeRateRouterV2 = (): express.Router => {
 
   return router
 }
+
+export const heartbeat = (): express.Router => {
+  const router = express.Router()
+
+  router.get('/', [
+    (req, res, next) => {
+      req.query = { currency_pair: 'BTC_iso:USD' }
+      next()
+    },
+    exchangeRateCleaner,
+    queryRedis,
+    queryExchangeRates,
+    sendExchangeRate
+  ])
+
+  return router
+}

@@ -5,6 +5,7 @@ import express from 'express'
 import morgan from 'morgan'
 
 import { asConfig } from './config'
+import { heartbeat } from './exchangeRateRouter'
 
 const BodyParseError = {
   message: 'error parsing body data',
@@ -42,6 +43,8 @@ export const createServer = (
   app.use(cors())
   // Add router to the app
   app.use(router)
+  // Add endpoint for load balancer
+  app.use('/', heartbeat())
   // 404 Error Route
   app.use((_req, _res, next) => next(RouteError))
   // Catch and handle errors
