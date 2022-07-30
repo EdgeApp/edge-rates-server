@@ -38,6 +38,7 @@ import {
   logger,
   normalizeDate,
   safeUpperCase,
+  snooze,
   toCode,
   toCurrencyPair
 } from './utils/utils'
@@ -146,7 +147,11 @@ const getRatesFromProviders = async (
 
     const assetMap = edgeAssetMap[provider.name] ?? {}
 
-    const response = await provider(remainingRequests, currentTime, assetMap)
+    const response = await Promise.race([
+      provider(remainingRequests, currentTime, assetMap),
+      snooze(5000) // give each provider 5 seconds before moving on
+    ])
+    if (response == null) continue
 
     for (const date of Object.keys(response)) {
       if (Object.keys(response[date]).length === 0) continue

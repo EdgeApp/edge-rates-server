@@ -5,15 +5,15 @@
       "script": "lib/index.js",
       "instances" : "max",
       "exec_mode" : "cluster",
-      "error_file": "logs/server/error.log",
-      "out_file": "logs/server/out.log"
+      "error_file": "/var/log/pm2/ratesServer.error.log",
+      "out_file": "/var/log/pm2/ratesServer.out.log"
     },
     {
       "name": "ratesEngines",
       "script": "lib/indexEngines.js",
       "cron_restart": "0 0 15 * * ?",
-      "error_file": "logs/engines/error.log",
-      "out_file": "logs/engines/out.log"
+      "error_file": "/var/log/pm2/ratesEngines.error.log",
+      "out_file": "/var/log/pm2/ratesEngines.out.log"
     }
   ]
 }
