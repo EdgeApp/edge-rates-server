@@ -186,6 +186,7 @@
 		"YAK": "11415",
 		"YETI": "7939",
 		"MAI": "10238",
+		"ETHW": "21296",
 		"RIF": "3701"
 	},
 	"coincap": {
@@ -441,6 +442,7 @@
 		"MAI": "mimatic",
 		"YETI": "yearn-ecosystem-token-index",
 		"RIF": "rif-token",
+		"ETHW": "ethereum-pow-iou",
 		"SOL": "solana"
 	},
 	"nomics": {
@@ -570,6 +572,7 @@
 		"YAK": "YAK",
 		"YETI": "YETI",
 		"SOL": "SOL",
+		"ETHW": "ETHW2",
 		"RIF": "RIF"
 	},
 	"allEdgeCurrencies": [
@@ -699,6 +702,7 @@
 		"MAI",
 		"TLOS",
 		"SOL",
+		"ETHW",
 		"RIF"
 	],
 	"fiatCurrencyCodes": [
