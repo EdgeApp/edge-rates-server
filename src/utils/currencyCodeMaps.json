@@ -187,7 +187,16 @@
 		"YETI": "7939",
 		"MAI": "10238",
 		"ETHW": "21296",
-		"RIF": "3701"
+		"RIF": "3701",
+		"TRX": "1958",
+		"WTRX": "18579",
+		"BTT": "16086",
+		"USDD": "19891",
+		"JST": "5488",
+		"WIN": "4206",
+		"NFT": "9816",
+		"SUN": "10529",
+		"USDJ": "5446"
 	},
 	"coincap": {
 		"BTC": "bitcoin",
@@ -295,7 +304,12 @@
 		"CUSD": "celo-dollar",
 		"WETH": "weth",
 		"SOL": "solana",
-		"RIF": "rsk-infrastructure-framework"
+		"RIF": "rsk-infrastructure-framework",
+		"TRX": "tron",
+		"JST": "just",
+		"WIN": "wink",
+		"NFT": "apenft",
+		"SUN": "sun-token"
 	},
 	"coingecko": {
 		"ABAT": "aave-bat",
@@ -443,7 +457,16 @@
 		"YETI": "yearn-ecosystem-token-index",
 		"RIF": "rif-token",
 		"ETHW": "ethereum-pow-iou",
-		"SOL": "solana"
+		"SOL": "solana",
+		"TRX":	"tron",
+		"WTRX":	"wrapped-tron",
+		"BTT":	"bittorrent",
+		"USDD":	"usdd",
+		"JST":	"just",
+		"WIN":	"wink",
+		"NFT":	"apenft",
+		"SUN":	"sun-token",
+		"USDJ":	"just-stablecoin"
 	},
 	"nomics": {
 		"BTC": "BTC",
@@ -703,7 +726,16 @@
 		"TLOS",
 		"SOL",
 		"ETHW",
-		"RIF"
+		"RIF",
+		"TRX",
+		"WTRX",
+		"BTT",
+		"USDD",
+		"JST",
+		"WIN",
+		"NFT",
+		"SUN",
+		"USDJ"
 	],
 	"fiatCurrencyCodes": [
 		"iso:ALL",
