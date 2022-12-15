@@ -36,7 +36,6 @@
 		"WBTC.e": "WBTC"
 	},
 	"zeroRates": {
-		"UFO": "0",
 		"FORK": "0",
 		"AGLD": "0",
 		"HERC": "0",
@@ -213,7 +212,6 @@
 		"QTUM": "qtum",
 		"RVN": "ravencoin",
 		"SMART": "smartcash",
-		"UFO": "uniform-fiscal-object",
 		"VTC": "vertcoin",
 		"XMR": "monero",
 		"XRP": "xrp",
