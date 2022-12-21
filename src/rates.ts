@@ -26,8 +26,14 @@ import {
 import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
 import { wazirx } from './providers/wazirx'
-import { hgetallAsync, hsetAsync } from './uidEngine'
-import { asDbDoc, DbDoc, getFromDb, saveToDb } from './utils/dbUtils'
+import {
+  asDbDoc,
+  DbDoc,
+  getFromDb,
+  hgetallAsync,
+  hsetAsync,
+  saveToDb
+} from './utils/dbUtils'
 import {
   checkConstantCode,
   currencyCodeArray,

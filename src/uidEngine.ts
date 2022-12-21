@@ -1,27 +1,14 @@
-import { createClient } from 'redis'
-
 import { coincapAssets } from './providers/coincap'
 import { coingeckoAssets } from './providers/coingecko'
 import { coinMarketCapAssets } from './providers/coinMarketCap'
 import { nomicsAssets } from './providers/nomics'
-import { createThrottledMessage } from './utils/createThrottledMessage'
 import currencyCodeMaps from './utils/currencyCodeMaps.json'
-import { wrappedGetFromDb, wrappedSaveToDb } from './utils/dbUtils'
-import { slackPoster } from './utils/postToSlack'
+import {
+  slackMessage,
+  wrappedGetFromDb,
+  wrappedSaveToDb
+} from './utils/dbUtils'
 import { logger } from './utils/utils'
-
-const client = createClient()
-client.connect().catch(e => logger('redis connect error: ', e))
-
-export const hsetAsync = client.hSet.bind(client)
-export const hgetallAsync = client.hGetAll.bind(client)
-export const hmgetAsync = client.hmGet.bind(client)
-export const existsAsync = client.exists.bind(client)
-export const delAsync = client.del.bind(client)
-// Set type to `any` to avoid the TS4023 error
-export const setAsync: any = client.set.bind(client)
-
-const slackMessage = createThrottledMessage(client, slackPoster)
 
 const providerAssets = {
   coincap: coincapAssets,
@@ -31,10 +18,6 @@ const providerAssets = {
 }
 
 export const uidEngine = async (): Promise<void> => {
-  client.on('error', function(error) {
-    logger('redis client error', error)
-  })
-
   logger('Updating UID Cache')
   try {
     const edgeDoc = (await wrappedGetFromDb(['currencyCodeMaps']))[0]

@@ -6,9 +6,8 @@ import promisify from 'promisify-node'
 
 import { config } from './config'
 import { asReturnGetRate, getExchangeRates } from './rates'
-import { hmgetAsync } from './uidEngine'
 import { asExtendedReq } from './utils/asExtendedReq'
-import { DbDoc } from './utils/dbUtils'
+import { DbDoc, hmgetAsync } from './utils/dbUtils'
 import {
   addIso,
   fromCode,
