@@ -1,7 +1,6 @@
 import { coincapAssets } from './providers/coincap'
 import { coingeckoAssets } from './providers/coingecko'
 import { coinMarketCapAssets } from './providers/coinMarketCap'
-import { nomicsAssets } from './providers/nomics'
 import currencyCodeMaps from './utils/currencyCodeMaps.json'
 import {
   slackMessage,
@@ -13,8 +12,7 @@ import { logger } from './utils/utils'
 const providerAssets = {
   coincap: coincapAssets,
   coinMarketCap: coinMarketCapAssets,
-  coingecko: coingeckoAssets,
-  nomics: nomicsAssets
+  coingecko: coingeckoAssets
 }
 
 export const uidEngine = async (): Promise<void> => {
