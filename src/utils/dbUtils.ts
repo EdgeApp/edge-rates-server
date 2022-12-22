@@ -150,7 +150,6 @@ const asCurrencyCodeMapsCleaner = asObject({
   coinMarketCap: asMaybe(asObject(asString)),
   coincap: asMaybe(asObject(asString)),
   coingecko: asMaybe(asObject(asString)),
-  nomics: asMaybe(asObject(asString)),
   allEdgeCurrencies: asMaybe(asArray(asString)),
   fiatCurrencyCodes: asMaybe(asArray(asString))
 })

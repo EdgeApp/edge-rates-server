@@ -23,7 +23,6 @@ import {
   fallbackConstantRates,
   zeroRates
 } from './providers/hardcodedProviders'
-import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
 import { wazirx } from './providers/wazirx'
 import {
@@ -136,7 +135,6 @@ const getRatesFromProviders = async (
     coingecko,
     coincap,
     coinMarketCap,
-    nomics,
     compound,
     fallbackConstantRates,
     currencyConverter,
