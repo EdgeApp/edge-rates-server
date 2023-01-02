@@ -195,7 +195,8 @@
 		"WIN": "4206",
 		"NFT": "9816",
 		"SUN": "10529",
-		"USDJ": "5446"
+		"USDJ": "5446",
+		"ARRR": "3951"
 	},
 	"coincap": {
 		"BTC": "bitcoin",
@@ -307,7 +308,8 @@
 		"JST": "just",
 		"WIN": "wink",
 		"NFT": "apenft",
-		"SUN": "sun-token"
+		"SUN": "sun-token",
+		"ARRR": "pirate-chain"
 	},
 	"coingecko": {
 		"ABAT": "aave-bat",
@@ -464,7 +466,8 @@
 		"WIN":	"wink",
 		"NFT":	"apenft",
 		"SUN":	"sun-token",
-		"USDJ":	"just-stablecoin"
+		"USDJ":	"just-stablecoin",
+		"ARRR": "pirate-chain"
 	},
 	"nomics": {
 		"BTC": "BTC",
@@ -733,7 +736,8 @@
 		"WIN",
 		"NFT",
 		"SUN",
-		"USDJ"
+		"USDJ",
+		"ARRR"
 	],
 	"fiatCurrencyCodes": [
 		"iso:ALL",
