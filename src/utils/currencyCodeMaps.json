@@ -33,6 +33,7 @@
 		"UNI.e": "UNI",
 		"USDC.e": "USDC",
 		"USDT.e": "USDT",
+		"KNCV1": "KNC",
 		"WBTC.e": "WBTC"
 	},
 	"zeroRates": {
@@ -95,7 +96,7 @@
 		"ANT": "1680",
 		"BAT": "1697",
 		"BNT": "1727",
-		"KNC": "1982",
+		"KNC": "9444",
 		"POLY": "2496",
 		"STORJ": "1772",
 		"USDC": "3408",
@@ -354,7 +355,7 @@
 		"BAT": "basic-attention-token",
 		"BNT": "bancor",
 		"AREN": "aave-ren",
-		"KNC": "kyber-network",
+		"KNC": "kyber-network-crystal",
 		"POLY": "polymath-network",
 		"STORJ": "storj",
 		"USDC": "usd-coin",
