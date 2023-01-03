@@ -34,6 +34,7 @@
 		"USDC.e": "USDC",
 		"USDT.e": "USDT",
 		"KNCV1": "KNC",
+		"PAX": "USDP",
 		"WBTC.e": "WBTC"
 	},
 	"zeroRates": {
@@ -108,7 +109,7 @@
 		"NMR": "1732",
 		"MKR": "1518",
 		"GUSD": "3306",
-		"PAX": "3330",
+		"USDP": "3330",
 		"SALT": "1996",
 		"MANA": "1966",
 		"NEXO": "2694",
@@ -244,7 +245,7 @@
 		"NMR": "numeraire",
 		"MKR": "maker",
 		"GUSD": "gemini-dollar",
-		"PAX": "paxos-standard-token",
+		"USDP": "paxos-standard",
 		"SALT": "salt",
 		"MANA": "decentraland",
 		"NEXO": "nexo",
@@ -367,7 +368,7 @@
 		"NMR": "numeraire",
 		"MKR": "maker",
 		"GUSD": "gemini-dollar",
-		"PAX": "paxos-standard",
+		"USDP": "paxos-standard",
 		"SALT": "salt",
 		"MANA": "decentraland",
 		"NEXO": "nexo",
@@ -651,7 +652,6 @@
 		"NMR",
 		"MKR",
 		"GUSD",
-		"PAX",
 		"SALT",
 		"MANA",
 		"NEXO",
@@ -736,6 +736,7 @@
 		"NFT",
 		"SUN",
 		"USDJ",
+		"USDP",
 		"ARRR"
 	],
 	"fiatCurrencyCodes": [
