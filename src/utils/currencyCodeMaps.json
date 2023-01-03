@@ -35,6 +35,7 @@
 		"USDT.e": "USDT",
 		"KNCV1": "KNC",
 		"PAX": "USDP",
+		"WFTM": "FTM",
 		"WBTC.e": "WBTC"
 	},
 	"zeroRates": {
@@ -198,6 +199,16 @@
 		"NFT": "9816",
 		"SUN": "10529",
 		"USDJ": "5446",
+		"1INCH": "8104",
+		"NOW": "3893",
+		"OGN": "5117",
+		"FUSD": "16831",
+		"L3USD": "21496",
+		"LIF3": "20611",
+		"LSHARE": "20728",
+		"TREEB": "12301",
+		"WFTM": "10240",
+		"ZOO": "9488",
 		"ARRR": "3951"
 	},
 	"coincap": {
@@ -311,6 +322,8 @@
 		"WIN": "wink",
 		"NFT": "apenft",
 		"SUN": "sun-token",
+		"1INCH": "1inch",
+		"OGN": "origin-protocol",
 		"ARRR": "pirate-chain"
 	},
 	"coingecko": {
@@ -469,6 +482,17 @@
 		"NFT":	"apenft",
 		"SUN":	"sun-token",
 		"USDJ":	"just-stablecoin",
+		"1INCH": "1inch",
+		"NOW": "changenow",
+		"OGN": "origin-protocol",
+		"FUSD": "fantom-usd",
+		"L3USD": "l3usd",
+		"LIF3": "lif3",
+		"LSHARE": "lif3-lshare",
+		"TREEB": "treeb",
+		"WFTM": "wrapped-fantom",
+		"XBOO": "boo-mirrorworld",
+		"ZOO": "zookeeper",
 		"ARRR": "pirate-chain"
 	},
 	"nomics": {
@@ -737,6 +761,17 @@
 		"SUN",
 		"USDJ",
 		"USDP",
+		"1INCH",
+		"NOW",
+		"OGN",
+		"FUSD",
+		"L3USD",
+		"LIF3",
+		"LSHARE",
+		"TREEB",
+		"WFTM",
+		"XBOO",
+		"ZOO",
 		"ARRR"
 	],
 	"fiatCurrencyCodes": [
