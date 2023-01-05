@@ -27,6 +27,7 @@ export const existsAsync = client.exists.bind(client)
 export const delAsync = client.del.bind(client)
 // Set type to `any` to avoid the TS4023 error
 export const setAsync: any = client.set.bind(client)
+export const getAsync: any = client.get.bind(client)
 
 const ONE_HOUR = 1000 * 60 * 60
 
