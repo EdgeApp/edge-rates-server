@@ -1,6 +1,25 @@
 /* eslint-disable @typescript-eslint/camelcase */
 
-import { asArray, asNumber, asObject, asOptional, asString } from 'cleaners'
+import {
+  asArray,
+  asDate,
+  asNumber,
+  asObject,
+  asOptional,
+  asString
+} from 'cleaners'
+
+const asStringNum = (raw: any): number => {
+  return Number(asString(raw))
+}
+
+export const asCoinrankReq = asObject({
+  fiatCode: asOptional(asString, 'iso:USD'),
+  start: asOptional(asStringNum, 1),
+  length: asOptional(asStringNum, 100)
+})
+
+export type CoinrankReq = ReturnType<typeof asCoinrankReq>
 
 // Force TS to derive the type of the return value since it is pretty obvious
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -62,3 +81,9 @@ export interface CoinrankRedis {
   lastUpdate: string
   markets: CoinrankMarkets
 }
+
+export const asExchangeRateResponse = asObject({
+  currency_pair: asString,
+  date: asDate,
+  exchangeRate: asString
+})
