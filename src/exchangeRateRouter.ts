@@ -27,6 +27,7 @@ import {
   toIsoPair
 } from './utils/utils'
 
+const { defaultFiatCode } = config
 const EXPIRE_TIME = 60000
 export interface ExchangeRateReq {
   currency_pair: string
@@ -346,14 +347,13 @@ const sendCoinranks: express.RequestHandler = async (
         .send(`Invalid length param: ${length}. Must be between 1-100`)
       return
     }
-    const fiatSuffix = fiatCode.split(':')[1]
     const jsonString = await getAsync(
-      `${REDIS_COINRANK_KEY_PREFIX}_${fiatSuffix}`
+      `${REDIS_COINRANK_KEY_PREFIX}_${fiatCode}`
     )
 
     let redisResult: CoinrankRedis = JSON.parse(jsonString)
 
-    if (fiatCode !== 'iso:USD') {
+    if (fiatCode !== defaultFiatCode) {
       const lastUpdated =
         redisResult != null ? new Date(redisResult.lastUpdate).getTime() : 0
 
@@ -363,14 +363,16 @@ const sendCoinranks: express.RequestHandler = async (
 
         // Get exchange rate
         const result = await fetch(
-          `${ratesServerAddress}/v2/exchangeRate?currency_pair=iso:USD_${fiatCode}`
+          `${ratesServerAddress}/v2/exchangeRate?currency_pair=${defaultFiatCode}_${fiatCode}`
         )
         const resultJson = await result.json()
         const { exchangeRate } = asExchangeRateResponse(resultJson)
         const rate = Number(exchangeRate)
 
         // Get USD rankings
-        const jsonString = await getAsync(`${REDIS_COINRANK_KEY_PREFIX}_USD`)
+        const jsonString = await getAsync(
+          `${REDIS_COINRANK_KEY_PREFIX}_${defaultFiatCode}`
+        )
         redisResult = JSON.parse(jsonString)
         let { markets } = redisResult
 
@@ -391,7 +393,7 @@ const sendCoinranks: express.RequestHandler = async (
           lastUpdate: now.toISOString()
         }
         await setAsync(
-          `${REDIS_COINRANK_KEY_PREFIX}_${fiatSuffix}`,
+          `${REDIS_COINRANK_KEY_PREFIX}_${fiatCode}`,
           JSON.stringify(redisData)
         )
         return
