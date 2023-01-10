@@ -372,22 +372,22 @@ const sendCoinranks: express.RequestHandler = async (
         // Get USD rankings
         const jsonString = await getAsync(`${REDIS_COINRANK_KEY_PREFIX}_USD`)
         redisResult = JSON.parse(jsonString)
-        const { markets } = redisResult
-        let data = markets.slice(start - 1, start + length)
+        let { markets } = redisResult
 
         // Modify the prices, mcap, & volume
-        data = data.map(m => ({
+        markets = markets.map(m => ({
           ...m,
           price: m.price * rate,
           marketCap: m.marketCap * rate,
           volume24h: m.volume24h * rate
         }))
+        const data = markets.slice(start - 1, start + length)
 
         res.json({ data })
 
         // Update redis cache
         const redisData: CoinrankRedis = {
-          markets: data,
+          markets,
           lastUpdate: now.toISOString()
         }
         await setAsync(
