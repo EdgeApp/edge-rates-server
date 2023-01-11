@@ -74,10 +74,11 @@ const currentQuery = async (
     const response = await fetch(url, OPTIONS)
     const json = asCoincapCurrentResponse(await response.json())
     if (response.ok === false) {
+      const text = await response.text()
       logger(
-        `coincapCurrent returned code ${response.status} for ${codes} at ${date}`
+        `coincapCurrent returned code ${response.status} for ${codes} at ${date}: ${text}`
       )
-      throw new Error(response.status)
+      throw new Error(text)
     }
 
     // Add to return object
@@ -105,10 +106,11 @@ const historicalQuery = async (
       OPTIONS
     )
     if (response.ok === false) {
+      const text = await response.text()
       logger(
-        `coincapHistorical returned code ${response.status} for ${id} at ${date}`
+        `coincapHistorical returned code ${response.status.toString()} for ${id} at ${date}: ${text}`
       )
-      throw new Error(response.status)
+      throw new Error(text)
     }
     const json = asCoincapHistoricalResponse(await response.json())
     if (json.data.length === 0)
@@ -179,7 +181,8 @@ export const coincapAssets = async (): Promise<AssetMap> => {
       continue // retry
     }
     if (response.ok === false) {
-      throw new Error(response.status)
+      const text = await response.text()
+      throw new Error(text)
     }
     return assetMapReducer(asCoincapAssetResponse(await response.json()).data)
   }

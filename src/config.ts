@@ -14,7 +14,6 @@ const {
   COIN_MARKET_CAP_HISTORICAL_API_KEY = '',
   SLACK_WEBHOOK_URL = '',
   OPEN_EXCHANGE_RATES_API_KEY,
-  NOMICS_API_KEY,
   DEFAULT_FIAT = 'iso:USD'
 } = process.env
 
@@ -37,10 +36,6 @@ const proivderDefaults = {
   openExchangeRates: {
     uri: 'https://openexchangerates.org',
     apiKey: OPEN_EXCHANGE_RATES_API_KEY
-  },
-  nomics: {
-    uri: 'https://api.nomics.com',
-    apiKey: NOMICS_API_KEY
   },
   coingecko: {
     uri: 'https://api.coingecko.com'
@@ -126,10 +121,6 @@ export const asConfig = asObject({
         apiKey: asString
       }),
       openExchangeRates: asObject({
-        uri: asString,
-        apiKey: asString
-      }),
-      nomics: asObject({
         uri: asString,
         apiKey: asString
       }),

@@ -2,13 +2,20 @@ import { mul } from 'biggystring'
 import { asArray, asMaybe, asObject, asOptional, asString } from 'cleaners'
 import express from 'express'
 import nano from 'nano'
+import fetch from 'node-fetch'
 import promisify from 'promisify-node'
 
 import { config } from './config'
+import { REDIS_COINRANK_KEY_PREFIX } from './constants'
 import { asReturnGetRate, getExchangeRates } from './rates'
-import { hmgetAsync } from './uidEngine'
+import {
+  asCoinrankReq,
+  asExchangeRateResponse,
+  CoinrankRedis,
+  CoinrankReq
+} from './types'
 import { asExtendedReq } from './utils/asExtendedReq'
-import { DbDoc } from './utils/dbUtils'
+import { DbDoc, getAsync, hmgetAsync, setAsync } from './utils/dbUtils'
 import {
   addIso,
   fromCode,
@@ -20,6 +27,8 @@ import {
   toIsoPair
 } from './utils/utils'
 
+const { defaultFiatCode } = config
+const EXPIRE_TIME = 60000
 export interface ExchangeRateReq {
   currency_pair: string
   date: string
@@ -302,6 +311,109 @@ const sendExchangeRates: express.RequestHandler = (req, res, next): void => {
   res.json({ data: exReq.requestedRatesResult.data })
 }
 
+const sendCoinranks: express.RequestHandler = async (
+  req,
+  res,
+  next
+): Promise<void> => {
+  const { ratesServerAddress } = config
+  const now = new Date()
+  const nowTimestamp = now.getTime()
+
+  const exReq = req as ExpressRequest
+  if (exReq == null) return next(500)
+
+  let query: CoinrankReq
+  try {
+    query = asCoinrankReq(req.query)
+  } catch (e) {
+    res
+      .status(400)
+      .send(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`)
+    return
+  }
+  const { fiatCode, start, length } = query
+
+  try {
+    if (start < 1 || start > 2000) {
+      res
+        .status(400)
+        .send(`Invalid start param: ${start}. Must be between 1-2000`)
+      return
+    }
+    if (length < 1 || length > 100) {
+      res
+        .status(400)
+        .send(`Invalid length param: ${length}. Must be between 1-100`)
+      return
+    }
+    const jsonString = await getAsync(
+      `${REDIS_COINRANK_KEY_PREFIX}_${fiatCode}`
+    )
+
+    let redisResult: CoinrankRedis = JSON.parse(jsonString)
+
+    if (fiatCode !== defaultFiatCode) {
+      const lastUpdated =
+        redisResult != null ? new Date(redisResult.lastUpdate).getTime() : 0
+
+      // If no result in redis or it's out of date
+      if (redisResult == null || nowTimestamp - lastUpdated > EXPIRE_TIME) {
+        // Attempt to scale prices by foreign exchange rate
+
+        // Get exchange rate
+        const result = await fetch(
+          `${ratesServerAddress}/v2/exchangeRate?currency_pair=${defaultFiatCode}_${fiatCode}`
+        )
+        const resultJson = await result.json()
+        const { exchangeRate } = asExchangeRateResponse(resultJson)
+        const rate = Number(exchangeRate)
+
+        // Get USD rankings
+        const jsonString = await getAsync(
+          `${REDIS_COINRANK_KEY_PREFIX}_${defaultFiatCode}`
+        )
+        redisResult = JSON.parse(jsonString)
+        let { markets } = redisResult
+
+        // Modify the prices, mcap, & volume
+        markets = markets.map(m => ({
+          ...m,
+          price: m.price * rate,
+          marketCap: m.marketCap * rate,
+          volume24h: m.volume24h * rate
+        }))
+        const data = markets.slice(start - 1, start + length)
+
+        res.json({ data })
+
+        // Update redis cache
+        const redisData: CoinrankRedis = {
+          markets,
+          lastUpdate: now.toISOString()
+        }
+        await setAsync(
+          `${REDIS_COINRANK_KEY_PREFIX}_${fiatCode}`,
+          JSON.stringify(redisData)
+        )
+        return
+      }
+    }
+    if (redisResult == null) {
+      res.status(400).send(`Unable to get results for fiatCode ${fiatCode}`)
+      return
+    }
+
+    const { markets } = redisResult
+    const data = markets.slice(start - 1, start + length)
+
+    res.json({ data })
+  } catch (e) {
+    const err: any = e
+    res.status(500).send(err.message)
+  }
+}
+
 // *** ROUTES ***
 
 export const exchangeRateRouterV1 = (): express.Router => {
@@ -346,6 +458,8 @@ export const exchangeRateRouterV2 = (): express.Router => {
     queryExchangeRates,
     sendExchangeRates
   ])
+
+  router.get('/coinrank', [sendCoinranks])
 
   return router
 }

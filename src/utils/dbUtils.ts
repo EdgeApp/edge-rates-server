@@ -9,20 +9,29 @@ import {
 import { syncedDocument } from 'edge-server-tools'
 import nano from 'nano'
 import promisify from 'promisify-node'
+import { createClient } from 'redis'
 
-import { delAsync, existsAsync, hsetAsync, setAsync } from '../uidEngine'
 import { config } from './../config'
 import { createThrottledMessage } from './createThrottledMessage'
 import currencyCodeMaps from './currencyCodeMaps.json'
 import { slackPoster } from './postToSlack'
 import { logger, memoize } from './utils'
 
+const client = createClient()
+client.connect().catch(e => logger('redis connect error: ', e))
+
+export const hsetAsync = client.hSet.bind(client)
+export const hgetallAsync = client.hGetAll.bind(client)
+export const hmgetAsync = client.hmGet.bind(client)
+export const existsAsync = client.exists.bind(client)
+export const delAsync = client.del.bind(client)
+// Set type to `any` to avoid the TS4023 error
+export const setAsync: any = client.set.bind(client)
+export const getAsync: any = client.get.bind(client)
+
 const ONE_HOUR = 1000 * 60 * 60
 
-const slackMessage = createThrottledMessage(
-  { set: setAsync, exists: existsAsync },
-  slackPoster
-)
+export const slackMessage = createThrottledMessage(client, slackPoster)
 
 export interface DbDoc
   extends nano.IdentifiedDocument,
@@ -141,7 +150,6 @@ const asCurrencyCodeMapsCleaner = asObject({
   coinMarketCap: asMaybe(asObject(asString)),
   coincap: asMaybe(asObject(asString)),
   coingecko: asMaybe(asObject(asString)),
-  nomics: asMaybe(asObject(asString)),
   allEdgeCurrencies: asMaybe(asArray(asString)),
   fiatCurrencyCodes: asMaybe(asArray(asString))
 })
