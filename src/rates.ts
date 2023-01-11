@@ -19,10 +19,6 @@ import { coinMarketCap } from './providers/coinMarketCap'
 import { coinmonitor } from './providers/coinmonitor'
 import { compound } from './providers/compound'
 import { currencyConverter } from './providers/currencyConverter'
-import {
-  fallbackConstantRates,
-  zeroRates
-} from './providers/hardcodedProviders'
 import { nomics } from './providers/nomics'
 import { openExchangeRates } from './providers/openExchangeRates'
 import { wazirx } from './providers/wazirx'
@@ -124,7 +120,6 @@ const getRatesFromProviders = async (
 
   // Retrieve new rates
   const rateProviders = [
-    zeroRates,
     coinmonitor,
     wazirx,
     coingecko,
@@ -132,7 +127,6 @@ const getRatesFromProviders = async (
     coinMarketCap,
     nomics,
     compound,
-    fallbackConstantRates,
     currencyConverter,
     openExchangeRates
   ]
