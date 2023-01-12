@@ -230,7 +230,8 @@ export const coinMarketCapAssets = async (): Promise<AssetMap> => {
       continue // retry
     }
     if (response.ok === false) {
-      throw new Error(response.status)
+      const text = await response.text()
+      throw new Error(text)
     }
 
     return assetMapReducer(
