@@ -63,7 +63,7 @@
     "express": "^4.17.1",
     "morgan": "^1.10.0",
     "nano": "10.0.0",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^2.6.7",
     "promisify-node": "^0.5.0",
     "redis": "^4.0.4"
   }
