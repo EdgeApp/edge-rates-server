@@ -11,7 +11,8 @@ import {
   hasUniqueId,
   invertCodeMapKey,
   isIsoCode,
-  logger
+  logger,
+  snooze
 } from './../utils/utils'
 
 const {
@@ -88,19 +89,35 @@ const asCoingeckoAssetResponse = asArray(
   })
 )
 
+const DEFAULT_WAIT_MS = 30 * 1000
+const MAX_WAIT_MS = 5 * 60 * 1000
+
 export const coingeckoAssets = async (): Promise<AssetMap> => {
   let page = 1
   const perPage = 250
   let out: ReturnType<typeof asCoingeckoAssetResponse> = []
+  let wait = DEFAULT_WAIT_MS
   while (true) {
     const response = await fetch(
       `${uri}/api/v3/coins/markets?vs_currency=usd&per_page=${perPage}&page=${page}&order=market_cap_asc`
     )
-    if (response.status === 429) continue // retry. 1 req/sec so no need to delay
-    if (response.status === 401 || response.ok === false) {
+    if (!response.ok) {
+      const text = await response.text()
+      logger(text)
+      if (response.status === 429) {
+        // retry. 10 req/min so need to delay
+        logger(`coingeckoAssets Rate Limited Snoozing ${wait.toString()}ms`)
+        wait = Math.min(wait * 2, MAX_WAIT_MS)
+        await snooze(wait)
+        continue
+      }
+
       logger(`coingeckoAssets returned code ${response.status}`)
-      throw new Error(response.statusText)
+      throw new Error(text)
     }
+    wait = DEFAULT_WAIT_MS
+    await snooze(wait)
+
     const json = asCoingeckoAssetResponse(await response.json()).map(uid => ({
       id: uid.id,
       symbol: uid.symbol.toUpperCase()

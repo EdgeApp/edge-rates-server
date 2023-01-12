@@ -7,25 +7,47 @@ import { setAsync, slackMessage } from './utils/dbUtils'
 import { logger, snooze } from './utils/utils'
 
 const PAGE_SIZE = 250
-const LOOP_DELAY = 45000
+const LOOP_DELAY = 120000
+const DEFAULT_WAIT_MS = 5 * 1000
+const MAX_WAIT_MS = 5 * 60 * 1000
+const NUM_PAGES = 8
+
 const { defaultFiatCode } = config
 
 export const coinrankEngine = async (): Promise<void> => {
   logger('Updating Coinrank Cache')
   try {
+    let wait = DEFAULT_WAIT_MS
+
     const lastUpdate = new Date().toISOString()
     const { uri } = config.providers.coingecko
     let markets: CoinrankMarkets = []
-    for (let page = 1; page <= 8; page++) {
+    let page = 1
+    while (true) {
       const url = `${uri}/api/v3/coins/markets?vs_currency=USD&page=${page}&per_page=${PAGE_SIZE}&price_change_percentage=1h,24h,7d,14d,30d,1y`
       const response = await fetch(url)
-      if (response.ok === false) {
+      if (!response.ok) {
         const text = await response.text()
+        logger(text)
+        if (response.status === 429) {
+          // retry. 10 req/min so need to delay
+          logger(`Coinrank Rate Limited Snoozing ${wait.toString()}ms`)
+          wait = Math.min(wait * 2, MAX_WAIT_MS)
+          await snooze(wait)
+          continue
+        }
+        logger(`Coinrank returned code ${response.status}`)
         throw new Error(text)
       }
+      logger(`coinrank queried page ${page}`)
+      wait = DEFAULT_WAIT_MS
+      await snooze(wait)
+
       const reply = await response.json()
       const marketsPage = asCoingeckoMarkets(reply)
       markets = [...markets, ...marketsPage]
+      page++
+      if (page > NUM_PAGES) break
     }
     const data: CoinrankRedis = { lastUpdate, markets }
     await setAsync(
