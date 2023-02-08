@@ -56,7 +56,11 @@
 		"TUSD_iso:USD": "1",
 		"GUSD_iso:USD": "1",
 		"PAX_iso:USD": "1",
-		"SUSD_iso:USD": "1"
+		"SUSD_iso:USD": "1",
+		"USD.gh_iso:USD": "1",
+		"EUR.gh_iso:EUR": "1",
+		"USD.bs_iso:USD": "1",
+		"USD.st_iso:USD": "1"
 	},
 	"coinMarketCap": {
 		"BTC": "1",
