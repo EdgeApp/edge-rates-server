@@ -25,6 +25,7 @@ export type CoinrankReq = ReturnType<typeof asCoinrankReq>
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const asCoingeckoAsset = (raw: any) => {
   const asset = asObject({
+    id: asString,
     symbol: asString,
     name: asString,
     image: asString,
@@ -55,6 +56,7 @@ const asCoingeckoAsset = (raw: any) => {
   })(raw)
 
   const {
+    id,
     symbol,
     name,
     image,
@@ -83,6 +85,7 @@ const asCoingeckoAsset = (raw: any) => {
   } = asset
 
   const out = {
+    assetId: id,
     currencyCode: symbol,
     currencyName: name,
     imageUrl: image,
