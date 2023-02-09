@@ -1,12 +1,6 @@
 import { div } from 'biggystring'
 
-import {
-  currencyCodeArray,
-  fromCode,
-  fromCryptoToFiatCurrencyPair,
-  invertPair,
-  toCode
-} from '../utils/utils'
+import { currencyCodeArray, invertPair } from '../utils/utils'
 import { AssetMap, NewRates, PRECISION, ReturnRate } from './../rates'
 
 export const zeroRates = (
@@ -35,32 +29,18 @@ export const fallbackConstantRates = (
 ): NewRates => {
   const rates = {}
 
-  // Initialize currencies
-  const constantRates = Object.keys(assetMap).reduce(
-    (res, pair) => ({
-      ...res,
-      [fromCryptoToFiatCurrencyPair(fromCode(pair), toCode(pair))]: assetMap[
-        pair
-      ]
-    }),
-    {}
-  )
-
   // Search for matches
   for (const pair of rateObj) {
-    if (constantRates[pair.currency_pair] != null) {
-      if (rates[pair.date] == null) {
-        rates[pair.date] = {}
-      }
-      rates[pair.date][pair.currency_pair] = constantRates[pair.currency_pair]
+    if (rates[pair.date] == null) {
+      rates[pair.date] = {}
+    }
+
+    if (assetMap[pair.currency_pair] != null) {
+      rates[pair.date][pair.currency_pair] = assetMap[pair.currency_pair]
       continue
     }
-    if (constantRates[invertPair(pair.currency_pair)] != null) {
-      if (rates[pair.date] == null) {
-        rates[pair.date] = {}
-      }
-
-      const invertedRate = constantRates[invertPair(pair.currency_pair)]
+    if (assetMap[invertPair(pair.currency_pair)] != null) {
+      const invertedRate = assetMap[invertPair(pair.currency_pair)]
       rates[pair.date][pair.currency_pair] =
         invertedRate !== '0' ? div('1', invertedRate, PRECISION) : '0'
     }
