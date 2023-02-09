@@ -53,6 +53,7 @@ export const fallbackConstantRates = (
         rates[pair.date] = {}
       }
       rates[pair.date][pair.currency_pair] = constantRates[pair.currency_pair]
+      continue
     }
     if (constantRates[invertPair(pair.currency_pair)] != null) {
       if (rates[pair.date] == null) {
