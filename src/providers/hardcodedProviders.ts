@@ -1,3 +1,5 @@
+import { div } from 'biggystring'
+
 import {
   currencyCodeArray,
   fromCode,
@@ -5,7 +7,7 @@ import {
   invertPair,
   toCode
 } from '../utils/utils'
-import { AssetMap, NewRates, ReturnRate } from './../rates'
+import { AssetMap, NewRates, PRECISION, ReturnRate } from './../rates'
 
 export const zeroRates = (
   rateObj: ReturnRate[],
@@ -56,8 +58,10 @@ export const fallbackConstantRates = (
       if (rates[pair.date] == null) {
         rates[pair.date] = {}
       }
+
+      const invertedRate = constantRates[invertPair(pair.currency_pair)]
       rates[pair.date][pair.currency_pair] =
-        constantRates[invertPair(pair.currency_pair)]
+        invertedRate !== '0' ? div('1', invertedRate, PRECISION) : '0'
     }
   }
   return rates

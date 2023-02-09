@@ -50,7 +50,7 @@ import {
 
 const { bridgeCurrencies, preferredCryptoFiatPairs } = config
 
-const PRECISION = 20
+export const PRECISION = 20
 
 export interface ReturnGetRate {
   data: ReturnRate[]
