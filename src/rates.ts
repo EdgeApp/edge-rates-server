@@ -50,7 +50,7 @@ import {
 
 const { bridgeCurrencies, preferredCryptoFiatPairs } = config
 
-const PRECISION = 20
+export const PRECISION = 20
 
 export interface ReturnGetRate {
   data: ReturnRate[]
@@ -84,6 +84,7 @@ export interface NewRates {
   [date: string]: RateMap
 }
 
+// TODO: Future architecture changes should convert data types like these to Map()
 export interface AssetMap {
   [currencyCode: string]: string
 }

@@ -1,11 +1,7 @@
-import {
-  currencyCodeArray,
-  fromCode,
-  fromCryptoToFiatCurrencyPair,
-  invertPair,
-  toCode
-} from '../utils/utils'
-import { AssetMap, NewRates, ReturnRate } from './../rates'
+import { div } from 'biggystring'
+
+import { currencyCodeArray, fromCode, toCode } from '../utils/utils'
+import { AssetMap, NewRates, PRECISION, ReturnRate } from './../rates'
 
 export const zeroRates = (
   rateObj: ReturnRate[],
@@ -33,31 +29,30 @@ export const fallbackConstantRates = (
 ): NewRates => {
   const rates = {}
 
-  // Initialize currencies
-  const constantRates = Object.keys(assetMap).reduce(
-    (res, pair) => ({
-      ...res,
-      [fromCryptoToFiatCurrencyPair(fromCode(pair), toCode(pair))]: assetMap[
-        pair
-      ]
-    }),
-    {}
-  )
-
   // Search for matches
   for (const pair of rateObj) {
-    if (constantRates[pair.currency_pair] != null) {
-      if (rates[pair.date] == null) {
-        rates[pair.date] = {}
-      }
-      rates[pair.date][pair.currency_pair] = constantRates[pair.currency_pair]
+    if (rates[pair.date] == null) {
+      rates[pair.date] = {}
     }
-    if (constantRates[invertPair(pair.currency_pair)] != null) {
-      if (rates[pair.date] == null) {
-        rates[pair.date] = {}
-      }
-      rates[pair.date][pair.currency_pair] =
-        constantRates[invertPair(pair.currency_pair)]
+
+    const requestedCurrencyPair = pair.currency_pair // exists in assetMap the same way a consumer would request it "USD.st_iso:USD"
+    const dbSafeCurrencyPair = `${fromCode(pair.currency_pair)}_${toCode(
+      pair.currency_pair
+    )}` // The format we would store in the database "USD.ST_iso:USD"
+
+    if (assetMap[requestedCurrencyPair] != null) {
+      rates[pair.date][dbSafeCurrencyPair] = assetMap[requestedCurrencyPair]
+      continue
+    }
+
+    const inversePair = pair.currency_pair
+      .split('_')
+      .reverse()
+      .join('_')
+    if (assetMap[inversePair] != null) {
+      const invertedRate = assetMap[inversePair]
+      rates[pair.date][dbSafeCurrencyPair] =
+        invertedRate !== '0' ? div('1', invertedRate, PRECISION) : '0'
     }
   }
   return rates
