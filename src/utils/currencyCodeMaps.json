@@ -33,7 +33,11 @@
 		"UNI.e": "UNI",
 		"USDC.e": "USDC",
 		"USDT.e": "USDT",
-		"WBTC.e": "WBTC"
+		"WBTC.e": "WBTC",
+		"USD.gh": "iso:USD",
+		"EUR.gh": "iso:EUR",
+		"USD.bs": "iso:USD",
+		"USD.st": "iso:USD"
 	},
 	"zeroRates": {
 		"FORK": "0",
