@@ -84,6 +84,7 @@ export interface NewRates {
   [date: string]: RateMap
 }
 
+// TODO: Future architecture changes should convert data types like these to Map()
 export interface AssetMap {
   [currencyCode: string]: string
 }
