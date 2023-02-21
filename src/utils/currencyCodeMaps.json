@@ -204,7 +204,10 @@
 		"NFT": "9816",
 		"SUN": "10529",
 		"USDJ": "5446",
-		"ARRR": "3951"
+		"ARRR": "3951",
+		"OP": "11840",
+		"LDO": "8000",
+		"FRAX": "6952"
 	},
 	"coincap": {
 		"BTC": "bitcoin",
@@ -317,7 +320,9 @@
 		"WIN": "wink",
 		"NFT": "apenft",
 		"SUN": "sun-token",
-		"ARRR": "pirate-chain"
+		"ARRR": "pirate-chain",
+		"LDO": "lido-dao",
+		"FRAX": "frax"
 	},
 	"coingecko": {
 		"ABAT": "aave-bat",
@@ -475,7 +480,10 @@
 		"NFT":	"apenft",
 		"SUN":	"sun-token",
 		"USDJ":	"just-stablecoin",
-		"ARRR": "pirate-chain"
+		"ARRR": "pirate-chain",
+		"OP": "optimism",
+		"LDO": "lido-dao",
+		"FRAX": "frax"
 	},
 	"allEdgeCurrencies": [
 		"BTC",
@@ -615,7 +623,10 @@
 		"NFT",
 		"SUN",
 		"USDJ",
-		"ARRR"
+		"ARRR",
+		"OP",
+		"LDO",
+		"FRAX"
 	],
 	"fiatCurrencyCodes": [
 		"iso:ALL",
