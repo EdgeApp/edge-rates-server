@@ -65,6 +65,7 @@
 		"USD.st_iso:USD": "1"
 	},
 	"coinMarketCap": {
+		"ALGO": "4030",
 		"BTC": "1",
 		"BCH": "1831",
 		"BTG": "2083",
@@ -208,6 +209,7 @@
 		"FRAX": "6952"
 	},
 	"coincap": {
+		"ALGO": "algorand",
 		"BTC": "bitcoin",
 		"BCH": "bitcoin-cash",
 		"BTG": "bitcoin-gold",
@@ -323,6 +325,7 @@
 	},
 	"coingecko": {
 		"ABAT": "aave-bat",
+		"ALGO": "algorand",
 		"BTC": "bitcoin",
 		"BCH": "bitcoin-cash",
 		"BTG": "bitcoin-gold",
@@ -640,7 +643,8 @@
 		"AUNI",
 		"RENBTC",
 		"RENBCH",
-		"RENZEC"
+		"RENZEC",
+		"ALGO"
 	],
 	"fiatCurrencyCodes": [
 		"iso:ALL",
