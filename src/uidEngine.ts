@@ -1,4 +1,4 @@
-import { coincapAssets } from './providers/coincap'
+// import { coincapAssets } from './providers/coincap'
 import { coingeckoAssets } from './providers/coingecko'
 import { coinMarketCapAssets } from './providers/coinMarketCap'
 import currencyCodeMaps from './utils/currencyCodeMaps.json'
@@ -10,7 +10,7 @@ import {
 import { logger } from './utils/utils'
 
 const providerAssets = {
-  coincap: coincapAssets,
+  // coincap: coincapAssets, // Disabled because ZEC rates are bad. Can re-enable once we can blacklist IDs.
   coinMarketCap: coinMarketCapAssets,
   coingecko: coingeckoAssets
 }
