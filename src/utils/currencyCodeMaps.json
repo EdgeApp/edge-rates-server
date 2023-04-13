@@ -206,6 +206,7 @@
 		"ARRR": "3951",
 		"OP": "11840",
 		"LDO": "8000",
+		"VELO": "20435",
 		"FRAX": "6952"
 	},
 	"coincap": {
@@ -481,6 +482,7 @@
 		"ARRR": "pirate-chain",
 		"OP": "optimism",
 		"LDO": "lido-dao",
+		"VELO": "velodrome-finance",
 		"FRAX": "frax"
 	},
 	"allEdgeCurrencies": [
@@ -644,6 +646,7 @@
 		"RENBTC",
 		"RENBCH",
 		"RENZEC",
+		"VELO",
 		"ALGO"
 	],
 	"fiatCurrencyCodes": [
