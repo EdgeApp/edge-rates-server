@@ -208,3 +208,11 @@ export const createAssetMaps = async (
     mutexMap[func.name] = false
   }
 }
+
+export const daysBetween = (date1: Date, date2: Date): number => {
+  const oneDay = 24 * 60 * 60 * 1000 // One day in milliseconds
+  const diffDays = Math.round(
+    Math.abs((date2.getTime() - date1.getTime()) / oneDay)
+  )
+  return diffDays
+}

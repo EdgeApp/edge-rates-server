@@ -7,6 +7,7 @@ import {
   assetMapReducer,
   combineRates,
   createReducedRateMap,
+  daysBetween,
   fromCode,
   fromCryptoToFiatCurrencyPair,
   hasUniqueId,
@@ -143,18 +144,25 @@ const coinMarketCapHistorical = async (
   ids: string[],
   assetMap: AssetMap
 ): Promise<NewRates> => {
+  let dailyAverage = false
+  const now = new Date()
+  const days = daysBetween(new Date(date), now)
+
+  // If we're querying a date more than 3 months in the past, use
+  // daily average
+  if (days > 90) dailyAverage = true
+
   const rates = { [date]: {} }
   if (ids.length === 0) return rates
 
   try {
-    const response = await fetch(
-      `${historicalUri}/v1/cryptocurrency/quotes/historical?id=${
-        ids.length > 2 ? ids : ids.concat(DEFAULT_CODES)
-      }&time_end=${date}&count=1&skip_invalid=true&convert=${subIso(
-        DEFAULT_FIAT
-      )}`,
-      HISTORICAL_OPTIONS
-    )
+    let url = `${historicalUri}/v1/cryptocurrency/quotes/historical?id=${
+      ids.length > 2 ? ids : ids.concat(DEFAULT_CODES)
+    }&time_start=${date}&count=1&skip_invalid=true&convert=${subIso(
+      DEFAULT_FIAT
+    )}`
+    if (dailyAverage) url += `&interval=daily`
+    const response = await fetch(url, HISTORICAL_OPTIONS)
     if (response.status !== 200 || response.ok === false) {
       logger(
         `coinMarketCapHistorical returned code ${response.status} for ${ids} at ${date}`
