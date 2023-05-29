@@ -65,6 +65,7 @@
     "USD.st_iso:USD": "1"
   },
   "coinMarketCap": {
+    "PEPE": "24478",
     "WFIO": "23373",
     "ALGO": "4030",
     "BTC": "1",
@@ -353,6 +354,7 @@
     "SAND": "the-sandbox"
   },
   "coingecko": {
+    "PEPE": "pepe",
     "WFIO": "wrapped-fio",
     "ABAT": "aave-bat",
     "ALGO": "algorand",
@@ -707,6 +709,7 @@
     "STRK",
     "GRT",
     "SAND",
+    "PEPE",
     "WFIO"
   ],
   "fiatCurrencyCodes": [
