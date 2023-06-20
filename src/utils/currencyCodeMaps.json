@@ -224,7 +224,8 @@
     "SOLVE": "3724",
     "STRK": "8911",
     "GRT": "6719",
-    "SAND": "6210"
+    "SAND": "6210",
+    "PLS": "11145"
   },
   "coincap": {
     "ALGO": "algorand",
@@ -354,6 +355,7 @@
     "SAND": "the-sandbox"
   },
   "coingecko": {
+    "PLS": "pulsechain",
     "PEPE": "pepe",
     "WFIO": "wrapped-fio",
     "ABAT": "aave-bat",
