@@ -13,11 +13,11 @@ const {
   COIN_MARKET_CAP_API_KEY = '',
   COIN_MARKET_CAP_HISTORICAL_API_KEY = '',
   SLACK_WEBHOOK_URL = '',
-  OPEN_EXCHANGE_RATES_API_KEY,
+  OPEN_EXCHANGE_RATES_API_KEY = '',
   DEFAULT_FIAT = 'iso:USD'
 } = process.env
 
-const proivderDefaults = {
+const providerDefaults = {
   coincap: {
     uri: 'https://api.coincap.io'
   },
@@ -137,7 +137,7 @@ export const asConfig = asObject({
         uri: asString
       })
     }),
-    proivderDefaults
+    providerDefaults
   ),
   preferredCryptoFiatPairs: asOptional(asArray(asString), [
     'BTC_iso:ARS',
