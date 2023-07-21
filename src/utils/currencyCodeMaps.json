@@ -233,7 +233,6 @@
     "BCH": "bitcoin-cash",
     "BTG": "bitcoin-gold",
     "BSV": "bitcoin-sv",
-    "DASH": "dash",
     "DGB": "digibyte",
     "DOGE": "dogecoin",
     "DOT": "polkadot",
@@ -712,7 +711,8 @@
     "GRT",
     "SAND",
     "PEPE",
-    "WFIO"
+    "WFIO",
+    "PLS"
   ],
   "fiatCurrencyCodes": [
     "iso:ALL",
