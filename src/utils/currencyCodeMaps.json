@@ -65,6 +65,8 @@
     "USD.st_iso:USD": "1"
   },
   "coinMarketCap": {
+    "AXLUSDC": "21420",
+    "MPX": "23431",
     "PEPE": "24478",
     "WFIO": "23373",
     "ALGO": "4030",
@@ -354,6 +356,11 @@
     "SAND": "the-sandbox"
   },
   "coingecko": {
+    "AXLUSDC": "axlusdc",
+    "AXLUSDT": "axelar-usdt",
+    "AXLETH": "axlweth",
+    "AXLWBTC": "axlwbtc",
+    "MPX": "mpx",
     "PLS": "pulsechain",
     "PEPE": "pepe",
     "WFIO": "wrapped-fio",
@@ -712,7 +719,12 @@
     "SAND",
     "PEPE",
     "WFIO",
-    "PLS"
+    "PLS",
+    "AXLUSDC",
+    "AXLUSDT",
+    "AXLETH",
+    "AXLWBTC",
+    "MPX"
   ],
   "fiatCurrencyCodes": [
     "iso:ALL",
