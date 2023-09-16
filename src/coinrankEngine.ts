@@ -7,7 +7,7 @@ import { setAsync, slackMessage } from './utils/dbUtils'
 import { logger, snooze } from './utils/utils'
 
 const PAGE_SIZE = 250
-const LOOP_DELAY = 120000
+const LOOP_DELAY = 60 * 1000
 const DEFAULT_WAIT_MS = 5 * 1000
 const MAX_WAIT_MS = 5 * 60 * 1000
 const NUM_PAGES = 8
@@ -41,7 +41,6 @@ export const coinrankEngine = async (): Promise<void> => {
       }
       logger(`coinrank queried page ${page}`)
       wait = DEFAULT_WAIT_MS
-      await snooze(wait)
 
       const reply = await response.json()
       const marketsPage = asCoingeckoMarkets(reply)
