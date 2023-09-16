@@ -20,11 +20,11 @@ export const coinrankEngine = async (): Promise<void> => {
     let wait = DEFAULT_WAIT_MS
 
     const lastUpdate = new Date().toISOString()
-    const { uri } = config.providers.coingecko
+    const { apiKey, uri } = config.providers.coingeckopro
     let markets: CoinrankMarkets = []
     let page = 1
     while (true) {
-      const url = `${uri}/api/v3/coins/markets?vs_currency=USD&page=${page}&per_page=${PAGE_SIZE}&price_change_percentage=1h,24h,7d,14d,30d,1y`
+      const url = `${uri}/api/v3/coins/markets?x_cg_pro_api_key=${apiKey}&vs_currency=USD&page=${page}&per_page=${PAGE_SIZE}&price_change_percentage=1h,24h,7d,14d,30d,1y`
       const response = await fetch(url)
       if (!response.ok) {
         const text = await response.text()
