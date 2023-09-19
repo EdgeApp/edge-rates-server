@@ -17,7 +17,7 @@ import {
 
 const {
   providers: {
-    coingecko: { uri }
+    coingeckopro: { apiKey, uri }
   }
 } = config
 
@@ -58,7 +58,7 @@ export const coingecko = async (
   if (codesWanted.length === 0) return rates
   try {
     const response = await fetch(
-      `${uri}/api/v3/simple/price?ids=${codesWanted.join(
+      `${uri}/api/v3/simple/price?x_cg_pro_api_key=${apiKey}&ids=${codesWanted.join(
         ','
       )}&vs_currencies=usd`
     )

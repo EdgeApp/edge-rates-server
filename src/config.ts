@@ -10,6 +10,7 @@ const {
   INFO_SERVER_API_KEY = '',
   RATES_SERVER_ADDRESS = 'http://127.0.0.1:8087',
   CURRENCY_CONVERTER_API_KEY = '',
+  COIN_GECKO_API_KEY = '',
   COIN_MARKET_CAP_API_KEY = '',
   COIN_MARKET_CAP_HISTORICAL_API_KEY = '',
   SLACK_WEBHOOK_URL = '',
@@ -39,6 +40,10 @@ const providerDefaults = {
   },
   coingecko: {
     uri: 'https://api.coingecko.com'
+  },
+  coingeckopro: {
+    uri: 'https://pro-api.coingecko.com',
+    apiKey: COIN_GECKO_API_KEY
   },
   compound: {
     uri: 'https://api.compound.finance'
@@ -126,6 +131,10 @@ export const asConfig = asObject({
       }),
       coingecko: asObject({
         uri: asString
+      }),
+      coingeckopro: asObject({
+        uri: asString,
+        apiKey: asString
       }),
       compound: asObject({
         uri: asString
