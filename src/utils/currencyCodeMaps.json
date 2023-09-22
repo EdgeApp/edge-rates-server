@@ -31,6 +31,7 @@
     "USDC.e": "USDC",
     "USDT.e": "USDT",
     "WBTC.e": "WBTC",
+    "VELOV1": "VELO",
     "USD.gh": "iso:USD",
     "EUR.gh": "iso:EUR",
     "USD.bs": "iso:USD",
@@ -65,6 +66,10 @@
     "USD.st_iso:USD": "1"
   },
   "coinMarketCap": {
+    "ARB": "11841",
+    "PAXG": "4705",
+    "FIL": "2280",
+    "PYUSD": "27772",
     "AXLUSDC": "21420",
     "MPX": "23431",
     "PEPE": "24478",
@@ -230,6 +235,8 @@
     "PLS": "11145"
   },
   "coincap": {
+    "FIL": "filecoin",
+    "PAXG": "pax-gold",
     "ALGO": "algorand",
     "BTC": "bitcoin",
     "BCH": "bitcoin-cash",
@@ -356,6 +363,10 @@
     "SAND": "the-sandbox"
   },
   "coingecko": {
+    "ARB": "arbitrum",
+    "FIL": "filecoin",
+    "PYUSD": "paypal-usd",
+    "PAXG": "pax-gold",
     "AXLUSDC": "axlusdc",
     "AXLUSDT": "axelar-usdt",
     "AXLETH": "axlweth",
@@ -724,6 +735,10 @@
     "AXLUSDT",
     "AXLETH",
     "AXLWBTC",
+    "ARB",
+    "FIL",
+    "PAXG",
+    "PYUSD",
     "MPX"
   ],
   "fiatCurrencyCodes": [
