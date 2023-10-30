@@ -232,7 +232,8 @@
     "STRK": "8911",
     "GRT": "6719",
     "SAND": "6210",
-    "PLS": "11145"
+    "PLS": "11145",
+    "RUNE": "4157"
   },
   "coincap": {
     "FIL": "filecoin",
@@ -360,7 +361,8 @@
     "SOLVE": "solve",
     "STRK": "strike",
     "GRT": "the-graph",
-    "SAND": "the-sandbox"
+    "SAND": "the-sandbox",
+    "RUNE": "thorchain"
   },
   "coingecko": {
     "ARB": "arbitrum",
@@ -548,7 +550,8 @@
     "SOLVE": "solve-care",
     "STRK": "strike",
     "GRT": "the-graph",
-    "SAND": "the-sandbox"
+    "SAND": "the-sandbox",
+    "RUNE": "thorchain"
   },
   "allEdgeCurrencies": [
     "BTC",
@@ -739,7 +742,8 @@
     "FIL",
     "PAXG",
     "PYUSD",
-    "MPX"
+    "MPX",
+    "RUNE"
   ],
   "fiatCurrencyCodes": [
     "iso:ALL",
