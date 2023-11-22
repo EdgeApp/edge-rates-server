@@ -233,7 +233,9 @@
     "GRT": "6719",
     "SAND": "6210",
     "PLS": "11145",
-    "RUNE": "4157"
+    "RUNE": "4157",
+    "COREUM": "16399",
+    "OSMO": "12220"
   },
   "coincap": {
     "FIL": "filecoin",
@@ -359,7 +361,8 @@
     "STRK": "strike",
     "GRT": "the-graph",
     "SAND": "the-sandbox",
-    "RUNE": "thorchain"
+    "RUNE": "thorchain",
+    "OSMO": "osmosis"
   },
   "coingecko": {
     "ARB": "arbitrum",
@@ -548,7 +551,9 @@
     "STRK": "strike",
     "GRT": "the-graph",
     "SAND": "the-sandbox",
-    "RUNE": "thorchain"
+    "RUNE": "thorchain",
+    "COREUM": "COREUM",
+    "OSMO": "osmosis"
   },
   "allEdgeCurrencies": [
     "BTC",
@@ -740,7 +745,9 @@
     "PAXG",
     "PYUSD",
     "MPX",
-    "RUNE"
+    "RUNE",
+    "COREUM",
+    "OSMO"
   ],
   "fiatCurrencyCodes": [
     "iso:ALL",
