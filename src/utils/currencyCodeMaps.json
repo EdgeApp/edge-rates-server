@@ -235,7 +235,11 @@
     "PLS": "11145",
     "RUNE": "4157",
     "COREUM": "16399",
-    "OSMO": "12220"
+    "OSMO": "12220",
+    "GMT": "18069",
+    "PYTH": "28177",
+    "RNDR": "5690",
+    "ION": "23547"
   },
   "coincap": {
     "FIL": "filecoin",
@@ -362,7 +366,8 @@
     "GRT": "the-graph",
     "SAND": "the-sandbox",
     "RUNE": "thorchain",
-    "OSMO": "osmosis"
+    "OSMO": "osmosis",
+    "RNDR": "render-token"
   },
   "coingecko": {
     "ARB": "arbitrum",
@@ -552,8 +557,12 @@
     "GRT": "the-graph",
     "SAND": "the-sandbox",
     "RUNE": "thorchain",
-    "COREUM": "COREUM",
-    "OSMO": "osmosis"
+    "COREUM": "coreum",
+    "OSMO": "osmosis",
+    "GMT": "stepn",
+    "PYTH": "pyth-network",
+    "RNDR": "render-token",
+    "ION": "ion"
   },
   "allEdgeCurrencies": [
     "BTC",
@@ -747,7 +756,11 @@
     "MPX",
     "RUNE",
     "COREUM",
-    "OSMO"
+    "OSMO",
+    "GMT",
+    "PYTH",
+    "RNDR",
+    "ION"
   ],
   "fiatCurrencyCodes": [
     "iso:ALL",
