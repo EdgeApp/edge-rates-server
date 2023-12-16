@@ -239,7 +239,8 @@
     "GMT": "18069",
     "PYTH": "28177",
     "RNDR": "5690",
-    "ION": "23547"
+    "ION": "23547",
+    "BONK": "23095"
   },
   "coincap": {
     "FIL": "filecoin",
@@ -562,7 +563,8 @@
     "GMT": "stepn",
     "PYTH": "pyth-network",
     "RNDR": "render-token",
-    "ION": "ion"
+    "ION": "ion",
+    "BONK": "bonk"
   },
   "allEdgeCurrencies": [
     "BTC",
@@ -760,7 +762,8 @@
     "GMT",
     "PYTH",
     "RNDR",
-    "ION"
+    "ION",
+    "BONK"
   ],
   "fiatCurrencyCodes": [
     "iso:ALL",
