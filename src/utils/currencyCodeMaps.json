@@ -66,6 +66,8 @@
     "USD.st_iso:USD": "1"
   },
   "coinMarketCap": {
+    "AXL": "17799",
+    "ATOM": "3794",
     "ARB": "11841",
     "PAXG": "4705",
     "FIL": "2280",
@@ -243,6 +245,7 @@
     "BONK": "23095"
   },
   "coincap": {
+    "ATOM": "cosmos",
     "FIL": "filecoin",
     "PAXG": "pax-gold",
     "ALGO": "algorand",
@@ -371,6 +374,8 @@
     "RNDR": "render-token"
   },
   "coingecko": {
+    "AXL": "axelar",
+    "ATOM": "cosmos",
     "ARB": "arbitrum",
     "FIL": "filecoin",
     "PYUSD": "paypal-usd",
@@ -763,7 +768,9 @@
     "PYTH",
     "RNDR",
     "ION",
-    "BONK"
+    "BONK",
+    "ATOM",
+    "AXL"
   ],
   "fiatCurrencyCodes": [
     "iso:ALL",
