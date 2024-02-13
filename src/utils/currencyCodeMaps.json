@@ -24,6 +24,7 @@
     "FBTC": "BTC",
     "FETH": "ETH",
     "GNT": "GLM",
+    "BSC-USD": "USDT",
     "BUSD.e": "BUSD",
     "DAI.e": "DAI",
     "LINK.e": "LINK",
@@ -67,6 +68,13 @@
     "USD.st_iso:USD": "1"
   },
   "coinMarketCap": {
+    "BTCB": "4023",
+    "DYDX": "28324",
+    "KAVA": "4846",
+    "SEI": "23149",
+    "EVMOS": "19899",
+    "KUJI": "15185",
+    "GRAV": "20381",
     "AXL": "17799",
     "ATOM": "3794",
     "ARB": "11841",
@@ -246,6 +254,7 @@
     "BONK": "23095"
   },
   "coincap": {
+    "KAVA": "kava",
     "ATOM": "cosmos",
     "FIL": "filecoin",
     "PAXG": "pax-gold",
@@ -375,6 +384,13 @@
     "RNDR": "render-token"
   },
   "coingecko": {
+    "BTCB": "binance-bitcoin",
+    "DYDX": "dydx",
+    "KAVA": "kava",
+    "SEI": "sei-network",
+    "EVMOS": "evmos",
+    "KUJI": "kujira",
+    "GRAV": "graviton",
     "AXL": "axelar",
     "ATOM": "cosmos",
     "ARB": "arbitrum",
@@ -771,6 +787,13 @@
     "ION",
     "BONK",
     "ATOM",
+    "KUJI",
+    "GRAV",
+    "EVMOS",
+    "SEI",
+    "KAVA",
+    "DYDX",
+    "BTCB",
     "AXL"
   ],
   "fiatCurrencyCodes": [
