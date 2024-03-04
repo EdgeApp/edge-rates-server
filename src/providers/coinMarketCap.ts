@@ -1,4 +1,11 @@
-import { asArray, asMap, asNumber, asObject, asString } from 'cleaners'
+import {
+  asArray,
+  asMap,
+  asNumber,
+  asObject,
+  asString,
+  asUnknown
+} from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
@@ -42,18 +49,16 @@ const CURRENT_OPTIONS = {
   json: true
 }
 
-const asCoinMarketCapCurrentQuotes = asMap(
-  asObject({
-    quote: asMap(asObject({ price: asNumber }))
-  })
-)
+const asCoinMarketCapCurrentQuotes = asObject({
+  quote: asMap(asObject({ price: asNumber }))
+})
 
 const asCoinMarketCapCurrentResponse = asObject({
-  data: asCoinMarketCapCurrentQuotes
+  data: asObject(asUnknown)
 })
 
 const coinMarketCapCurrentQuote = (
-  data: ReturnType<typeof asCoinMarketCapCurrentQuotes>,
+  data: { [id: string]: ReturnType<typeof asCoinMarketCapCurrentQuotes> },
   id: string
 ): string => data[id].quote[subIso(DEFAULT_FIAT)].price.toString()
 
@@ -68,7 +73,7 @@ export const coinMarketCapCurrent = async (
   ids: string[],
   assetMap: AssetMap
 ): Promise<NewRates> => {
-  const rates = { [date]: {} }
+  const rates: NewRates = { [date]: {} }
   if (ids.length === 0) return rates
 
   if (currentapiKey == null) {
@@ -90,10 +95,22 @@ export const coinMarketCapCurrent = async (
       )
       throw new Error(response.statusText)
     }
-    const json = asCoinMarketCapCurrentResponse(await response.json())
+    const rawJson = asCoinMarketCapCurrentResponse(await response.json())
+
+    const cleanJson: {
+      [id: string]: ReturnType<typeof asCoinMarketCapCurrentQuotes>
+    } = {}
+    for (const rawRate of Object.keys(rawJson.data)) {
+      try {
+        const cleanRate = asCoinMarketCapCurrentQuotes(rawJson.data[rawRate])
+        cleanJson[rawRate] = cleanRate
+      } catch (e) {
+        logger(`Failed to clean coinMarketCapCurrent quote for ${rawRate}:`, e)
+      }
+    }
 
     // Create return object
-    rates[date] = coinMarketCapCurrentRateMap(json.data, assetMap)
+    rates[date] = coinMarketCapCurrentRateMap(cleanJson, assetMap)
   } catch (e) {
     logger('No coinMarketCapCurrent quote:', e)
   }
@@ -108,28 +125,26 @@ const HISTORICAL_OPTIONS = {
   json: true
 }
 
-const ascoinMarketCapHistoricalQuotes = asMap(
-  asObject({
-    symbol: asString,
-    quotes: asArray(
-      asObject({
-        timestamp: asString,
-        quote: asMap(
-          asObject({
-            price: asNumber
-          })
-        )
-      })
-    )
-  })
-)
+const ascoinMarketCapHistoricalQuotes = asObject({
+  symbol: asString,
+  quotes: asArray(
+    asObject({
+      timestamp: asString,
+      quote: asMap(
+        asObject({
+          price: asNumber
+        })
+      )
+    })
+  )
+})
 
 const asCoinMarketCapHistoricalResponse = asObject({
-  data: ascoinMarketCapHistoricalQuotes
+  data: asObject(asUnknown)
 })
 
 const coinMarketCapHistoricalQuote = (
-  data: ReturnType<typeof ascoinMarketCapHistoricalQuotes>,
+  data: { [code: string]: ReturnType<typeof ascoinMarketCapHistoricalQuotes> },
   code: string
 ): string => data[code].quotes?.[0].quote[subIso(DEFAULT_FIAT)].price.toString()
 
@@ -169,10 +184,26 @@ const coinMarketCapHistorical = async (
       )
       throw new Error(response.statusText)
     }
-    const json = asCoinMarketCapHistoricalResponse(await response.json())
+
+    const rawJson = asCoinMarketCapHistoricalResponse(await response.json())
+
+    const cleanJson: {
+      [id: string]: ReturnType<typeof ascoinMarketCapHistoricalQuotes>
+    } = {}
+    for (const rawRate of Object.keys(rawJson.data)) {
+      try {
+        const cleanRate = ascoinMarketCapHistoricalQuotes(rawJson.data[rawRate])
+        cleanJson[rawRate] = cleanRate
+      } catch (e) {
+        logger(
+          `Failed to clean coinMarketCapHistorical quote for ${rawRate}:`,
+          e
+        )
+      }
+    }
 
     // Create return object
-    rates[date] = coinMarketCapHistoricalRateMap(json.data, assetMap)
+    rates[date] = coinMarketCapHistoricalRateMap(cleanJson, assetMap)
   } catch (e) {
     logger('No CoinMarketCapHistorical quote:', e)
   }
