@@ -8,9 +8,8 @@ const { defaultFiatCode: DEFAULT_FIAT } = config
  * 30 seconds and translating to UTC time.  Or returns undefined if dateSrc
  * is invalid.
  */
-export function normalizeDate(dateSrc: string, backDateMs: number = 0): string {
-  const timestamp = Date.parse(dateSrc) - backDateMs
-  const dateNorm = new Date(timestamp - backDateMs)
+export function normalizeDate(dateSrc: string): string {
+  const dateNorm = new Date(dateSrc)
   dateNorm.setSeconds(dateNorm.getSeconds() < 30 ? 0 : 30)
   dateNorm.setMilliseconds(0)
   return dateNorm.toISOString()

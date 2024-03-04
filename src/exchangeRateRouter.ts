@@ -61,14 +61,17 @@ export const asExchangeRateReq = (obj): ExchangeRateReq => {
     }
   }
 
-  const thirtySecondsAgo = normalizeDate(
-    new Date().toISOString(),
-    30 * 1000 /* thirty seconds */
-  )
-  return asObject({
+  const thirtySecondsAgo = new Date(
+    Date.now() - 30 * 1000 /* thirty seconds */
+  ).toISOString()
+
+  const out = asObject({
     currency_pair: asString,
     date: asMaybe(asString, thirtySecondsAgo)
   })(obj)
+
+  out.date = normalizeDate(out.date)
+  return out
 }
 
 const asExchangeRatesReq = asObject({
