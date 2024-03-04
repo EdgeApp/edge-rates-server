@@ -68,6 +68,7 @@
     "USD.st_iso:USD": "1"
   },
   "coinMarketCap": {
+    "CETH": "5636",
     "BTCB": "4023",
     "DYDX": "28324",
     "KAVA": "4846",
