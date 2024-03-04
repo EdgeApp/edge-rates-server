@@ -17,7 +17,7 @@ import { coincap } from './providers/coincap'
 import { coingecko } from './providers/coingecko'
 import { coinMarketCap } from './providers/coinMarketCap'
 import { coinmonitor } from './providers/coinmonitor'
-import { compound } from './providers/compound'
+// import { compound } from './providers/compound'
 import { currencyConverter } from './providers/currencyConverter'
 import {
   fallbackConstantRates,
@@ -136,7 +136,7 @@ const getRatesFromProviders = async (
     coingecko,
     coincap,
     coinMarketCap,
-    compound,
+    // compound, // The Compound V2 API was shut down on April 15, 2023.
     fallbackConstantRates,
     currencyConverter,
     openExchangeRates
