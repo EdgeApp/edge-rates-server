@@ -8,7 +8,7 @@ export const zeroRates = (
   currentTime: string,
   assetMap: AssetMap
 ): NewRates => {
-  const rates = {}
+  const rates: NewRates = {}
   for (const pair of rateObj) {
     if (
       currencyCodeArray(pair.currency_pair).some(code => assetMap[code] === '0')
@@ -27,7 +27,7 @@ export const fallbackConstantRates = (
   currentTime: string,
   assetMap: AssetMap
 ): NewRates => {
-  const rates = {}
+  const rates: NewRates = {}
 
   // Search for matches
   for (const pair of rateObj) {
