@@ -38,6 +38,9 @@ const providerDefaults = {
     uri: 'https://openexchangerates.org',
     apiKey: OPEN_EXCHANGE_RATES_API_KEY
   },
+  coinstore: {
+    uri: 'https://api.coinstore.com'
+  },
   coingecko: {
     uri: 'https://api.coingecko.com'
   },
@@ -67,7 +70,7 @@ export const asConfig = asObject({
   httpHost: asOptional(asString, '127.0.0.1'),
   infoServerAddress: asOptional(asString, INFO_SERVER_ADDRESS),
   infoServerApiKey: asOptional(asString, INFO_SERVER_API_KEY),
-  bridgeCurrencies: asOptional(asArray(asString), ['iso:USD', 'BTC']),
+  bridgeCurrencies: asOptional(asArray(asString), ['iso:USD', 'BTC', 'USDT']),
   cryptoCurrencyCodes: asOptional(asArray(asString), [
     'BTC',
     'ETH',
@@ -128,6 +131,9 @@ export const asConfig = asObject({
       openExchangeRates: asObject({
         uri: asString,
         apiKey: asString
+      }),
+      coinstore: asObject({
+        uri: asString
       }),
       coingecko: asObject({
         uri: asString
