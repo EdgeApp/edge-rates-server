@@ -95,7 +95,7 @@ const historicalQuery = async (
   code: string,
   assetMap: AssetMap
 ): Promise<NewRates> => {
-  const rates = { [date]: {} }
+  const rates: NewRates = { [date]: {} }
   const timestamp = Date.parse(date)
   const id = createUniqueIdString([code], assetMap)
   if (id === '') return rates
