@@ -17,6 +17,7 @@ import { coincap } from './providers/coincap'
 import { coingecko } from './providers/coingecko'
 import { coinMarketCap } from './providers/coinMarketCap'
 import { coinmonitor } from './providers/coinmonitor'
+import { coinstore } from './providers/coinstore'
 // import { compound } from './providers/compound'
 import { currencyConverter } from './providers/currencyConverter'
 import {
@@ -133,6 +134,7 @@ const getRatesFromProviders = async (
     zeroRates,
     coinmonitor,
     wazirx,
+    coinstore,
     coingecko,
     coincap,
     coinMarketCap,
