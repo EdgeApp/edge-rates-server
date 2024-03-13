@@ -68,6 +68,8 @@
     "USD.st_iso:USD": "1"
   },
   "coinMarketCap": {
+    "FLOKI": "10804",
+    "ADA": "2010",
     "CETH": "5636",
     "BTCB": "4023",
     "DYDX": "28324",
@@ -255,6 +257,7 @@
     "BONK": "23095"
   },
   "coincap": {
+    "ADA": "cardano",
     "KAVA": "kava",
     "ATOM": "cosmos",
     "FIL": "filecoin",
@@ -385,6 +388,8 @@
     "RNDR": "render-token"
   },
   "coingecko": {
+    "FLOKI": "floki",
+    "ADA": "cardano",
     "BTCB": "binance-bitcoin",
     "DYDX": "dydx",
     "KAVA": "kava",
@@ -796,6 +801,8 @@
     "DYDX",
     "BTCB",
     "LLD",
+    "FLOKI",
+    "ADA",
     "AXL"
   ],
   "fiatCurrencyCodes": [
