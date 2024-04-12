@@ -254,6 +254,7 @@
     "PYTH": "28177",
     "RNDR": "5690",
     "ION": "23547",
+    "ANUS": "29231",
     "BONK": "23095"
   },
   "coincap": {
@@ -388,6 +389,8 @@
     "RNDR": "render-token"
   },
   "coingecko": {
+    "LLD": "liberland-lld",
+    "ANUS": "uranus-sol",
     "FLOKI": "floki",
     "ADA": "cardano",
     "BTCB": "binance-bitcoin",
@@ -803,6 +806,8 @@
     "LLD",
     "FLOKI",
     "ADA",
+    "LLD",
+    "ANUS",
     "AXL"
   ],
   "fiatCurrencyCodes": [
