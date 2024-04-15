@@ -4,10 +4,9 @@ import { config } from './config'
 import { REDIS_COINRANK_KEY_PREFIX } from './constants'
 import { asCoingeckoMarkets, CoinrankMarkets, CoinrankRedis } from './types'
 import { setAsync, slackMessage } from './utils/dbUtils'
-import { logger, snooze } from './utils/utils'
+import { getDelay, logger, snooze } from './utils/utils'
 
 const PAGE_SIZE = 250
-const LOOP_DELAY = 60 * 1000
 const DEFAULT_WAIT_MS = 5 * 1000
 const MAX_WAIT_MS = 5 * 60 * 1000
 const NUM_PAGES = 8
@@ -15,6 +14,16 @@ const NUM_PAGES = 8
 const { defaultFiatCode } = config
 
 export const coinrankEngine = async (): Promise<void> => {
+  const { coinrankOffsetSeconds, coinrankIntervalSeconds } = config
+  const delay = getDelay({
+    now: new Date(),
+    intervalSeconds: coinrankIntervalSeconds,
+    offsetSeconds: coinrankOffsetSeconds
+  })
+
+  logger(`**** COINRANK ENGINE SNOOZING ${delay / 1000}s`)
+  await snooze(delay)
+
   logger('Updating Coinrank Cache')
   try {
     let wait = DEFAULT_WAIT_MS
@@ -59,8 +68,6 @@ export const coinrankEngine = async (): Promise<void> => {
     slackMessage(message).catch(e => logger(e))
     logger(message)
   } finally {
-    logger('COINRANK ENGINE SNOOZING **********************')
-    await snooze(LOOP_DELAY)
     coinrankEngine().catch(e => logger(e))
   }
 }

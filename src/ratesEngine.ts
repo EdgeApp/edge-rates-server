@@ -3,7 +3,7 @@ import fetch from 'node-fetch'
 import { config } from './config'
 import { ExchangeRateReq } from './exchangeRateRouter'
 import { getEdgeAssetDoc, hgetallAsync, slackMessage } from './utils/dbUtils'
-import { logger, normalizeDate, snooze } from './utils/utils'
+import { getDelay, logger, normalizeDate, snooze } from './utils/utils'
 
 const {
   cryptoCurrencyCodes,
@@ -15,7 +15,6 @@ const {
 
 const endPoint = `${ratesServerAddress}/v2/exchangeRates`
 
-const LOOP_DELAY = 1000 * 30 // Delay 30 seconds
 const bridgeCurrency = DEFAULT_FIAT
 
 const getCurrencyCodeList = async (): Promise<string[]> => {
@@ -56,6 +55,15 @@ const getCurrencyCodeList = async (): Promise<string[]> => {
 }
 
 export const ratesEngine = async (): Promise<void> => {
+  const { ratesOffsetSeconds, ratesIntervalSeconds } = config
+  const delay = getDelay({
+    now: new Date(),
+    offsetSeconds: ratesOffsetSeconds,
+    intervalSeconds: ratesIntervalSeconds
+  })
+  logger(`**** RATES ENGINE SNOOZING ${delay / 1000}s`)
+  await snooze(delay)
+
   try {
     const currentDate = normalizeDate(new Date().toISOString())
     const allCurrencies = await getCurrencyCodeList()
@@ -90,8 +98,6 @@ export const ratesEngine = async (): Promise<void> => {
     slackMessage(message).catch(e => logger(e))
     logger(message)
   } finally {
-    logger('RATES ENGINE SNOOZING **********************')
-    await snooze(LOOP_DELAY)
     ratesEngine().catch(e => logger(e))
   }
 }
