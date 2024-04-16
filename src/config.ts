@@ -159,6 +159,18 @@ export const asConfig = asObject({
     'BTC_iso:INR'
   ]),
   defaultFiatCode: asOptional(asString, DEFAULT_FIAT),
+
+  /**
+   * Run the engine every n seconds after the hour
+   * and every n seconds of the hour
+   * */
+  coinrankIntervalSeconds: asOptional(asNumber, 120),
+  ratesIntervalSeconds: asOptional(asNumber, 60),
+
+  /** Offset the running of engine by n seconds */
+  coinrankOffsetSeconds: asOptional(asNumber, 0),
+  ratesOffsetSeconds: asOptional(asNumber, 0),
+
   ratesLookbackLimit: asOptional(asNumber, 604800000)
 })
 

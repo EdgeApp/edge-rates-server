@@ -3,7 +3,7 @@ import { describe, it } from 'mocha'
 
 import { asExchangeRateReq } from '../src/exchangeRateRouter'
 import { createThrottledMessage } from '../src/utils/createThrottledMessage'
-import { normalizeDate } from '../src/utils/utils'
+import { getDelay, normalizeDate } from '../src/utils/utils'
 import fixtures from './unitUtils.json'
 
 for (const test of fixtures.normalizeDate) {
@@ -90,3 +90,189 @@ for (const test of fixtures.asRateParam) {
     })
   })
 }
+
+describe(`getDelay tests`, function() {
+  it(`getDelay 1:30 0 15`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:01:30.000Z'),
+        offsetSeconds: 0,
+        intervalSeconds: 15
+      }),
+      15000
+    )
+  })
+  it(`getDelay 1:35.100 0 15`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:01:35.100Z'),
+        offsetSeconds: 0,
+        intervalSeconds: 15
+      }),
+      9900
+    )
+  })
+  it(`getDelay 1:29.999 0 120`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:01:29.999Z'),
+        offsetSeconds: 0,
+        intervalSeconds: 120
+      }),
+      30001
+    )
+  })
+  it(`getDelay 1:29.999 60 120`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:01:29.999Z'),
+        offsetSeconds: 60,
+        intervalSeconds: 120
+      }),
+      90001
+    )
+  })
+  it(`getDelay 51:30 0 120`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:51:30.000Z'),
+        offsetSeconds: 0,
+        intervalSeconds: 120
+      }),
+      30000
+    )
+  })
+  it(`getDelay 51:29.999 0 120`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:51:29.999Z'),
+        offsetSeconds: 0,
+        intervalSeconds: 120
+      }),
+      30001
+    )
+  })
+  it(`getDelay 51:29.999 60 120`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:51:29.999Z'),
+        offsetSeconds: 60,
+        intervalSeconds: 120
+      }),
+      90001
+    )
+  })
+
+  it(`getDelay 1:30 0 180`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:01:30.000Z'),
+        offsetSeconds: 0,
+        intervalSeconds: 180
+      }),
+      90000
+    )
+  })
+  it(`getDelay 1:29.999 0 180`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:01:29.999Z'),
+        offsetSeconds: 0,
+        intervalSeconds: 180
+      }),
+      90001
+    )
+  })
+
+  it(`getDelay 51:29.999 60 180`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:51:29.999Z'),
+        offsetSeconds: 60,
+        intervalSeconds: 180
+      }),
+      30001
+    )
+  })
+  it(`getDelay 58:29.999 60 180`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:58:29.999Z'),
+        offsetSeconds: 60,
+        intervalSeconds: 180
+      }),
+      150001
+    )
+  })
+
+  it(`getDelay 58:29.999 0 30`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:58:29.999Z'),
+        offsetSeconds: 0,
+        intervalSeconds: 30
+      }),
+      1
+    )
+  })
+  it(`getDelay 55:59.999 0 30`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:55:59.999Z'),
+        offsetSeconds: 0,
+        intervalSeconds: 30
+      }),
+      1
+    )
+  })
+  it(`getDelay 59:59.999 0 30`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:59:59.999Z'),
+        offsetSeconds: 0,
+        intervalSeconds: 30
+      }),
+      1
+    )
+  })
+  it(`getDelay 59:59.999 30 60`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:59:59.999Z'),
+        offsetSeconds: 30,
+        intervalSeconds: 60
+      }),
+      30001
+    )
+  })
+  it(`getDelay 59:59.999 0 60`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:59:59.999Z'),
+        offsetSeconds: 0,
+        intervalSeconds: 60
+      }),
+      1
+    )
+  })
+  it(`getDelay 58:09.999 30 60`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:58:09.999Z'),
+        offsetSeconds: 30,
+        intervalSeconds: 60
+      }),
+      20001
+    )
+  })
+  it(`getDelay 58:09.999 0 60`, function() {
+    assert.equal(
+      getDelay({
+        now: new Date('2024-01-10T00:58:09.999Z'),
+        offsetSeconds: 0,
+        intervalSeconds: 60
+      }),
+      50001
+    )
+  })
+})

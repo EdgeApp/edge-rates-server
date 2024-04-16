@@ -215,3 +215,20 @@ export const daysBetween = (date1: Date, date2: Date): number => {
   )
   return diffDays
 }
+
+export const getDelay = (params: {
+  now: Date
+  offsetSeconds: number
+  intervalSeconds: number
+}): number => {
+  const { now, intervalSeconds, offsetSeconds } = params
+  const intervalMs = intervalSeconds * 1000
+  const ms = now.getMilliseconds()
+  const s = now.getSeconds() - (offsetSeconds % 60)
+  const m = now.getMinutes() - Math.floor(offsetSeconds / 60)
+
+  const msSinceStartOfHour = m * 60000 + s * 1000 + ms
+  const delay = intervalMs - (msSinceStartOfHour % intervalMs)
+
+  return delay
+}
