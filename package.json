@@ -1,6 +1,6 @@
 {
   "name": "edge-rates-server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "A REST API for retrieving and storing historical crypto and fiat exchange rates.",
   "repository": "https://github.com/EdgeApp/edge-rates-server",
