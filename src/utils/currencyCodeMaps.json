@@ -255,6 +255,8 @@
     "RNDR": "5690",
     "ION": "23547",
     "ANUS": "29231",
+    "ZK": "24091",
+    "BOBBY": "31584",
     "BONK": "23095"
   },
   "coincap": {
@@ -595,6 +597,8 @@
     "PYTH": "pyth-network",
     "RNDR": "render-token",
     "ION": "ion",
+    "ZK": "zksync",
+    "BOBBY": "independence-token",
     "BONK": "bonk"
   },
   "allEdgeCurrencies": [
@@ -808,6 +812,8 @@
     "ADA",
     "LLD",
     "ANUS",
+    "ZK",
+    "BOBBY",
     "AXL"
   ],
   "fiatCurrencyCodes": [
