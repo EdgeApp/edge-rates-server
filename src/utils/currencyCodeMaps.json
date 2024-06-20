@@ -257,6 +257,7 @@
     "ANUS": "29231",
     "ZK": "24091",
     "BOBBY": "31584",
+    "ONDO": "21159",
     "BONK": "23095"
   },
   "coincap": {
@@ -599,6 +600,7 @@
     "ION": "ion",
     "ZK": "zksync",
     "BOBBY": "independence-token",
+    "ONDO": "ondo-finance",
     "BONK": "bonk"
   },
   "allEdgeCurrencies": [
@@ -814,6 +816,7 @@
     "ANUS",
     "ZK",
     "BOBBY",
+    "ONDO",
     "AXL"
   ],
   "fiatCurrencyCodes": [
