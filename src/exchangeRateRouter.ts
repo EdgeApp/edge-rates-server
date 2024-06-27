@@ -379,12 +379,21 @@ const sendCoinranks: express.RequestHandler = async (
         redisResult = JSON.parse(jsonString)
         let { markets } = redisResult
 
-        // Modify the prices, mcap, & volume
+        // Modify fiat-related fields with the forex rate
         markets = markets.map(m => ({
           ...m,
-          price: m.price * rate,
           marketCap: m.marketCap * rate,
-          volume24h: m.volume24h * rate
+          price: m.price * rate,
+          volume24h: m.volume24h * rate,
+          high24h: m.high24h * rate,
+          low24h: m.low24h * rate,
+          priceChange24h: m.priceChange24h * rate,
+          marketCapChange24h: m.marketCapChange24h * rate,
+          circulatingSupply: m.circulatingSupply * rate,
+          totalSupply: m.totalSupply * rate,
+          maxSupply: m.maxSupply * rate,
+          allTimeHigh: m.allTimeHigh * rate,
+          allTimeLow: m.allTimeLow * rate
         }))
         const data = markets.slice(start - 1, start + length)
 
