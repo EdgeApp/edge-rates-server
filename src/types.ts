@@ -101,18 +101,18 @@ const asCoingeckoAsset = (raw: any) => {
     rank: market_cap_rank,
     volume24h: total_volume ?? 0,
 
-    high24h: high_24h,
-    low24h: low_24h,
-    priceChange24h: price_change_24h,
+    high24h: high_24h ?? 0,
+    low24h: low_24h ?? 0,
+    priceChange24h: price_change_24h ?? 0,
     priceChangePercent24h: price_change_percentage_24h,
-    marketCapChange24h: market_cap_change_24h,
+    marketCapChange24h: market_cap_change_24h ?? 0,
     marketCapChangePercent24h: market_cap_change_percentage_24h,
-    circulatingSupply: circulating_supply,
-    totalSupply: total_supply,
-    maxSupply: max_supply,
-    allTimeHigh: ath,
+    circulatingSupply: circulating_supply ?? 0,
+    totalSupply: total_supply ?? 0,
+    maxSupply: max_supply ?? 0,
+    allTimeHigh: ath ?? 0,
     allTimeHighDate: ath_date,
-    allTimeLow: atl,
+    allTimeLow: atl ?? 0,
     allTimeLowDate: atl_date
   }
 
