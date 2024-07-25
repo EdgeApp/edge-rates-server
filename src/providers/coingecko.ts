@@ -6,6 +6,7 @@ import { AssetMap, NewRates, ReturnRate } from '../rates'
 import {
   assetMapReducer,
   createReducedRateMap,
+  dateOnly,
   fromCode,
   fromCryptoToFiatCurrencyPair,
   hasUniqueId,
@@ -23,6 +24,16 @@ const {
 
 const asCoingeckoQuote = asObject({
   usd: asNumber
+})
+
+const asCoingeckoHistoricalUsdResponse = asObject({
+  // eslint-disable-next-line @typescript-eslint/camelcase
+  market_data: asObject({
+    // eslint-disable-next-line @typescript-eslint/camelcase
+    current_price: asObject({
+      usd: asNumber
+    })
+  })
 })
 
 const asGeckoBulkUsdResponse = asObject(asCoingeckoQuote)
@@ -69,21 +80,88 @@ const coingeckoCurrent = async (
   return rates
 }
 
+const toCoinGeckoDate = (date: string): string => {
+  const [year, month, day] = dateOnly(date).split('-')
+  return `${day}-${month}-${year}`
+}
+
+const coingeckoHistorical = async (
+  date: string,
+  codesWanted: string[],
+  assetMap: AssetMap
+): Promise<NewRates> => {
+  const rates: NewRates = { [date]: {} }
+  if (codesWanted.length === 0) return rates
+
+  // Query
+  const queries = codesWanted.map(async code => {
+    try {
+      const response = await fetch(
+        `${uri}/api/v3/coins/${code}/history?x_cg_pro_api_key=${apiKey}&date=${toCoinGeckoDate(
+          date
+        )}`
+      )
+      if (!response.ok) {
+        logger(
+          `coingecko returned code ${response.status} for ${codesWanted} at ${date}`
+        )
+        throw new Error(response.statusText)
+      }
+      const json = asCoingeckoHistoricalUsdResponse(await response.json())
+
+      // Create return object
+      const pair = Object.entries(assetMap).find(pair => pair[1] === code)
+      if (pair == null) return
+
+      rates[date][
+        `${pair[0]}_iso:USD`
+      ] = json.market_data.current_price.usd.toString()
+    } catch (e) {
+      logger('No Coingecko quote:', e)
+    }
+  })
+
+  await Promise.all(queries)
+
+  return rates
+}
+
 export const coingecko = async (
   requestedRates: ReturnRate[],
   currentTime: string,
   edgeAssetMap: AssetMap
 ): Promise<NewRates> => {
   // Gather codes
-  const codesWanted: string[] = []
-  for (const request of requestedRates) {
-    if (request.date !== currentTime) continue
-    const fromCurrency = fromCode(request.currency_pair)
-    if (!isIsoCode(fromCurrency) && hasUniqueId(fromCurrency, edgeAssetMap))
-      codesWanted.push(edgeAssetMap[fromCurrency])
+  const datesAndCodesWanted: { [key: string]: string[] } = {}
+  for (const pair of requestedRates) {
+    const fromCurrency = fromCode(pair.currency_pair)
+    if (!isIsoCode(fromCurrency) && hasUniqueId(fromCurrency, edgeAssetMap)) {
+      if (datesAndCodesWanted[pair.date] == null) {
+        datesAndCodesWanted[pair.date] = []
+      }
+      datesAndCodesWanted[pair.date].push(edgeAssetMap[fromCurrency])
+    }
   }
 
-  const rates = await coingeckoCurrent(currentTime, codesWanted, edgeAssetMap)
+  const rates: NewRates = {}
+
+  for (const date of Object.keys(datesAndCodesWanted)) {
+    if (date === currentTime) {
+      const currentRates = await coingeckoCurrent(
+        currentTime,
+        datesAndCodesWanted[date],
+        edgeAssetMap
+      )
+      rates[date] = currentRates[date]
+    } else {
+      const historicalRates = await coingeckoHistorical(
+        date,
+        datesAndCodesWanted[date],
+        edgeAssetMap
+      )
+      rates[date] = historicalRates[date]
+    }
+  }
 
   return rates
 }
