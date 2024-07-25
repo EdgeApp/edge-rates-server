@@ -22,7 +22,8 @@ import {
   isIsoCode,
   logger,
   snooze,
-  subIso
+  subIso,
+  withinLastFiveMinutes
 } from './../utils/utils'
 
 /*
@@ -173,7 +174,7 @@ const coinMarketCapHistorical = async (
   try {
     let url = `${historicalUri}/v2/cryptocurrency/quotes/historical?id=${
       ids.length > 2 ? ids : ids.concat(DEFAULT_CODES)
-    }&time_start=${date}&count=1&skip_invalid=true&convert=${subIso(
+    }&time_start=${date}&count=1&interval=5m&skip_invalid=true&convert=${subIso(
       DEFAULT_FIAT
     )}`
     if (dailyAverage) url += `&interval=daily`
@@ -236,7 +237,7 @@ export const coinMarketCap = async (
 
   // Query
   const providers = Object.keys(datesAndCodesWanted).map(async date => {
-    if (date === currentTime)
+    if (withinLastFiveMinutes(date))
       return coinMarketCapCurrent(date, datesAndCodesWanted[date], edgeAssetMap)
     return coinMarketCapHistorical(
       date,

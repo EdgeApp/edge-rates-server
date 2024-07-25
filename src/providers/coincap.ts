@@ -11,7 +11,8 @@ import {
   fromCryptoToFiatCurrencyPair,
   isIsoCode,
   logger,
-  snooze
+  snooze,
+  withinLastFiveMinutes
 } from './../utils/utils'
 
 /*
@@ -149,7 +150,7 @@ export const coincap = async (
   // Query
   const providers: Array<Promise<NewRates>> = []
   Object.keys(datesAndCodesWanted).forEach(date => {
-    if (date === currentTime) {
+    if (withinLastFiveMinutes(date)) {
       providers.push(
         currentQuery(date, datesAndCodesWanted[date], edgeAssetMap)
       )

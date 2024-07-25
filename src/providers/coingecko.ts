@@ -13,7 +13,8 @@ import {
   invertCodeMapKey,
   isIsoCode,
   logger,
-  snooze
+  snooze,
+  withinLastFiveMinutes
 } from './../utils/utils'
 
 const {
@@ -146,9 +147,9 @@ export const coingecko = async (
   const rates: NewRates = {}
 
   for (const date of Object.keys(datesAndCodesWanted)) {
-    if (date === currentTime) {
+    if (withinLastFiveMinutes(date)) {
       const currentRates = await coingeckoCurrent(
-        currentTime,
+        date,
         datesAndCodesWanted[date],
         edgeAssetMap
       )
