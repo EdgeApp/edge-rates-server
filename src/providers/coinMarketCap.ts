@@ -84,7 +84,7 @@ export const coinMarketCapCurrent = async (
   // Query
   try {
     const response = await fetch(
-      `${currentUri}/v1/cryptocurrency/quotes/latest?id=${
+      `${currentUri}/v2/cryptocurrency/quotes/latest?id=${
         ids.length > 2 ? ids : ids.concat(DEFAULT_CODES)
       }&skip_invalid=true&convert=${subIso(DEFAULT_FIAT)}`,
       CURRENT_OPTIONS
@@ -171,7 +171,7 @@ const coinMarketCapHistorical = async (
   if (ids.length === 0) return rates
 
   try {
-    let url = `${historicalUri}/v1/cryptocurrency/quotes/historical?id=${
+    let url = `${historicalUri}/v2/cryptocurrency/quotes/historical?id=${
       ids.length > 2 ? ids : ids.concat(DEFAULT_CODES)
     }&time_start=${date}&count=1&skip_invalid=true&convert=${subIso(
       DEFAULT_FIAT
