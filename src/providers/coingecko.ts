@@ -38,13 +38,42 @@ const coingeckoRateMap = createReducedRateMap(
   invertCodeMapKey
 )
 
+const coingeckoCurrent = async (
+  currentTime: string,
+  codesWanted: string[],
+  assetMap: AssetMap
+): Promise<NewRates> => {
+  const rates: NewRates = { [currentTime]: {} }
+  if (codesWanted.length === 0) return rates
+
+  // Query
+  try {
+    const response = await fetch(
+      `${uri}/api/v3/simple/price?x_cg_pro_api_key=${apiKey}&ids=${codesWanted.join(
+        ','
+      )}&vs_currencies=usd`
+    )
+    if (!response.ok) {
+      logger(
+        `coingecko returned code ${response.status} for ${codesWanted} at ${currentTime}`
+      )
+      throw new Error(response.statusText)
+    }
+    const json = asGeckoBulkUsdResponse(await response.json())
+
+    // Create return object
+    rates[currentTime] = coingeckoRateMap(json, assetMap)
+  } catch (e) {
+    logger('No Coingecko quote:', e)
+  }
+  return rates
+}
+
 export const coingecko = async (
   requestedRates: ReturnRate[],
   currentTime: string,
   edgeAssetMap: AssetMap
 ): Promise<NewRates> => {
-  const rates = { [currentTime]: {} }
-
   // Gather codes
   const codesWanted: string[] = []
   for (const request of requestedRates) {
@@ -54,31 +83,8 @@ export const coingecko = async (
       codesWanted.push(edgeAssetMap[fromCurrency])
   }
 
-  // Query
-  if (codesWanted.length === 0) return rates
-  try {
-    const response = await fetch(
-      `${uri}/api/v3/simple/price?x_cg_pro_api_key=${apiKey}&ids=${codesWanted.join(
-        ','
-      )}&vs_currencies=usd`
-    )
-    if (
-      response.status === 429 ||
-      response.status === 401 ||
-      response.ok === false
-    ) {
-      logger(
-        `coingecko returned code ${response.status} for ${codesWanted} at ${currentTime}`
-      )
-      throw new Error(response.statusText)
-    }
-    const json = asGeckoBulkUsdResponse(await response.json())
+  const rates = await coingeckoCurrent(currentTime, codesWanted, edgeAssetMap)
 
-    // Create return object
-    rates[currentTime] = coingeckoRateMap(json, edgeAssetMap)
-  } catch (e) {
-    logger('No Coingecko quote:', e)
-  }
   return rates
 }
 
