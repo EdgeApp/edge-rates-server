@@ -232,3 +232,7 @@ export const getDelay = (params: {
 
   return delay
 }
+
+export const withinLastFiveMinutes = (date: string): boolean => {
+  return Date.now() - new Date(date).getTime() < 1000 * 60 * 5
+}

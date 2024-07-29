@@ -11,7 +11,8 @@ import {
   fromCryptoToFiatCurrencyPair,
   isIsoCode,
   logger,
-  snooze
+  snooze,
+  withinLastFiveMinutes
 } from './../utils/utils'
 
 /*
@@ -26,12 +27,13 @@ const OPTIONS = {
   json: true
 }
 
+const removedUids = new Set<string>()
 const createUniqueIdString = (
   requestedCodes: string[],
   codeMap: AssetMap
 ): string => {
   return requestedCodes
-    .filter(code => codeMap[code] != null)
+    .filter(code => codeMap[code] != null && !removedUids.has(code))
     .map(code => codeMap[code])
     .join(',')
 }
@@ -113,10 +115,10 @@ const historicalQuery = async (
       throw new Error(text)
     }
     const json = asCoincapHistoricalResponse(await response.json())
-    if (json.data.length === 0)
-      throw new Error(
-        `Empty response for ${id}. Check if coincap still supports this asset and remove UID if necessary.`
-      )
+    if (json.data.length === 0) {
+      removedUids.add(code)
+      throw new Error(`Empty response for ${id}. Removing from future queries.`)
+    }
 
     // Add to return object
     rates[date][fromCryptoToFiatCurrencyPair(code, 'USD')] =
@@ -149,7 +151,7 @@ export const coincap = async (
   // Query
   const providers: Array<Promise<NewRates>> = []
   Object.keys(datesAndCodesWanted).forEach(date => {
-    if (date === currentTime) {
+    if (withinLastFiveMinutes(date)) {
       providers.push(
         currentQuery(date, datesAndCodesWanted[date], edgeAssetMap)
       )
