@@ -68,6 +68,14 @@
     "USD.st_iso:USD": "1"
   },
   "coinMarketCap": {
+    "MSOL": "11461",
+    "MIMO": "15477",
+    "MNGO": "11171",
+    "JUP": "496",
+    "JSOL": "14926",
+    "JITOSOL": "22533",
+    "JTO": "28541",
+    "HAWK": "19677",
     "FLOKI": "10804",
     "ADA": "2010",
     "CETH": "5636",
@@ -392,6 +400,16 @@
     "RNDR": "render-token"
   },
   "coingecko": {
+    "BSOL": "blazestake-staked-sol",
+    "HAWK": "hawksight",
+    "JITOSOL": "jito-staked-sol",
+    "JSOL": "jpool",
+    "JTO": "jito-governance-token",
+    "JUP": "jupiter-exchange-solana",
+    "MNGO": "mango-markets",
+    "DRIFT": "drift-protocol",
+    "MIMO": "million-monke",
+    "MSOL": "msol",
     "LLD": "liberland-lld",
     "ANUS": "uranus-sol",
     "FLOKI": "floki",
