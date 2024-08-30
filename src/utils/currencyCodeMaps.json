@@ -68,6 +68,7 @@
     "USD.st_iso:USD": "1"
   },
   "coinMarketCap": {
+    "POL": "3890",
     "MSOL": "11461",
     "MIMO": "15477",
     "MNGO": "11171",
@@ -269,6 +270,7 @@
     "BONK": "23095"
   },
   "coincap": {
+    "POL": "polygon",
     "ADA": "cardano",
     "KAVA": "kava",
     "ATOM": "cosmos",
@@ -400,6 +402,7 @@
     "RNDR": "render-token"
   },
   "coingecko": {
+    "POL": "matic-network",
     "BSOL": "blazestake-staked-sol",
     "HAWK": "hawksight",
     "JITOSOL": "jito-staked-sol",
@@ -834,6 +837,7 @@
     "ZK",
     "BOBBY",
     "ONDO",
+    "POL",
     "AXL"
   ],
   "fiatCurrencyCodes": [
