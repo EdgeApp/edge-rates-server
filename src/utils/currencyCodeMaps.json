@@ -69,6 +69,7 @@
     "USD.st_iso:USD": "1"
   },
   "coinMarketCap": {
+    "TON": "11419",
     "POL": "3890",
     "MSOL": "11461",
     "MIMO": "15477",
@@ -402,6 +403,7 @@
     "RNDR": "render-token"
   },
   "coingecko": {
+    "TON": "the-open-network",
     "POL": "matic-network",
     "BSOL": "blazestake-staked-sol",
     "HAWK": "hawksight",
@@ -836,6 +838,7 @@
     "BOBBY",
     "ONDO",
     "POL",
+    "TON",
     "AXL"
   ],
   "fiatCurrencyCodes": [
