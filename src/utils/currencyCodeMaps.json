@@ -69,6 +69,7 @@
     "USD.st_iso:USD": "1"
   },
   "coinMarketCap": {
+    "SPX": "28081",
     "TON": "11419",
     "POL": "3890",
     "MSOL": "11461",
@@ -403,6 +404,7 @@
     "RNDR": "render-token"
   },
   "coingecko": {
+    "SPX": "spx6900",
     "TON": "the-open-network",
     "POL": "matic-network",
     "BSOL": "blazestake-staked-sol",
@@ -838,6 +840,7 @@
     "BOBBY",
     "ONDO",
     "POL",
+    "SPX",
     "TON",
     "AXL"
   ],
