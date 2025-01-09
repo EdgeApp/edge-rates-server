@@ -69,6 +69,7 @@
     "USD.st_iso:USD": "1"
   },
   "coinMarketCap": {
+    "SUI": "20947",
     "SPX": "28081",
     "TON": "11419",
     "POL": "3890",
@@ -404,6 +405,7 @@
     "RNDR": "render-token"
   },
   "coingecko": {
+    "SUI": "sui",
     "SPX": "spx6900",
     "TON": "the-open-network",
     "POL": "matic-network",
@@ -842,6 +844,7 @@
     "POL",
     "SPX",
     "TON",
+    "SUI",
     "AXL"
   ],
   "fiatCurrencyCodes": [
