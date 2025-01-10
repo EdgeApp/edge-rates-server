@@ -16,3 +16,5 @@ yarn-error.log
 .DS_Store
 .idea/
 .vscode/
+
+src/edgeRateIdUtils/data
