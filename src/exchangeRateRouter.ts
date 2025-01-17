@@ -9,8 +9,10 @@ import { config } from './config'
 import { REDIS_COINRANK_KEY_PREFIX } from './constants'
 import { asReturnGetRate, getExchangeRates } from './rates'
 import {
+  asCoinrankAssetReq,
   asCoinrankReq,
   asExchangeRateResponse,
+  CoinrankAssetReq,
   CoinrankRedis,
   CoinrankReq
 } from './types'
@@ -379,6 +381,48 @@ const getRedisMarkets = async (
   return redisResult
 }
 
+const sendCoinrankAsset: express.RequestHandler = async (
+  req,
+  res,
+  next
+): Promise<void> => {
+  const exReq = req as ExpressRequest
+  if (exReq == null) return next(500)
+
+  let query: CoinrankAssetReq
+  try {
+    query = asCoinrankAssetReq(req.query)
+  } catch (e) {
+    res
+      .status(400)
+      .send(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`)
+    return
+  }
+  const { fiatCode } = query
+  const { assetId } = req.params
+
+  try {
+    const redisResult = await getRedisMarkets(fiatCode)
+
+    if (redisResult == null) {
+      res.status(400).send(`Unable to get results for fiatCode ${fiatCode}`)
+      return
+    }
+
+    const { markets } = redisResult
+    const market = markets.find(m => m.assetId === assetId)
+    if (market == null) {
+      res.status(404).send(`assetId ${assetId} not found`)
+      return
+    }
+
+    res.json({ data: market })
+  } catch (e) {
+    const err: any = e
+    res.status(500).send(err.message)
+  }
+}
+
 const sendCoinranks: express.RequestHandler = async (
   req,
   res,
@@ -474,6 +518,7 @@ export const exchangeRateRouterV2 = (): express.Router => {
   ])
 
   router.get('/coinrank', [sendCoinranks])
+  router.get('/coinrankAsset/:assetId', [sendCoinrankAsset])
 
   return router
 }
