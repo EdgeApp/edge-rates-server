@@ -17,7 +17,13 @@ import {
   CoinrankReq
 } from './types'
 import { asExtendedReq } from './utils/asExtendedReq'
-import { DbDoc, getAsync, hmgetAsync, setAsync } from './utils/dbUtils'
+import {
+  DbDoc,
+  getAsync,
+  hgetallAsync,
+  hmgetAsync,
+  setAsync
+} from './utils/dbUtils'
 import {
   addIso,
   fromCode,
@@ -381,6 +387,15 @@ const getRedisMarkets = async (
   return redisResult
 }
 
+const sendCoinrankList: express.RequestHandler = async (
+  req,
+  res,
+  next
+): Promise<void> => {
+  const data = await hgetallAsync('coingecko')
+  res.json({ data })
+}
+
 const sendCoinrankAsset: express.RequestHandler = async (
   req,
   res,
@@ -519,6 +534,7 @@ export const exchangeRateRouterV2 = (): express.Router => {
 
   router.get('/coinrank', [sendCoinranks])
   router.get('/coinrankAsset/:assetId', [sendCoinrankAsset])
+  router.get('/coinrankList', [sendCoinrankList])
 
   return router
 }
