@@ -64,7 +64,7 @@ export const coinrankEngine = async (): Promise<void> => {
         JSON.stringify(data)
       )
     } catch (e) {
-    const err: any = e // Weird TS issue causing :any to get removed from above line
+      const err: any = e // Weird TS issue causing :any to get removed from above line
       const message = `coinrankEngine failure: ${err.message}`
       slackMessage(message).catch(e => logger(e))
       logger(message)

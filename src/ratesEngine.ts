@@ -56,48 +56,50 @@ const getCurrencyCodeList = async (): Promise<string[]> => {
 
 export const ratesEngine = async (): Promise<void> => {
   const { ratesOffsetSeconds, ratesIntervalSeconds } = config
-  const delay = getDelay({
-    now: new Date(),
-    offsetSeconds: ratesOffsetSeconds,
-    intervalSeconds: ratesIntervalSeconds
-  })
-  logger(`**** RATES ENGINE SNOOZING ${delay / 1000}s`)
-  await snooze(delay)
+  while (true) {
+    const delay = getDelay({
+      now: new Date(),
+      offsetSeconds: ratesOffsetSeconds,
+      intervalSeconds: ratesIntervalSeconds
+    })
+    logger(`**** RATES ENGINE SNOOZING ${delay / 1000}s`)
+    await snooze(delay)
 
-  try {
-    const currentDate = normalizeDate(new Date().toISOString())
-    const allCurrencies = await getCurrencyCodeList()
+    try {
+      const currentDate = normalizeDate(new Date().toISOString())
+      const allCurrencies = await getCurrencyCodeList()
 
-    const data: ExchangeRateReq[] = [
-      ...preferredCryptoFiatPairs.map(currency_pair => ({
-        currency_pair,
-        date: currentDate
-      }))
-    ]
-    for (const currencyCode of allCurrencies) {
-      data.push({
-        currency_pair: `${currencyCode}_${bridgeCurrency}`,
-        date: currentDate
-      })
+      const data: ExchangeRateReq[] = [
+        ...preferredCryptoFiatPairs.map(currency_pair => ({
+          currency_pair,
+          date: currentDate
+        }))
+      ]
+      for (const currencyCode of allCurrencies) {
+        data.push({
+          currency_pair: `${currencyCode}_${bridgeCurrency}`,
+          date: currentDate
+        })
+      }
+      const promises: Array<Promise<any>> = []
+      while (data.length > 0) {
+        promises.push(
+          fetch(endPoint, {
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            method: 'POST',
+            body: JSON.stringify({ data: data.splice(0, 100) })
+          }).catch(e => logger('ratesEngine query error', e))
+        )
+      }
+      await Promise.all(promises)
+    } catch (e) {
+      const message = `ratesEngine failure: ${e}`
+      slackMessage(message).catch(e => logger(e))
+      logger(message)
+    } finally {
+      logger('ratesEngine loop complete')
     }
-    const promises: Array<Promise<any>> = []
-    while (data.length > 0) {
-      promises.push(
-        fetch(endPoint, {
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          method: 'POST',
-          body: JSON.stringify({ data: data.splice(0, 100) })
-        }).catch(e => logger('ratesEngine query error', e))
-      )
-    }
-    await Promise.all(promises)
-  } catch (e) {
-    const message = `ratesEngine failure: ${e}`
-    slackMessage(message).catch(e => logger(e))
-    logger(message)
-  } finally {
-    ratesEngine().catch(e => logger(e))
   }
 }
