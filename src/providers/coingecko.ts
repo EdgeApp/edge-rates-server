@@ -174,7 +174,7 @@ const asCoingeckoAssetResponse = asArray(
   })
 )
 
-const DEFAULT_WAIT_MS = 30 * 1000
+const DEFAULT_WAIT_MS = 2 * 1000
 const MAX_WAIT_MS = 5 * 60 * 1000
 
 export const coingeckoAssets = async (): Promise<AssetMap> => {
@@ -184,7 +184,7 @@ export const coingeckoAssets = async (): Promise<AssetMap> => {
   let wait = DEFAULT_WAIT_MS
   while (true) {
     const response = await fetch(
-      `${uri}/api/v3/coins/markets?vs_currency=usd&per_page=${perPage}&page=${page}&order=market_cap_asc`
+      `${uri}/api/v3/coins/markets?x_cg_pro_api_key=${apiKey}&vs_currency=usd&per_page=${perPage}&page=${page}&order=market_cap_asc`
     )
     if (!response.ok) {
       const text = await response.text()
