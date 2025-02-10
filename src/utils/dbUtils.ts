@@ -18,7 +18,16 @@ import { slackPoster } from './postToSlack'
 import { logger, memoize } from './utils'
 
 const client = createClient()
-client.connect().catch(e => logger('redis connect error: ', e))
+client.on('connect', () => {
+  logger('onConnect to Redis')
+})
+
+client.on('error', (err: unknown) => {
+  logger('Redis connection error:', String(err))
+})
+client.connect().catch(e => {
+  logger('redis connect error: ', e)
+})
 
 export const hsetAsync = client.hSet.bind(client)
 export const hgetallAsync = client.hGetAll.bind(client)

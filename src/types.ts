@@ -21,6 +21,12 @@ export const asCoinrankReq = asObject({
 
 export type CoinrankReq = ReturnType<typeof asCoinrankReq>
 
+export const asCoinrankAssetReq = asObject({
+  fiatCode: asOptional(asString, 'iso:USD')
+})
+
+export type CoinrankAssetReq = ReturnType<typeof asCoinrankAssetReq>
+
 // Force TS to derive the type of the return value since it is pretty obvious
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const asCoingeckoAsset = (raw: any) => {

@@ -9,13 +9,21 @@ import { config } from './config'
 import { REDIS_COINRANK_KEY_PREFIX } from './constants'
 import { asReturnGetRate, getExchangeRates } from './rates'
 import {
+  asCoinrankAssetReq,
   asCoinrankReq,
   asExchangeRateResponse,
+  CoinrankAssetReq,
   CoinrankRedis,
   CoinrankReq
 } from './types'
 import { asExtendedReq } from './utils/asExtendedReq'
-import { DbDoc, getAsync, hmgetAsync, setAsync } from './utils/dbUtils'
+import {
+  DbDoc,
+  getAsync,
+  hgetallAsync,
+  hmgetAsync,
+  setAsync
+} from './utils/dbUtils'
 import {
   addIso,
   fromCode,
@@ -314,15 +322,127 @@ const sendExchangeRates: express.RequestHandler = (req, res, next): void => {
   res.json({ data: exReq.requestedRatesResult.data })
 }
 
+const getRedisMarkets = async (
+  fiatCode: string
+): Promise<CoinrankRedis | undefined> => {
+  const { ratesServerAddress } = config
+  const now = new Date()
+  const nowTimestamp = now.getTime()
+
+  const jsonString = await getAsync(`${REDIS_COINRANK_KEY_PREFIX}_${fiatCode}`)
+  let redisResult: CoinrankRedis = JSON.parse(jsonString)
+
+  if (fiatCode !== defaultFiatCode) {
+    const lastUpdated =
+      redisResult != null ? new Date(redisResult.lastUpdate).getTime() : 0
+
+    // If no result in redis or it's out of date
+    if (redisResult == null || nowTimestamp - lastUpdated > EXPIRE_TIME) {
+      // Attempt to scale prices by foreign exchange rate
+
+      // Get exchange rate
+      const result = await fetch(
+        `${ratesServerAddress}/v2/exchangeRate?currency_pair=${defaultFiatCode}_${fiatCode}`
+      )
+      const resultJson = await result.json()
+      const { exchangeRate } = asExchangeRateResponse(resultJson)
+      const rate = Number(exchangeRate)
+
+      // Get USD rankings
+      const jsonString = await getAsync(
+        `${REDIS_COINRANK_KEY_PREFIX}_${defaultFiatCode}`
+      )
+      redisResult = JSON.parse(jsonString)
+      let { markets } = redisResult
+
+      // Modify fiat-related fields with the forex rate
+      markets = markets.map(m => ({
+        ...m,
+        marketCap: m.marketCap * rate,
+        price: m.price * rate,
+        volume24h: m.volume24h * rate,
+        high24h: m.high24h * rate,
+        low24h: m.low24h * rate,
+        priceChange24h: m.priceChange24h * rate,
+        marketCapChange24h: m.marketCapChange24h * rate,
+        circulatingSupply: m.circulatingSupply * rate,
+        totalSupply: m.totalSupply * rate,
+        maxSupply: m.maxSupply * rate,
+        allTimeHigh: m.allTimeHigh * rate,
+        allTimeLow: m.allTimeLow * rate
+      }))
+
+      // Update redis cache
+      const redisData: CoinrankRedis = {
+        markets,
+        lastUpdate: now.toISOString()
+      }
+      await setAsync(
+        `${REDIS_COINRANK_KEY_PREFIX}_${fiatCode}`,
+        JSON.stringify(redisData)
+      )
+    }
+  }
+
+  return redisResult
+}
+
+const sendCoinrankList: express.RequestHandler = async (
+  req,
+  res,
+  next
+): Promise<void> => {
+  const data = await hgetallAsync('coingecko')
+  res.json({ data })
+}
+
+const sendCoinrankAsset: express.RequestHandler = async (
+  req,
+  res,
+  next
+): Promise<void> => {
+  const exReq = req as ExpressRequest
+  if (exReq == null) return next(500)
+
+  let query: CoinrankAssetReq
+  try {
+    query = asCoinrankAssetReq(req.query)
+  } catch (e) {
+    res
+      .status(400)
+      .send(`Error: ${e instanceof Error ? e.message : 'Unknown error'}`)
+    return
+  }
+  const { fiatCode } = query
+  const { assetId } = req.params
+
+  try {
+    const redisResult = await getRedisMarkets(fiatCode)
+
+    if (redisResult == null) {
+      res.status(400).send(`Unable to get results for fiatCode ${fiatCode}`)
+      return
+    }
+
+    const { markets } = redisResult
+    const market = markets.find(m => m.assetId === assetId)
+    if (market == null) {
+      res.status(404).send(`assetId ${assetId} not found`)
+      return
+    }
+
+    res.json({ data: market })
+  } catch (e) {
+    const err: any = e
+    res.status(500).send(err.message)
+  }
+}
+
 const sendCoinranks: express.RequestHandler = async (
   req,
   res,
   next
 ): Promise<void> => {
-  const { ratesServerAddress } = config
-  const now = new Date()
-  const nowTimestamp = now.getTime()
-
   const exReq = req as ExpressRequest
   if (exReq == null) return next(500)
 
@@ -350,67 +470,8 @@ const sendCoinranks: express.RequestHandler = async (
         .send(`Invalid length param: ${length}. Must be between 1-100`)
       return
     }
-    const jsonString = await getAsync(
-      `${REDIS_COINRANK_KEY_PREFIX}_${fiatCode}`
-    )
+    const redisResult = await getRedisMarkets(fiatCode)
 
-    let redisResult: CoinrankRedis = JSON.parse(jsonString)
-
-    if (fiatCode !== defaultFiatCode) {
-      const lastUpdated =
-        redisResult != null ? new Date(redisResult.lastUpdate).getTime() : 0
-
-      // If no result in redis or it's out of date
-      if (redisResult == null || nowTimestamp - lastUpdated > EXPIRE_TIME) {
-        // Attempt to scale prices by foreign exchange rate
-
-        // Get exchange rate
-        const result = await fetch(
-          `${ratesServerAddress}/v2/exchangeRate?currency_pair=${defaultFiatCode}_${fiatCode}`
-        )
-        const resultJson = await result.json()
-        const { exchangeRate } = asExchangeRateResponse(resultJson)
-        const rate = Number(exchangeRate)
-
-        // Get USD rankings
-        const jsonString = await getAsync(
-          `${REDIS_COINRANK_KEY_PREFIX}_${defaultFiatCode}`
-        )
-        redisResult = JSON.parse(jsonString)
-        let { markets } = redisResult
-
-        // Modify fiat-related fields with the forex rate
-        markets = markets.map(m => ({
-          ...m,
-          marketCap: m.marketCap * rate,
-          price: m.price * rate,
-          volume24h: m.volume24h * rate,
-          high24h: m.high24h * rate,
-          low24h: m.low24h * rate,
-          priceChange24h: m.priceChange24h * rate,
-          marketCapChange24h: m.marketCapChange24h * rate,
-          circulatingSupply: m.circulatingSupply * rate,
-          totalSupply: m.totalSupply * rate,
-          maxSupply: m.maxSupply * rate,
-          allTimeHigh: m.allTimeHigh * rate,
-          allTimeLow: m.allTimeLow * rate
-        }))
-        const data = markets.slice(start - 1, start + length)
-
-        res.json({ data })
-
-        // Update redis cache
-        const redisData: CoinrankRedis = {
-          markets,
-          lastUpdate: now.toISOString()
-        }
-        await setAsync(
-          `${REDIS_COINRANK_KEY_PREFIX}_${fiatCode}`,
-          JSON.stringify(redisData)
-        )
-        return
-      }
-    }
     if (redisResult == null) {
       res.status(400).send(`Unable to get results for fiatCode ${fiatCode}`)
       return
@@ -472,6 +533,8 @@ export const exchangeRateRouterV2 = (): express.Router => {
   ])
 
   router.get('/coinrank', [sendCoinranks])
+  router.get('/coinrankAsset/:assetId', [sendCoinrankAsset])
+  router.get('/coinrankList', [sendCoinrankList])
 
   return router
 }
