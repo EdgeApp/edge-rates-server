@@ -627,7 +627,8 @@
     "ZK": "zksync",
     "BOBBY": "independence-token",
     "ONDO": "ondo-finance",
-    "BONK": "bonk"
+    "BONK": "bonk",
+    "USDC-M": "multichain-bridged-usdc-fantom"
   },
   "allEdgeCurrencies": [
     "BTC",
@@ -845,7 +846,8 @@
     "SPX",
     "TON",
     "SUI",
-    "AXL"
+    "AXL",
+    "USDC-M"
   ],
   "fiatCurrencyCodes": [
     "iso:ALL",
