@@ -28,6 +28,7 @@ import {
   addIso,
   fromCode,
   isIsoCode,
+  logger,
   normalizeDate,
   subIso,
   toCode,
@@ -329,34 +330,70 @@ const getRedisMarkets = async (
   const now = new Date()
   const nowTimestamp = now.getTime()
 
-  const jsonString = await getAsync(`${REDIS_COINRANK_KEY_PREFIX}_${fiatCode}`)
-  let redisResult: CoinrankRedis = JSON.parse(jsonString)
+  try {
+    // First try to get data for the requested fiat code
+    const jsonString = await getAsync(
+      `${REDIS_COINRANK_KEY_PREFIX}_${fiatCode}`
+    )
 
-  if (fiatCode !== defaultFiatCode) {
-    const lastUpdated =
-      redisResult != null ? new Date(redisResult.lastUpdate).getTime() : 0
+    // Only parse if jsonString is not null/undefined
+    let redisResult: CoinrankRedis | undefined
+    if (jsonString != null) {
+      try {
+        redisResult = JSON.parse(jsonString)
 
-    // If no result in redis or it's out of date
-    if (redisResult == null || nowTimestamp - lastUpdated > EXPIRE_TIME) {
-      // Attempt to scale prices by foreign exchange rate
+        // If we have valid data that hasn't expired, return it
+        const lastUpdated =
+          redisResult != null ? new Date(redisResult.lastUpdate).getTime() : 0
+        if (nowTimestamp - lastUpdated <= EXPIRE_TIME) {
+          return redisResult
+        }
+        // We have cached data but it's expired - we'll try to refresh it below
+        // but will fall back to this expired data if refresh fails
+      } catch (e) {
+        // JSON parsing error, redisResult remains undefined
+        logger(`Error parsing Redis data for ${fiatCode}: ${e}`)
+        // Continue to try to get fresh data
+      }
+    }
 
+    // For USD requests, return the result immediately (could be undefined if not found)
+    if (fiatCode === defaultFiatCode) {
+      return redisResult
+    }
+
+    // If we need to convert from USD (either no data or expired data)
+    try {
       // Get exchange rate
       const result = await fetch(
         `${ratesServerAddress}/v2/exchangeRate?currency_pair=${defaultFiatCode}_${fiatCode}`
       )
+      if (!result.ok) {
+        throw new Error(`Exchange rate API returned status ${result.status}`)
+      }
+
       const resultJson = await result.json()
       const { exchangeRate } = asExchangeRateResponse(resultJson)
       const rate = Number(exchangeRate)
 
+      // Validate the rate
+      if (rate == null || isNaN(rate) || rate <= 0) {
+        throw new Error(`Invalid exchange rate: ${exchangeRate}`)
+      }
+
       // Get USD rankings
-      const jsonString = await getAsync(
+      const usdJsonString = await getAsync(
         `${REDIS_COINRANK_KEY_PREFIX}_${defaultFiatCode}`
       )
-      redisResult = JSON.parse(jsonString)
-      let { markets } = redisResult
+      if (usdJsonString == null) {
+        throw new Error(`No USD data available in Redis`)
+      }
+
+      const usdRedisResult = JSON.parse(usdJsonString)
+      const { markets } = usdRedisResult
 
       // Modify fiat-related fields with the forex rate
-      markets = markets.map(m => ({
+      const convertedMarkets = markets.map(m => ({
         ...m,
         marketCap: m.marketCap * rate,
         price: m.price * rate,
@@ -374,17 +411,29 @@ const getRedisMarkets = async (
 
       // Update redis cache
       const redisData: CoinrankRedis = {
-        markets,
-        lastUpdate: now.toISOString()
+        markets: convertedMarkets,
+        lastUpdate: redisResult?.lastUpdate ?? now.toISOString()
       }
       await setAsync(
         `${REDIS_COINRANK_KEY_PREFIX}_${fiatCode}`,
         JSON.stringify(redisData)
       )
-    }
-  }
 
-  return redisResult
+      return redisData
+    } catch (e) {
+      logger(`Error converting USD data to ${fiatCode}: ${e}`)
+      // If conversion fails but we have cached data (even if expired), return that
+      if (redisResult != null) {
+        logger(`Falling back to cached data for ${fiatCode}`)
+        return redisResult
+      }
+      // Only return undefined if we have no cached data at all
+      return undefined
+    }
+  } catch (e) {
+    logger(`Error in getRedisMarkets for ${fiatCode}: ${e}`)
+    return undefined
+  }
 }
 
 const sendCoinrankList: express.RequestHandler = async (
