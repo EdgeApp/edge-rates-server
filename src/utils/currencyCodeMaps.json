@@ -69,14 +69,16 @@
     "USD.st_iso:USD": "1"
   },
   "coinMarketCap": {
+    "ZANO": "4691",
+    "LLD": "35872",
     "SUI": "20947",
     "SPX": "28081",
     "TON": "11419",
-    "POL": "3890",
+    "POL": "28321",
     "MSOL": "11461",
     "MIMO": "15477",
     "MNGO": "11171",
-    "JUP": "496",
+    "JUP": "29210",
     "JSOL": "14926",
     "JITOSOL": "22533",
     "JTO": "28541",
@@ -156,7 +158,7 @@
     "NEXO": "2694",
     "FUN": "1757",
     "KIN": "1993",
-    "LINK": "4512",
+    "LINK": "1975",
     "OXT": "5026",
     "COMP": "5692",
     "MET": "2873",
@@ -405,6 +407,7 @@
     "RNDR": "render-token"
   },
   "coingecko": {
+    "ZANO": "zano",
     "SUI": "sui",
     "SPX": "spx6900",
     "TON": "the-open-network",
@@ -847,7 +850,8 @@
     "TON",
     "SUI",
     "AXL",
-    "USDC-M"
+    "USDC-M",
+    "ZANO"
   ],
   "fiatCurrencyCodes": [
     "iso:ALL",
