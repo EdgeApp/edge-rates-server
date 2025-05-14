@@ -69,6 +69,7 @@
     "USD.st_iso:USD": "1"
   },
   "coinMarketCap": {
+    "TCY": "36449",
     "ZANO": "4691",
     "LLD": "35872",
     "SUI": "20947",
@@ -407,6 +408,7 @@
     "RNDR": "render-token"
   },
   "coingecko": {
+    "TCY": "tcy",
     "ZANO": "zano",
     "SUI": "sui",
     "SPX": "spx6900",
@@ -851,7 +853,8 @@
     "SUI",
     "AXL",
     "USDC-M",
-    "ZANO"
+    "ZANO",
+    "TCY"
   ],
   "fiatCurrencyCodes": [
     "iso:ALL",

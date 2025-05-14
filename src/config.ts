@@ -61,6 +61,9 @@ const providerDefaults = {
   wazirx: {
     uri: 'https://api.wazirx.com'
   },
+  midgard: {
+    uri: 'https://midgard.ninerealms.com'
+  },
   coinmonitor: {
     uri: 'http://ar.coinmonitor.info'
   }
@@ -184,6 +187,12 @@ export const asConfig = asObject({
           uri: asString
         }),
         providerDefaults.wazirx
+      ),
+      midgard: asMaybe(
+        asObject({
+          uri: asString
+        }),
+        providerDefaults.midgard
       ),
       coinmonitor: asMaybe(
         asObject({
