@@ -1,5 +1,12 @@
 import { makeConfig } from 'cleaner-config'
-import { asArray, asNumber, asObject, asOptional, asString } from 'cleaners'
+import {
+  asArray,
+  asMaybe,
+  asNumber,
+  asObject,
+  asOptional,
+  asString
+} from 'cleaners'
 
 // Customization:
 
@@ -53,6 +60,9 @@ const providerDefaults = {
   },
   wazirx: {
     uri: 'https://api.wazirx.com'
+  },
+  midgard: {
+    uri: 'https://midgard.ninerealms.com'
   },
   coinmonitor: {
     uri: 'http://ar.coinmonitor.info'
@@ -111,46 +121,85 @@ export const asConfig = asObject({
   ]),
   ratesServerAddress: asOptional(asString, RATES_SERVER_ADDRESS),
   slackWebhookUrl: asOptional(asString, SLACK_WEBHOOK_URL),
-  providers: asOptional(
+  providers: asMaybe(
     asObject({
-      coincap: asObject({
-        uri: asString
-      }),
-      currencyConverter: asObject({
-        uri: asString,
-        apiKey: asString
-      }),
-      coinMarketCapCurrent: asObject({
-        uri: asString,
-        apiKey: asString
-      }),
-      coinMarketCapHistorical: asObject({
-        uri: asString,
-        apiKey: asString
-      }),
-      openExchangeRates: asObject({
-        uri: asString,
-        apiKey: asString
-      }),
-      coinstore: asObject({
-        uri: asString
-      }),
-      coingecko: asObject({
-        uri: asString
-      }),
-      coingeckopro: asObject({
-        uri: asString,
-        apiKey: asString
-      }),
-      compound: asObject({
-        uri: asString
-      }),
-      wazirx: asObject({
-        uri: asString
-      }),
-      coinmonitor: asObject({
-        uri: asString
-      })
+      coincap: asMaybe(
+        asObject({
+          uri: asString
+        }),
+        providerDefaults.coincap
+      ),
+      currencyConverter: asMaybe(
+        asObject({
+          uri: asString,
+          apiKey: asString
+        }),
+        providerDefaults.currencyConverter
+      ),
+      coinMarketCapCurrent: asMaybe(
+        asObject({
+          uri: asString,
+          apiKey: asString
+        }),
+        providerDefaults.coinMarketCapCurrent
+      ),
+      coinMarketCapHistorical: asMaybe(
+        asObject({
+          uri: asString,
+          apiKey: asString
+        }),
+        providerDefaults.coinMarketCapHistorical
+      ),
+      openExchangeRates: asMaybe(
+        asObject({
+          uri: asString,
+          apiKey: asString
+        }),
+        providerDefaults.openExchangeRates
+      ),
+      coinstore: asMaybe(
+        asObject({
+          uri: asString
+        }),
+        providerDefaults.coinstore
+      ),
+      coingecko: asMaybe(
+        asObject({
+          uri: asString
+        }),
+        providerDefaults.coingecko
+      ),
+      coingeckopro: asMaybe(
+        asObject({
+          uri: asString,
+          apiKey: asString
+        }),
+        providerDefaults.coingeckopro
+      ),
+      compound: asMaybe(
+        asObject({
+          uri: asString
+        }),
+        providerDefaults.compound
+      ),
+      wazirx: asMaybe(
+        asObject({
+          uri: asString
+        }),
+        providerDefaults.wazirx
+      ),
+      midgard: asMaybe(
+        asObject({
+          uri: asString
+        }),
+        providerDefaults.midgard
+      ),
+      coinmonitor: asMaybe(
+        asObject({
+          uri: asString
+        }),
+        providerDefaults.coinmonitor
+      )
     }),
     providerDefaults
   ),

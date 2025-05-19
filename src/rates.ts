@@ -24,6 +24,7 @@ import {
   fallbackConstantRates,
   zeroRates
 } from './providers/hardcodedProviders'
+import { midgard } from './providers/midgard'
 import { openExchangeRates } from './providers/openExchangeRates'
 import { wazirx } from './providers/wazirx'
 import {
@@ -135,6 +136,7 @@ const getRatesFromProviders = async (
     coinmonitor,
     wazirx,
     coinstore,
+    midgard,
     coingecko,
     coincap,
     coinMarketCap,
