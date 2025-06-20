@@ -54,6 +54,7 @@
     "BRZ_iso:BRL": "1",
     "MAI_iso:USD": "1",
     "BUSD_iso:USD": "1",
+    "FUSD_iso:USD": "1",
     "CUSD_iso:USD": "1",
     "CEUR_iso:EUR": "1",
     "USDT_iso:USD": "1",
@@ -633,6 +634,7 @@
     "BOBBY": "independence-token",
     "ONDO": "ondo-finance",
     "BONK": "bonk",
+    "FUSD": "freedom-dollar",
     "USDC-M": "multichain-bridged-usdc-fantom"
   },
   "allEdgeCurrencies": [
@@ -854,6 +856,7 @@
     "AXL",
     "USDC-M",
     "ZANO",
+    "FUSD",
     "TCY"
   ],
   "fiatCurrencyCodes": [
