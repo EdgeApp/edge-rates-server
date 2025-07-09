@@ -34,6 +34,7 @@ export const hgetallAsync = client.hGetAll.bind(client)
 export const hmgetAsync = client.hmGet.bind(client)
 export const existsAsync = client.exists.bind(client)
 export const delAsync = client.del.bind(client)
+export const renameAsync = client.rename.bind(client)
 // Set type to `any` to avoid the TS4023 error
 export const setAsync: any = client.set.bind(client)
 export const getAsync: any = client.get.bind(client)
@@ -176,24 +177,50 @@ const syncedCurrencyCodeMaps = syncedDocument(
   asCurrencyCodeMaps
 )
 
-syncedCurrencyCodeMaps.onChange(currencyCodeMaps => {
-  logger('Syncing currency code maps with redis cache...')
-  for (const key of Object.keys(currencyCodeMaps)) {
-    delAsync(key)
-      .then(() => {
+// Only run sync in background engine processes, not web server instances
+if (process.env.ENABLE_BACKGROUND_SYNC !== 'false') {
+  syncedCurrencyCodeMaps.onChange(currencyCodeMaps => {
+    const timestamp = new Date().toISOString()
+    logger(
+      `[${timestamp}] SYNC TRIGGERED: Syncing currency code maps with redis cache...`
+    )
+    logger(
+      `[${timestamp}] SYNC TRIGGER: onChange fired for currencyCodeMaps document (PID: ${process.pid})`
+    )
+    for (const key of Object.keys(currencyCodeMaps)) {
+      const tempKey = `${key}_temp_${Date.now()}`
+
+      // Write to temporary key first, then atomically rename
+      const writeToTemp = async (): Promise<void> => {
         if (Array.isArray(currencyCodeMaps[key])) {
-          hsetAsync(key, Object.assign({}, currencyCodeMaps[key])).catch(e =>
-            logger('syncedCurrencyCodeMaps failed to update', key, e)
-          )
+          await hsetAsync(tempKey, Object.assign({}, currencyCodeMaps[key]))
         } else {
-          hsetAsync(key, currencyCodeMaps[key]).catch(e =>
-            logger('syncedCurrencyCodeMaps failed to update', key, e)
-          )
+          await hsetAsync(tempKey, currencyCodeMaps[key])
         }
-      })
-      .catch(e => logger('syncedCurrencyCodeMaps delete failed', key, e))
-  }
-})
+      }
+
+      const updateKey = async (): Promise<void> => {
+        try {
+          await writeToTemp()
+          // Atomically replace the old key with the new data
+          await renameAsync(tempKey, key)
+          logger(`Successfully updated Redis key: ${key}`)
+        } catch (e) {
+          logger('syncedCurrencyCodeMaps failed to update', key, e)
+          // Clean up temporary key on failure
+          try {
+            await delAsync(tempKey)
+          } catch (cleanupError) {
+            logger('Failed to cleanup temp key', tempKey, cleanupError)
+          }
+        }
+      }
+
+      // Fire and forget - don't await in the callback
+      updateKey().catch(e => logger('Unhandled error in updateKey', key, e))
+    }
+  })
+}
 
 export const ratesDbSetup = {
   name: 'db_rates',
