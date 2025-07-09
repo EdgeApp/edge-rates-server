@@ -14,6 +14,7 @@
     "fix": "npm run lint -- --fix",
     "startEngines": "node -r sucrase/register src/indexEngines.ts",
     "start": "node -r sucrase/register src/index.ts",
+    "startV3": "node -r sucrase/register src/v3/index.ts",
     "precommit": "lint-staged && yarn test && yarn prepare",
     "prepare": "configure && npm-run-all clean -p build.* && cp ./src/utils/currencyCodeMaps.json ./lib/utils/currencyCodeMaps.json",
     "test": "mocha -r sucrase/register 'test/**/*.test.ts' --exit",
@@ -63,6 +64,7 @@
     "nano": "10.0.0",
     "node-fetch": "^2.6.0",
     "promisify-node": "^0.5.0",
-    "redis": "^4.0.4"
+    "redis": "^4.0.4",
+    "serverlet": "^0.1.3"
   }
 }
