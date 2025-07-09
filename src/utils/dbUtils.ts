@@ -1,19 +1,10 @@
-import {
-  asArray,
-  asBoolean,
-  asMaybe,
-  asObject,
-  asOptional,
-  asString
-} from 'cleaners'
-import { syncedDocument } from 'edge-server-tools'
+import { asBoolean, asMaybe, asObject, asOptional, asString } from 'cleaners'
 import nano from 'nano'
 import promisify from 'promisify-node'
 import { createClient } from 'redis'
 
 import { config } from './../config'
 import { createThrottledMessage } from './createThrottledMessage'
-import currencyCodeMaps from './currencyCodeMaps.json'
 import { slackPoster } from './postToSlack'
 import { logger, memoize } from './utils'
 
@@ -34,6 +25,7 @@ export const hgetallAsync = client.hGetAll.bind(client)
 export const hmgetAsync = client.hmGet.bind(client)
 export const existsAsync = client.exists.bind(client)
 export const delAsync = client.del.bind(client)
+export const renameAsync = client.rename.bind(client)
 // Set type to `any` to avoid the TS4023 error
 export const setAsync: any = client.set.bind(client)
 export const getAsync: any = client.get.bind(client)
@@ -151,56 +143,6 @@ export const getFromDb = async (
 
 export const wrappedGetFromDb = async (dates: string[]): Promise<DbDoc[]> =>
   getFromDb(dbRates, dates)
-
-const asCurrencyCodeMapsCleaner = asObject({
-  constantCurrencyCodes: asMaybe(asObject(asString)),
-  zeroRates: asMaybe(asObject(asString)),
-  fallbackConstantRates: asMaybe(asObject(asString)),
-  coinMarketCap: asMaybe(asObject(asString)),
-  coincap: asMaybe(asObject(asString)),
-  coingecko: asMaybe(asObject(asString)),
-  allEdgeCurrencies: asMaybe(asArray(asString)),
-  fiatCurrencyCodes: asMaybe(asArray(asString))
-})
-
-// Pass the defaults json through the cleaner so they're typed
-const defaultCurrencyCodeMaps = asCurrencyCodeMapsCleaner(currencyCodeMaps)
-
-const asCurrencyCodeMaps = asMaybe(
-  asCurrencyCodeMapsCleaner,
-  defaultCurrencyCodeMaps
-)
-
-const syncedCurrencyCodeMaps = syncedDocument(
-  'currencyCodeMaps',
-  asCurrencyCodeMaps
-)
-
-syncedCurrencyCodeMaps.onChange(currencyCodeMaps => {
-  logger('Syncing currency code maps with redis cache...')
-  for (const key of Object.keys(currencyCodeMaps)) {
-    delAsync(key)
-      .then(() => {
-        if (Array.isArray(currencyCodeMaps[key])) {
-          hsetAsync(key, Object.assign({}, currencyCodeMaps[key])).catch(e =>
-            logger('syncedCurrencyCodeMaps failed to update', key, e)
-          )
-        } else {
-          hsetAsync(key, currencyCodeMaps[key]).catch(e =>
-            logger('syncedCurrencyCodeMaps failed to update', key, e)
-          )
-        }
-      })
-      .catch(e => logger('syncedCurrencyCodeMaps delete failed', key, e))
-  }
-})
-
-export const ratesDbSetup = {
-  name: 'db_rates',
-  options: { partitioned: false },
-  templates: { currencyCodeMaps },
-  syncedDocuments: [syncedCurrencyCodeMaps]
-}
 
 export const getEdgeAssetDoc = memoize(
   async (): Promise<DbDoc> =>
