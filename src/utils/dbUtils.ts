@@ -1,12 +1,4 @@
-import {
-  asArray,
-  asBoolean,
-  asMaybe,
-  asObject,
-  asOptional,
-  asString
-} from 'cleaners'
-import { syncedDocument } from 'edge-server-tools'
+import { asBoolean, asMaybe, asObject, asOptional, asString } from 'cleaners'
 import nano from 'nano'
 import promisify from 'promisify-node'
 import { createClient } from 'redis'
@@ -153,80 +145,11 @@ export const getFromDb = async (
 export const wrappedGetFromDb = async (dates: string[]): Promise<DbDoc[]> =>
   getFromDb(dbRates, dates)
 
-const asCurrencyCodeMapsCleaner = asObject({
-  constantCurrencyCodes: asMaybe(asObject(asString)),
-  zeroRates: asMaybe(asObject(asString)),
-  fallbackConstantRates: asMaybe(asObject(asString)),
-  coinMarketCap: asMaybe(asObject(asString)),
-  coincap: asMaybe(asObject(asString)),
-  coingecko: asMaybe(asObject(asString)),
-  allEdgeCurrencies: asMaybe(asArray(asString)),
-  fiatCurrencyCodes: asMaybe(asArray(asString))
-})
-
-// Pass the defaults json through the cleaner so they're typed
-const defaultCurrencyCodeMaps = asCurrencyCodeMapsCleaner(currencyCodeMaps)
-
-const asCurrencyCodeMaps = asMaybe(
-  asCurrencyCodeMapsCleaner,
-  defaultCurrencyCodeMaps
-)
-
-const syncedCurrencyCodeMaps = syncedDocument(
-  'currencyCodeMaps',
-  asCurrencyCodeMaps
-)
-
-// Only run sync in background engine processes, not web server instances
-if (process.env.ENABLE_BACKGROUND_SYNC !== 'false') {
-  syncedCurrencyCodeMaps.onChange(currencyCodeMaps => {
-    const timestamp = new Date().toISOString()
-    logger(
-      `[${timestamp}] SYNC TRIGGERED: Syncing currency code maps with redis cache...`
-    )
-    logger(
-      `[${timestamp}] SYNC TRIGGER: onChange fired for currencyCodeMaps document (PID: ${process.pid})`
-    )
-    for (const key of Object.keys(currencyCodeMaps)) {
-      const tempKey = `${key}_temp_${Date.now()}`
-
-      // Write to temporary key first, then atomically rename
-      const writeToTemp = async (): Promise<void> => {
-        if (Array.isArray(currencyCodeMaps[key])) {
-          await hsetAsync(tempKey, Object.assign({}, currencyCodeMaps[key]))
-        } else {
-          await hsetAsync(tempKey, currencyCodeMaps[key])
-        }
-      }
-
-      const updateKey = async (): Promise<void> => {
-        try {
-          await writeToTemp()
-          // Atomically replace the old key with the new data
-          await renameAsync(tempKey, key)
-          logger(`Successfully updated Redis key: ${key}`)
-        } catch (e) {
-          logger('syncedCurrencyCodeMaps failed to update', key, e)
-          // Clean up temporary key on failure
-          try {
-            await delAsync(tempKey)
-          } catch (cleanupError) {
-            logger('Failed to cleanup temp key', tempKey, cleanupError)
-          }
-        }
-      }
-
-      // Fire and forget - don't await in the callback
-      updateKey().catch(e => logger('Unhandled error in updateKey', key, e))
-    }
-  })
-}
-
 export const ratesDbSetup = {
   name: 'db_rates',
   options: { partitioned: false },
   templates: { currencyCodeMaps },
-  syncedDocuments: [syncedCurrencyCodeMaps]
+  syncedDocuments: [] // Empty array since sync is now handled in indexEngines
 }
 
 export const getEdgeAssetDoc = memoize(
