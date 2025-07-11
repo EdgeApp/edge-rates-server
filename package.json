@@ -17,7 +17,13 @@
     "precommit": "lint-staged && yarn test && yarn prepare",
     "prepare": "configure && npm-run-all clean -p build.* && cp ./src/utils/currencyCodeMaps.json ./lib/utils/currencyCodeMaps.json",
     "test": "mocha -r sucrase/register 'test/**/*.test.ts' --exit",
-    "lint": "eslint --ext .js,.jsx,.ts,.tsx ."
+    "lint": "eslint --ext .js,.jsx,.ts,.tsx .",
+    "deploy": "npm run deploy:stop && npm run deploy:start",
+    "deploy:start": "pm2 start pm2.json",
+    "deploy:stop": "pm2 delete all || true",
+    "deploy:restart": "npm run deploy",
+    "deploy:status": "pm2 status",
+    "deploy:logs": "pm2 logs"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": "eslint"
