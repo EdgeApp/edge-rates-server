@@ -56,7 +56,7 @@ export interface UpdateRatesParams {
   fiat: FiatRateMap
 }
 
-type RateEngine = () => Promise<void>
+export type RateEngine = () => Promise<void>
 
 export interface RateProvider {
   providerId: string
@@ -71,7 +71,7 @@ export interface RateProvider {
   }>
   updateRates?: (params: UpdateRatesParams) => Promise<void>
   engines?: Array<{
-    frequency: 'hour' | 'day' | 'week' | 'month'
+    frequency: 'minute' | 'hour' | 'day' | 'week' | 'month'
     engine: RateEngine
   }>
 }
