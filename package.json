@@ -39,6 +39,7 @@
     "@typescript-eslint/eslint-plugin": ">=2.0.0",
     "@typescript-eslint/parser": "^2.0.0",
     "chai": "^4.2.0",
+    "disklet": "^0.5.2",
     "eslint": ">=6.2.2",
     "eslint-config-standard-kit": ">=0.14.4",
     "eslint-plugin-import": ">=2.18.0",
