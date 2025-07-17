@@ -159,3 +159,5 @@ export type EdgeCurrencyPluginIdUIDMap = Record<
   EdgeCurrencyPluginId,
   string | null
 >
+
+export type NumberMap = Record<string, number>
