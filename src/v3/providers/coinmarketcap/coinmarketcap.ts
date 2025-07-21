@@ -206,7 +206,6 @@ export const coinmarketcap: RateProvider = {
 
     const ids: string[] = []
     const supportedRates: CryptoRate[] = []
-    const out: CryptoRate[] = []
     const currentDate = new Date()
     for (const rate of requestedRates.values()) {
       const mapping =
@@ -214,8 +213,6 @@ export const coinmarketcap: RateProvider = {
       if (isCurrent(rate.isoDate, currentDate) && mapping != null) {
         supportedRates.push(rate)
         ids.push(mapping.id)
-      } else {
-        out.push(rate)
       }
     }
     const currentRates = await getCurrentRates(ids)
