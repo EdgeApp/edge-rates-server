@@ -156,3 +156,11 @@ export type EdgeCurrencyPluginIdUIDMap = Record<
   EdgeCurrencyPluginId,
   string | null
 >
+
+export interface NumberMap {
+  [key: string]: number
+}
+
+export type RateBuckets = Map<string, NumberMap>
+
+export type DateBuckets = Map<string, Set<string>>
