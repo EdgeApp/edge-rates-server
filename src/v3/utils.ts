@@ -1,8 +1,13 @@
 import {
   CryptoRate,
+  CryptoRateMap,
+  DateBuckets,
   EdgeCurrencyPluginId,
   EdgeTokenId,
-  FiatRate
+  FiatRate,
+  FiatRateMap,
+  RateBuckets,
+  TokenMap
 } from './types'
 
 export const toCryptoRateKey = (rate: CryptoRate): string => {
@@ -186,4 +191,126 @@ export const createTokenId = (
       return assertNever(pluginId)
     }
   }
+}
+
+// These functions reduce requested rates into buckets based on the date that
+// the providers can handle efficiently. The rates returned by the providers
+// can then be rematched with the requested rates
+export const reduceRequestedCryptoRates = (
+  requestedRates: CryptoRateMap,
+  intervalMs: number,
+  mapping?: TokenMap
+): DateBuckets => {
+  const buckets: DateBuckets = new Map()
+
+  requestedRates.forEach(rate => {
+    const rateTime = rate.isoDate.getTime()
+
+    // Floor to the start of the interval bucket
+    const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
+    const bucketKey = new Date(bucketTime).toISOString()
+    const bucket = buckets.get(bucketKey) ?? new Set()
+
+    let id: string | undefined
+    if (mapping == null) {
+      id = `${rate.asset.pluginId}_${String(rate.asset.tokenId)}`
+    } else {
+      id = mapping[`${rate.asset.pluginId}_${String(rate.asset.tokenId)}`]?.id
+    }
+
+    if (id != null) {
+      bucket.add(id)
+      buckets.set(bucketKey, bucket)
+    }
+  })
+
+  return buckets
+}
+
+export const expandReturnedCryptoRates = (
+  requestedRates: CryptoRateMap,
+  intervalMs: number,
+  returnedRates: RateBuckets,
+  mapping?: TokenMap
+): { foundRates: CryptoRateMap; requestedRates: CryptoRateMap } => {
+  const foundRates: CryptoRateMap = new Map()
+  const missingRates: CryptoRateMap = new Map()
+
+  requestedRates.forEach((rate, key) => {
+    const rateTime = rate.isoDate.getTime()
+
+    // Floor to the start of the interval bucket
+    const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
+    const bucketKey = new Date(bucketTime).toISOString()
+    const bucket = returnedRates.get(bucketKey) ?? {}
+
+    let id: string | undefined
+    if (mapping == null) {
+      id = `${rate.asset.pluginId}_${String(rate.asset.tokenId)}`
+    } else {
+      id = mapping[`${rate.asset.pluginId}_${String(rate.asset.tokenId)}`]?.id
+    }
+
+    if (id == null) {
+      missingRates.set(key, rate)
+      return
+    }
+
+    const exchangeRate: number | undefined = bucket[id]
+    if (exchangeRate != null) {
+      foundRates.set(key, { ...rate, rate: exchangeRate })
+    } else {
+      missingRates.set(key, rate)
+    }
+  })
+
+  return { foundRates, requestedRates: missingRates }
+}
+
+export const reduceRequestedFiatRates = (
+  requestedRates: FiatRateMap,
+  intervalMs: number
+): DateBuckets => {
+  const buckets: DateBuckets = new Map()
+
+  requestedRates.forEach(rate => {
+    const rateTime = rate.isoDate.getTime()
+
+    // Floor to the start of the interval bucket
+    const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
+    const bucketKey = new Date(bucketTime).toISOString()
+    const bucket = buckets.get(bucketKey) ?? new Set()
+
+    bucket.add(rate.fiatCode)
+    buckets.set(bucketKey, bucket)
+  })
+
+  return buckets
+}
+
+export const expandReturnedFiatRates = (
+  requestedRates: FiatRateMap,
+  intervalMs: number,
+  returnedRates: RateBuckets
+): { foundRates: FiatRateMap; requestedRates: FiatRateMap } => {
+  const foundRates: FiatRateMap = new Map()
+  const missingRates: FiatRateMap = new Map()
+
+  requestedRates.forEach((rate, key) => {
+    const rateTime = rate.isoDate.getTime()
+
+    // Floor to the start of the interval bucket
+    const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
+    const bucketKey = new Date(bucketTime).toISOString()
+    const bucket = returnedRates.get(bucketKey) ?? {}
+
+    const exchangeRate: number | undefined = bucket[rate.fiatCode]
+    if (exchangeRate != null) {
+      foundRates.set(key, { ...rate, rate: exchangeRate })
+    } else {
+      missingRates.set(key, rate)
+    }
+  })
+
+  return { foundRates, requestedRates: missingRates }
 }

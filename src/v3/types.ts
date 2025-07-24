@@ -156,3 +156,10 @@ export type EdgeCurrencyPluginIdUIDMap = Record<
   EdgeCurrencyPluginId,
   string | null
 >
+
+export const asNumberMap = asObject(asNumber)
+export type NumberMap = ReturnType<typeof asNumberMap>
+
+export type RateBuckets = Map<string, NumberMap>
+
+export type DateBuckets = Map<string, Set<string>>
