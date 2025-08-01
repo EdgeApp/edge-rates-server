@@ -65,6 +65,7 @@ export const createThrottledMessage = (
       await callback(message)
     }
   } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     logger(`Error setting a message or executing a callback: ${e}`)
   }
 }

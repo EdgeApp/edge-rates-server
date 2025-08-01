@@ -16,7 +16,7 @@ export function normalizeDate(dateSrc: string): string {
 }
 
 export const snooze = async (ms: number): Promise<void> =>
-  new Promise((resolve: Function) => setTimeout(resolve, ms))
+  await new Promise((resolve: Function) => setTimeout(resolve, ms))
 
 export const getNullRateArray = (rates: ReturnRate[]): ReturnRate[] => {
   return rates.filter(rate => rate.exchangeRate == null)

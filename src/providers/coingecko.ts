@@ -28,9 +28,9 @@ const asCoingeckoQuote = asObject({
 })
 
 const asCoingeckoHistoricalUsdResponse = asObject({
-  // eslint-disable-next-line @typescript-eslint/camelcase
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   market_data: asObject({
-    // eslint-disable-next-line @typescript-eslint/camelcase
+    // eslint-disable-next-line @typescript-eslint/naming-convention
     current_price: asObject({
       usd: asNumber
     })
@@ -67,6 +67,7 @@ const coingeckoCurrent = async (
     )
     if (!response.ok) {
       logger(
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         `coingecko returned code ${response.status} for ${codesWanted} at ${currentTime}`
       )
       throw new Error(response.statusText)
@@ -104,6 +105,7 @@ const coingeckoHistorical = async (
       )
       if (!response.ok) {
         logger(
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           `coingecko returned code ${response.status} for ${codesWanted} at ${date}`
         )
         throw new Error(response.statusText)

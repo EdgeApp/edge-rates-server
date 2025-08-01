@@ -16,22 +16,23 @@ for (const test of fixtures.normalizeDate) {
   })
 }
 
-var globalTime = 0
+let globalTime = 0
 const ram = {
   // "errorMessage": [value, expirationTimeInSeconds]
 }
 const client = {
   set: async (key, value, options) => {
     ram[key] = [value, options.EX]
-    return Promise.resolve()
+    return await Promise.resolve()
   },
   exists: async (key: string) => {
-    var keyExists = Object.prototype.hasOwnProperty.call(ram, key)
+    let keyExists = Object.prototype.hasOwnProperty.call(ram, key)
     if (keyExists && ram[key][1] < globalTime) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete ram[key]
       keyExists = false
     }
-    return Promise.resolve(keyExists ? 1 : 0)
+    return await Promise.resolve(keyExists ? 1 : 0)
   }
 }
 

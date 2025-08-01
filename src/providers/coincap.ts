@@ -75,9 +75,10 @@ const currentQuery = async (
   try {
     const response = await fetch(url, OPTIONS)
     const json = asCoincapCurrentResponse(await response.json())
-    if (response.ok === false) {
+    if (!response.ok) {
       const text = await response.text()
       logger(
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         `coincapCurrent returned code ${response.status} for ${codes} at ${date}: ${text}`
       )
       throw new Error(text)
@@ -107,7 +108,7 @@ const historicalQuery = async (
         ONE_MINUTE}`,
       OPTIONS
     )
-    if (response.ok === false) {
+    if (!response.ok) {
       const text = await response.text()
       logger(
         `coincapHistorical returned code ${response.status.toString()} for ${id} at ${date}: ${text}`
@@ -182,7 +183,7 @@ export const coincapAssets = async (): Promise<AssetMap> => {
       await snooze(1000) // rate limits reset every minute
       continue // retry
     }
-    if (response.ok === false) {
+    if (!response.ok) {
       const text = await response.text()
       throw new Error(text)
     }

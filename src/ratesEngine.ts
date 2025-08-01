@@ -95,6 +95,7 @@ export const ratesEngine = async (): Promise<void> => {
       }
       await Promise.all(promises)
     } catch (e) {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       const message = `ratesEngine failure: ${e}`
       slackMessage(message).catch(e => logger(e))
       logger(message)
