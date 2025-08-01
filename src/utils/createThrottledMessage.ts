@@ -53,19 +53,21 @@ const DEFAULT_VALUE = 0
  *                     Defaults to 5 mins.
  * @returns A function that takes a message as an argument.
  */
-export const createThrottledMessage = (
-  client: Client,
-  callback: (message: string) => Promise<void>,
-  expiration: number = EXPIRATION_TIME_IN_SECONDS
-) => async (message: string): Promise<void> => {
-  try {
-    const messageExists = await client.exists(message)
-    if (messageExists === 0) {
-      await client.set(message, DEFAULT_VALUE, { EX: expiration })
-      await callback(message)
+export const createThrottledMessage =
+  (
+    client: Client,
+    callback: (message: string) => Promise<void>,
+    expiration: number = EXPIRATION_TIME_IN_SECONDS
+  ) =>
+  async (message: string): Promise<void> => {
+    try {
+      const messageExists = await client.exists(message)
+      if (messageExists === 0) {
+        await client.set(message, DEFAULT_VALUE, { EX: expiration })
+        await callback(message)
+      }
+    } catch (e) {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+      logger(`Error setting a message or executing a callback: ${e}`)
     }
-  } catch (e) {
-    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-    logger(`Error setting a message or executing a callback: ${e}`)
   }
-}

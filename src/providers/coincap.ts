@@ -104,8 +104,9 @@ const historicalQuery = async (
   if (id === '') return rates
   try {
     const response = await fetch(
-      `${uri}/v2/assets/${id}/history?interval=m1&start=${timestamp}&end=${timestamp +
-        ONE_MINUTE}`,
+      `${uri}/v2/assets/${id}/history?interval=m1&start=${timestamp}&end=${
+        timestamp + ONE_MINUTE
+      }`,
       OPTIONS
     )
     if (!response.ok) {

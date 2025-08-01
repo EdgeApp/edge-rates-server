@@ -116,9 +116,8 @@ const coingeckoHistorical = async (
       const pair = Object.entries(assetMap).find(pair => pair[1] === code)
       if (pair == null) return
 
-      rates[date][
-        `${pair[0]}_iso:USD`
-      ] = json.market_data.current_price.usd.toString()
+      rates[date][`${pair[0]}_iso:USD`] =
+        json.market_data.current_price.usd.toString()
     } catch (e) {
       logger('No Coingecko quote:', e)
     }
