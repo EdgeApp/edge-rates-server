@@ -1,7 +1,8 @@
 import { RateProvider } from '../types'
+import { coinmarketcap } from './coinmarketcap/coinmarketcap'
 
 // Order matters here. The array will determine the order of priority within each provider type.
-const looselyOrderedProviders: RateProvider[] = []
+const looselyOrderedProviders: RateProvider[] = [coinmarketcap]
 
 export const memoryProviders = looselyOrderedProviders.filter(
   p => p.type === 'memory'

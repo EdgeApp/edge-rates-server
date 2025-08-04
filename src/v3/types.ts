@@ -10,6 +10,7 @@ import {
 } from 'cleaners'
 
 const asEdgeTokenId = asEither(asString, asNull)
+export type EdgeTokenId = ReturnType<typeof asEdgeTokenId>
 
 const asEdgeAsset = asObject({
   pluginId: asString,
@@ -77,3 +78,81 @@ export interface RateProvider {
 }
 
 export type GetRatesFunc = (params: GetRatesParams) => Promise<GetRatesParams>
+
+export interface TokenMap {
+  [key: string]: {
+    id: string
+    slug: string
+  }
+}
+
+export type EdgeCurrencyPluginId =
+  | 'algorand'
+  | 'arbitrum'
+  | 'avalanche'
+  | 'axelar'
+  | 'base'
+  | 'binance'
+  | 'binancesmartchain'
+  | 'bitcoin'
+  | 'bitcoincash'
+  | 'bitcoingold'
+  | 'bitcoinsv'
+  | 'bobevm'
+  | 'cardano'
+  | 'celo'
+  | 'coreum'
+  | 'cosmoshub'
+  | 'dash'
+  | 'digibyte'
+  | 'dogecoin'
+  | 'eboost'
+  | 'ecash'
+  | 'eos'
+  | 'ethereum'
+  | 'ethereumclassic'
+  | 'ethereumpow'
+  | 'fantom'
+  | 'feathercoin'
+  | 'filecoin'
+  | 'filecoinfevm'
+  | 'fio'
+  | 'groestlcoin'
+  | 'hedera'
+  | 'hyperevm'
+  | 'liberland'
+  | 'litecoin'
+  | 'monero'
+  | 'optimism'
+  | 'osmosis'
+  | 'piratechain'
+  | 'pivx'
+  | 'polkadot'
+  | 'polygon'
+  | 'pulsechain'
+  | 'qtum'
+  | 'ravencoin'
+  | 'ripple'
+  | 'rsk'
+  | 'smartcash'
+  | 'solana'
+  | 'sonic'
+  | 'stellar'
+  | 'sui'
+  | 'telos'
+  | 'tezos'
+  | 'thorchainrune'
+  | 'ton'
+  | 'tron'
+  | 'ufo'
+  | 'vertcoin'
+  | 'wax'
+  | 'zcash'
+  | 'zcoin'
+  | 'zano'
+  | 'zksync'
+
+export type EdgeCurrencyPluginIdUIDMap = Record<
+  EdgeCurrencyPluginId,
+  string | null
+>
