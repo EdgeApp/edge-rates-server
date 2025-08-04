@@ -20,6 +20,7 @@ import {
   reduceRequestedCryptoRates
 } from '../../utils'
 import { dbSettings } from '../couch'
+import { getAsync, setAsync } from '../redis'
 import {
   coingeckoMainnetCurrencyMapping,
   coingeckoPlatformIdMapping
@@ -158,6 +159,7 @@ const tokenMapping: RateEngine = async () => {
     ...automatedMappingDocument,
     ...combinedTokenMappings
   })
+  await setAsync('coingecko:automated', JSON.stringify(combinedTokenMappings))
   saveToDisk(combinedTokenMappings)
 }
 
@@ -206,9 +208,11 @@ const getHistoricalRates = async (
 }
 
 const getTokenMappings = async (): Promise<TokenMap> => {
+  const redisMapping = await getAsync('coingecko:automated')
+  if (redisMapping != null) return JSON.parse(redisMapping)
   try {
-    const mapping = await dbSettings.get('coingecko:automated')
-    return asCouchDoc(asTokenMap)(mapping).doc
+    const couchMapping = await dbSettings.get('coingecko:automated')
+    return asCouchDoc(asTokenMap)(couchMapping).doc
   } catch (e) {
     return readFromDisk()
   }
