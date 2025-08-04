@@ -13,10 +13,11 @@ import { DatabaseSetup } from 'edge-server-tools'
 const asEdgeTokenId = asEither(asString, asNull)
 export type EdgeTokenId = ReturnType<typeof asEdgeTokenId>
 
-const asEdgeAsset = asObject({
+export const asEdgeAsset = asObject({
   pluginId: asString,
   tokenId: asEdgeTokenId
 })
+export type EdgeAsset = ReturnType<typeof asEdgeAsset>
 
 const asCryptoRate = asObject({
   isoDate: asDate,
@@ -37,7 +38,7 @@ export const asGetRatesParams = asObject({
   crypto: asArray(asCryptoRate),
   fiat: asArray(asFiatRate)
 })
-type GetRatesParams = ReturnType<typeof asGetRatesParams>
+export type GetRatesParams = ReturnType<typeof asGetRatesParams>
 
 export type CryptoRateMap = Map<string, CryptoRate>
 export type FiatRateMap = Map<string, FiatRate>
