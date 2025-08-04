@@ -6,6 +6,7 @@ import { coinstore } from './coinstore'
 import { couch } from './couch'
 import { currencyconverter } from './currencyconverter'
 import { midgard } from './midgard'
+import { redis } from './redis'
 import { wazirx } from './wazirx'
 
 // Order matters here. The array will determine the order of priority within each provider type.
@@ -17,7 +18,8 @@ const looselyOrderedProviders: RateProvider[] = [
   coinmarketcap,
   coingecko,
   currencyconverter,
-  couch
+  couch,
+  redis
 ]
 
 export const memoryProviders = looselyOrderedProviders.filter(
