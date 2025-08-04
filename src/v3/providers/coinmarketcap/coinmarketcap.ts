@@ -6,12 +6,14 @@ import {
   asObject,
   asString
 } from 'cleaners'
+import { asCouchDoc } from 'edge-server-tools'
 import * as fs from 'fs'
 import * as path from 'path'
 
 import { config } from '../../../config'
 import { daysBetween, snooze } from '../../../utils/utils'
 import {
+  asTokenMap,
   EdgeCurrencyPluginId,
   NumberMap,
   RateBuckets,
@@ -24,6 +26,7 @@ import {
   expandReturnedCryptoRates,
   reduceRequestedCryptoRates
 } from '../../utils'
+import { dbSettings } from '../couch'
 import {
   coinmarketcapMainnetCurrencyMapping,
   coinmarketcapPlatformIdMapping
@@ -171,7 +174,26 @@ const tokenMapping: RateEngine = async () => {
     }
   }
 
-  saveToDisk(out)
+  const defaultsDocument = await dbSettings.get('coinmarketcap')
+  const defaults = asCouchDoc(asTokenMap)(defaultsDocument).doc
+  const automatedMappingDocument = await dbSettings.get(
+    'coinmarketcap:automated'
+  )
+  const automated = asCouchDoc(asTokenMap)(automatedMappingDocument).doc
+
+  // Merge the token mappings with priority: defaults > automated > new mappings
+  const combinedTokenMappings: TokenMap = {
+    ...automated,
+    ...out,
+    ...defaults
+  }
+
+  // Update the automated mapping document
+  await dbSettings.insert({
+    ...automatedMappingDocument,
+    ...combinedTokenMappings
+  })
+  saveToDisk(combinedTokenMappings)
 }
 
 const getCurrentRates = async (ids: Set<string>): Promise<NumberMap> => {
@@ -225,6 +247,15 @@ const getHistoricalRates = async (
   return out
 }
 
+const getTokenMappings = async (): Promise<TokenMap> => {
+  try {
+    const mapping = await dbSettings.get('coinmarketcap:automated')
+    return asCouchDoc(asTokenMap)(mapping).doc
+  } catch (e) {
+    return readFromDisk()
+  }
+}
+
 const FIVE_MINUTES = 5 * 60 * 1000
 
 const isCurrent = (isoDate: Date, nowDate: Date): boolean => {
@@ -236,9 +267,34 @@ const isCurrent = (isoDate: Date, nowDate: Date): boolean => {
   return true
 }
 
+const createDefaultTokenMappings = (): TokenMap => {
+  const out: TokenMap = {}
+
+  // Add the mainnet currency mapping
+  for (const [key, value] of Object.entries(
+    coinmarketcapMainnetCurrencyMapping
+  )) {
+    if (value === null) continue
+    out[`${key}_null`] = {
+      id: value,
+      slug: key
+    }
+  }
+  return out
+}
+
 export const coinmarketcap: RateProvider = {
   providerId: 'coinmarketcap',
   type: 'api',
+  documents: [
+    {
+      name: 'rates_settings',
+      templates: {
+        coinmarketcap: createDefaultTokenMappings(),
+        'coinmarketcap:automated': createDefaultTokenMappings()
+      }
+    }
+  ],
   getCryptoRates: async ({ targetFiat, requestedRates }) => {
     if (targetFiat !== 'USD') {
       return {
@@ -247,7 +303,7 @@ export const coinmarketcap: RateProvider = {
       }
     }
 
-    const coinmarketcapTokenIdMap = readFromDisk()
+    const coinmarketcapTokenIdMap = await getTokenMappings()
 
     const rateBuckets = reduceRequestedCryptoRates(
       requestedRates,
