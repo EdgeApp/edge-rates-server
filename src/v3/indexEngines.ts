@@ -1,9 +1,10 @@
-import { snooze } from '../utils/utils'
+import { logger, snooze } from '../utils/utils'
 import {
   apiProviders,
   dbProviders,
   memoryProviders
 } from './providers/allProviders'
+import { createDatabases } from './setupDatabases'
 import { RateEngine } from './types'
 
 const HOUR = 60 * 60 * 1000
@@ -64,4 +65,6 @@ const startEngines = (): void => {
     }
   }
 }
-startEngines()
+createDatabases()
+  .then(() => startEngines())
+  .catch(e => logger('createDatabases failure', e))

@@ -1,10 +1,12 @@
 import { asArray, asMaybe, asNumber, asObject, asString } from 'cleaners'
+import { asCouchDoc } from 'edge-server-tools'
 import * as fs from 'fs'
 import * as path from 'path'
 
 import { config } from '../../../config'
 import { dateOnly, snooze } from '../../../utils/utils'
 import {
+  asTokenMap,
   EdgeCurrencyPluginId,
   NumberMap,
   RateBuckets,
@@ -17,6 +19,7 @@ import {
   expandReturnedCryptoRates,
   reduceRequestedCryptoRates
 } from '../../utils'
+import { dbSettings } from '../couch'
 import {
   coingeckoMainnetCurrencyMapping,
   coingeckoPlatformIdMapping
@@ -138,7 +141,24 @@ const tokenMapping: RateEngine = async () => {
     }
   }
 
-  saveToDisk(out)
+  const defaultsDocument = await dbSettings.get('coingecko')
+  const defaults = asCouchDoc(asTokenMap)(defaultsDocument).doc
+  const automatedMappingDocument = await dbSettings.get('coingecko:automated')
+  const automated = asCouchDoc(asTokenMap)(automatedMappingDocument).doc
+
+  // Merge the token mappings with priority: defaults > automated > new mappings
+  const combinedTokenMappings: TokenMap = {
+    ...automated,
+    ...out,
+    ...defaults
+  }
+
+  // Update the automated mapping document
+  await dbSettings.insert({
+    ...automatedMappingDocument,
+    ...combinedTokenMappings
+  })
+  saveToDisk(combinedTokenMappings)
 }
 
 const getCurrentRates = async (ids: Set<string>): Promise<NumberMap> => {
@@ -185,6 +205,15 @@ const getHistoricalRates = async (
   return out
 }
 
+const getTokenMappings = async (): Promise<TokenMap> => {
+  try {
+    const mapping = await dbSettings.get('coingecko:automated')
+    return asCouchDoc(asTokenMap)(mapping).doc
+  } catch (e) {
+    return readFromDisk()
+  }
+}
+
 const FIVE_MINUTES = 5 * 60 * 1000
 
 const isCurrent = (isoDate: Date, nowDate: Date): boolean => {
@@ -196,9 +225,32 @@ const isCurrent = (isoDate: Date, nowDate: Date): boolean => {
   return true
 }
 
+const createDefaultTokenMappings = (): TokenMap => {
+  const out: TokenMap = {}
+
+  // Add the mainnet currency mapping
+  for (const [key, value] of Object.entries(coingeckoMainnetCurrencyMapping)) {
+    if (value === null) continue
+    out[`${key}_null`] = {
+      id: value,
+      slug: key
+    }
+  }
+  return out
+}
+
 export const coingecko: RateProvider = {
   providerId: 'coingecko',
   type: 'api',
+  documents: [
+    {
+      name: 'rates_settings',
+      templates: {
+        coingecko: createDefaultTokenMappings(),
+        'coingecko:automated': createDefaultTokenMappings()
+      }
+    }
+  ],
   getCryptoRates: async ({ targetFiat, requestedRates }) => {
     if (targetFiat !== 'USD' || config.providers.coingeckopro.apiKey === '') {
       return {
@@ -207,7 +259,7 @@ export const coingecko: RateProvider = {
       }
     }
 
-    const coingeckoTokenIdMap = readFromDisk()
+    const coingeckoTokenIdMap = await getTokenMappings()
 
     const rateBuckets = reduceRequestedCryptoRates(
       requestedRates,

@@ -314,3 +314,50 @@ export const expandReturnedFiatRates = (
 
   return { foundRates, requestedRates: missingRates }
 }
+
+// This function breaks apart the requested rates into buckets of the given interval.
+type UpdateBuckets = Map<string, { [id: string]: number }>
+export const groupCryptoRatesByTime = (
+  requestedRates: CryptoRateMap,
+  intervalMs: number
+): UpdateBuckets => {
+  const buckets: UpdateBuckets = new Map()
+
+  requestedRates.forEach(cryptoRate => {
+    if (cryptoRate.rate == null) return
+
+    const rateTime = cryptoRate.isoDate.getTime()
+
+    // Floor to the start of the interval bucket
+    const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
+    const bucketKey = new Date(bucketTime).toISOString()
+    const bucket = buckets.get(bucketKey) ?? {}
+    bucket[`${cryptoRate.asset.pluginId}_${String(cryptoRate.asset.tokenId)}`] =
+      cryptoRate.rate
+    buckets.set(bucketKey, bucket)
+  })
+
+  return buckets
+}
+
+export const groupFiatRatesByTime = (
+  requestedRates: FiatRateMap,
+  intervalMs: number
+): UpdateBuckets => {
+  const buckets: UpdateBuckets = new Map()
+
+  requestedRates.forEach(fiatRate => {
+    if (fiatRate.rate == null) return
+
+    const rateTime = fiatRate.isoDate.getTime()
+
+    // Floor to the start of the interval bucket
+    const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
+    const bucketKey = new Date(bucketTime).toISOString()
+    const bucket = buckets.get(bucketKey) ?? {}
+    bucket[fiatRate.fiatCode] = fiatRate.rate
+    buckets.set(bucketKey, bucket)
+  })
+
+  return buckets
+}
