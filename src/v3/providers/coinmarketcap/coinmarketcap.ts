@@ -10,14 +10,20 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 import { config } from '../../../config'
-import { snooze } from '../../../utils/utils'
+import { daysBetween, snooze } from '../../../utils/utils'
 import {
   EdgeCurrencyPluginId,
+  NumberMap,
+  RateBuckets,
   RateEngine,
   RateProvider,
   TokenMap
 } from '../../types'
-import { createTokenId } from '../../utils'
+import {
+  createTokenId,
+  expandReturnedCryptoRates,
+  reduceRequestedCryptoRates
+} from '../../utils'
 import {
   coinmarketcapMainnetCurrencyMapping,
   coinmarketcapPlatformIdMapping
@@ -73,11 +79,48 @@ const asCoinMarketCapAssetResponse = asObject({
   )
 })
 
+const asCoinMarketCapCurrentQuotes = asObject({
+  data: asObject(
+    asObject({
+      quote: asObject({
+        USD: asObject({ price: asEither(asNumber, asNull) })
+      })
+    })
+  )
+})
+
+// still has that caveat where one rate changes the return object
+const asCoinMarketCapHistoricalQuotes = asObject({
+  data: asObject(
+    asObject({
+      quotes: asArray(
+        asObject({
+          timestamp: asString,
+          quote: asObject(
+            asObject({
+              price: asNumber
+            })
+          )
+        })
+      )
+    })
+  )
+})
+
 // Mappings will eventually be saved in some database. They can be on disk for now.
 const saveToDisk = (out: TokenMap): void => {
   const outputPath = path.join(__dirname, 'tokenMapping.json')
   fs.writeFileSync(outputPath, JSON.stringify(out, null, 2))
   console.log(`Token mapping saved to: ${outputPath}`)
+}
+
+const readFromDisk = (): TokenMap => {
+  const outputPath = path.join(__dirname, 'tokenMapping.json')
+  if (!fs.existsSync(outputPath)) {
+    return {}
+  }
+  const json = fs.readFileSync(outputPath, 'utf8')
+  return JSON.parse(json)
 }
 
 const tokenMapping: RateEngine = async () => {
@@ -131,9 +174,119 @@ const tokenMapping: RateEngine = async () => {
   saveToDisk(out)
 }
 
+const getCurrentRates = async (ids: Set<string>): Promise<NumberMap> => {
+  const json = await fetchCoinmarketcap(
+    `${
+      config.providers.coinMarketCapHistorical.uri
+    }/v2/cryptocurrency/quotes/latest?id=${Array.from(ids).join(
+      ','
+    )}&skip_invalid=true&convert=USD`
+  )
+  const data = asCoinMarketCapCurrentQuotes(json)
+  const out: NumberMap = {}
+  for (const [key, value] of Object.entries(data.data)) {
+    if (value.quote.USD.price != null) {
+      out[key] = value.quote.USD.price
+    }
+  }
+  return out
+}
+const getHistoricalRates = async (
+  ids: Set<string>,
+  date: string
+): Promise<NumberMap> => {
+  const now = new Date()
+  const days = daysBetween(new Date(date), now)
+
+  // If we're querying a date more than 3 months in the past, use
+  // daily average
+  const interval = days > 90 ? 'daily' : '5m'
+
+  // Coinmarketcap returns a slightly different format for requests
+  // with just a single id. We add two ids to avoid sending duplicates.
+  if (ids.size === 1) {
+    ids.add('1') // bitcoin
+    ids.add('1027') // ethereum
+  }
+
+  const json = await fetchCoinmarketcap(
+    `${
+      config.providers.coinMarketCapHistorical.uri
+    }/v2/cryptocurrency/quotes/historical?id=${Array.from(ids).join(
+      ','
+    )}&time_start=${date}&count=1&interval=${interval}&skip_invalid=true&convert=USD`
+  )
+
+  const data = asCoinMarketCapHistoricalQuotes(json)
+  const out: NumberMap = {}
+  for (const [key, value] of Object.entries(data.data)) {
+    out[key] = value.quotes[0].quote.USD.price
+  }
+  return out
+}
+
+const FIVE_MINUTES = 5 * 60 * 1000
+
+const isCurrent = (isoDate: Date, nowDate: Date): boolean => {
+  const requestedDate = isoDate.getTime()
+  const rightNow = nowDate.getTime()
+  if (requestedDate > rightNow || requestedDate + FIVE_MINUTES < rightNow) {
+    return false
+  }
+  return true
+}
+
 export const coinmarketcap: RateProvider = {
   providerId: 'coinmarketcap',
   type: 'api',
+  getCryptoRates: async ({ targetFiat, requestedRates }) => {
+    if (targetFiat !== 'USD') {
+      return {
+        foundRates: new Map(),
+        requestedRates
+      }
+    }
+
+    const coinmarketcapTokenIdMap = readFromDisk()
+
+    const rateBuckets = reduceRequestedCryptoRates(
+      requestedRates,
+      FIVE_MINUTES,
+      coinmarketcapTokenIdMap
+    )
+
+    const currentDate = new Date()
+    const allResults: RateBuckets = new Map()
+    const promises: Array<Promise<void>> = []
+    rateBuckets.forEach((ids, date) => {
+      if (isCurrent(new Date(date), currentDate)) {
+        promises.push(
+          getCurrentRates(ids).then(results => {
+            allResults.set(date, results)
+          })
+        )
+      } else {
+        promises.push(
+          getHistoricalRates(ids, date).then(results => {
+            allResults.set(date, results)
+          })
+        )
+      }
+    })
+    await Promise.all(promises)
+
+    const out = expandReturnedCryptoRates(
+      requestedRates,
+      FIVE_MINUTES,
+      allResults,
+      coinmarketcapTokenIdMap
+    )
+
+    return {
+      foundRates: out.foundRates,
+      requestedRates: out.requestedRates
+    }
+  },
   engines: [
     {
       frequency: 'day',
