@@ -8,6 +8,7 @@ import {
   asOptional,
   asString
 } from 'cleaners'
+import { DatabaseSetup } from 'edge-server-tools'
 
 const asEdgeTokenId = asEither(asString, asNull)
 export type EdgeTokenId = ReturnType<typeof asEdgeTokenId>
@@ -62,6 +63,7 @@ export type RateEngine = () => Promise<void>
 export interface RateProvider {
   providerId: string
   type: 'memory' | 'db' | 'api'
+  documents?: DatabaseSetup[]
   getCryptoRates?: (params: GetCryptoRatesParams) => Promise<{
     foundRates: CryptoRateMap
     requestedRates: CryptoRateMap
@@ -79,11 +81,16 @@ export interface RateProvider {
 
 export type GetRatesFunc = (params: GetRatesParams) => Promise<GetRatesParams>
 
-export interface TokenMap {
-  [key: string]: {
-    id: string
-    slug: string
-  }
+export const asTokenMap = asObject(
+  asObject({
+    id: asString,
+    slug: asString
+  })
+)
+export type TokenMap = ReturnType<typeof asTokenMap>
+
+export interface StringMap {
+  [key: string]: string
 }
 
 export type EdgeCurrencyPluginId =
@@ -163,3 +170,18 @@ export type NumberMap = ReturnType<typeof asNumberMap>
 export type RateBuckets = Map<string, NumberMap>
 
 export type DateBuckets = Map<string, Set<string>>
+
+export const asRateDocument = asObject({
+  crypto: asObject(
+    asObject({
+      // currencyCode: asString,
+      USD: asNumber
+    })
+  ),
+  fiat: asObject(
+    asObject({
+      USD: asNumber
+    })
+  )
+})
+export type RateDocument = ReturnType<typeof asRateDocument>

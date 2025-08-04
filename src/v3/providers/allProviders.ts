@@ -3,6 +3,7 @@ import { coingecko } from './coingecko/coingecko'
 import { coinmarketcap } from './coinmarketcap/coinmarketcap'
 // import { coinmonitor } from './coinmonitor'
 import { coinstore } from './coinstore'
+import { couch } from './couch'
 import { currencyconverter } from './currencyconverter'
 import { midgard } from './midgard'
 import { wazirx } from './wazirx'
@@ -15,7 +16,8 @@ const looselyOrderedProviders: RateProvider[] = [
   wazirx,
   coinmarketcap,
   coingecko,
-  currencyconverter
+  currencyconverter,
+  couch
 ]
 
 export const memoryProviders = looselyOrderedProviders.filter(
