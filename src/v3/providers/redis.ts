@@ -28,8 +28,16 @@ client.connect().catch(e => {
   logger('redis connect error: ', e)
 })
 
-const hsetAsync = client.hSet.bind(client)
-const hmgetAsync = client.hmGet.bind(client)
+export const hsetAsync = client.hSet.bind(client)
+export const hmgetAsync = client.hmGet.bind(client)
+export const getAsync = client.get.bind(client)
+// this is to navigate a type error
+export const setAsync = async (
+  key: string,
+  value: string
+): Promise<string | null> => {
+  return await client.set(key, value)
+}
 
 const ONE_MINUTE = 60 * 1000
 const FIVE_MINUTES = 5 * 60 * 1000
