@@ -16,3 +16,7 @@ yarn-error.log
 .DS_Store
 .idea/
 .vscode/
+
+# local tokenId mapping:
+src/v3/providers/coinmarketcap/tokenMapping.json
+src/v3/providers/coingecko/tokenMapping.json
