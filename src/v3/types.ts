@@ -40,6 +40,25 @@ export const asGetRatesParams = asObject({
 })
 export type GetRatesParams = ReturnType<typeof asGetRatesParams>
 
+export const asIncomingGetRatesParams = asObject({
+  targetFiat: asString,
+  crypto: asArray(
+    asObject({
+      isoDate: asOptional(asDate),
+      asset: asEdgeAsset,
+      rate: asOptional(asNumber)
+    })
+  ),
+  fiat: asArray(
+    asObject({
+      isoDate: asOptional(asDate),
+      fiatCode: asString,
+      rate: asOptional(asNumber)
+    })
+  )
+})
+export type IncomingGetRatesParams = ReturnType<typeof asIncomingGetRatesParams>
+
 export type CryptoRateMap = Map<string, CryptoRate>
 export type FiatRateMap = Map<string, FiatRate>
 
