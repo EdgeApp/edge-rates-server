@@ -51,8 +51,9 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
         DEFAULT_FIAT
       )}&symbols=${codeString}`
     )
-    if (response.ok === false) {
+    if (!response.ok) {
       logger(
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         `openExchangeRates returned code ${response.status} for ${codes} at ${date}`
       )
       throw new Error(
@@ -64,6 +65,7 @@ const query = async (date: string, codes: string[]): Promise<NewRates> => {
     // Create return object
     rates[date] = openExchangeRatesRateMap(json.rates)
   } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     logger(`Failed to get ${codes} from openExchangeRates`, e)
   }
   return rates
@@ -90,17 +92,17 @@ export const openExchangeRates = async (
     // openexchangerates is a backup fiat pair provider only
     if (!isIsoCode(fromCurrency) || !isIsoCode(toCurrency)) continue
 
-    if (datesAndCodesWanted[pair.date].indexOf(subIso(fromCurrency)) === -1) {
+    if (!datesAndCodesWanted[pair.date].includes(subIso(fromCurrency))) {
       datesAndCodesWanted[pair.date].push(subIso(fromCurrency))
     }
-    if (datesAndCodesWanted[pair.date].indexOf(subIso(toCurrency)) === -1) {
+    if (!datesAndCodesWanted[pair.date].includes(subIso(toCurrency))) {
       datesAndCodesWanted[pair.date].push(subIso(toCurrency))
     }
   }
 
   // Query
-  const providers = Object.keys(datesAndCodesWanted).map(async date =>
-    query(date, datesAndCodesWanted[date])
+  const providers = Object.keys(datesAndCodesWanted).map(
+    async date => await query(date, datesAndCodesWanted[date])
   )
   try {
     const response = await Promise.all(providers)
