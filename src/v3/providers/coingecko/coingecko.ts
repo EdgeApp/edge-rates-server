@@ -1,4 +1,4 @@
-import { asArray, asNumber, asObject, asString } from 'cleaners'
+import { asArray, asMaybe, asNumber, asObject, asString } from 'cleaners'
 import { asCouchDoc } from 'edge-server-tools'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -195,8 +195,10 @@ const getHistoricalRates = async (
       fetchCoingecko(
         `${config.providers.coingeckopro.uri}/api/v3/coins/${id}/history?date=${coingeckoDate}`
       ).then(json => {
-        const data = asCoingeckoHistoricalUsdResponse(json)
-        out[id] = data.market_data.current_price.usd
+        const data = asMaybe(asCoingeckoHistoricalUsdResponse)(json)
+        if (data != null) {
+          out[id] = data.market_data.current_price.usd
+        }
       })
     )
   })
