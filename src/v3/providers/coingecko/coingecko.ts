@@ -17,6 +17,7 @@ import {
 import {
   createTokenId,
   expandReturnedCryptoRates,
+  isCurrent,
   reduceRequestedCryptoRates
 } from '../../utils'
 import { dbSettings } from '../couch'
@@ -218,17 +219,6 @@ const getTokenMappings = async (): Promise<TokenMap> => {
   }
 }
 
-const FIVE_MINUTES = 5 * 60 * 1000
-
-const isCurrent = (isoDate: Date, nowDate: Date): boolean => {
-  const requestedDate = isoDate.getTime()
-  const rightNow = nowDate.getTime()
-  if (requestedDate > rightNow || requestedDate + FIVE_MINUTES < rightNow) {
-    return false
-  }
-  return true
-}
-
 const createDefaultTokenMappings = (): TokenMap => {
   const out: TokenMap = {}
 
@@ -265,17 +255,17 @@ export const coingecko: RateProvider = {
 
     const coingeckoTokenIdMap = await getTokenMappings()
 
+    const rightNow = new Date()
     const rateBuckets = reduceRequestedCryptoRates(
       requestedRates,
-      FIVE_MINUTES,
+      rightNow,
       coingeckoTokenIdMap
     )
 
-    const currentDate = new Date()
     const allResults: RateBuckets = new Map()
     const promises: Array<Promise<void>> = []
     rateBuckets.forEach((ids, date) => {
-      if (isCurrent(new Date(date), currentDate)) {
+      if (isCurrent(new Date(date), rightNow)) {
         promises.push(
           getCurrentRates(ids).then(results => {
             allResults.set(date, results)
@@ -293,7 +283,7 @@ export const coingecko: RateProvider = {
 
     const out = expandReturnedCryptoRates(
       requestedRates,
-      FIVE_MINUTES,
+      rightNow,
       allResults,
       coingeckoTokenIdMap
     )

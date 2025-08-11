@@ -1,14 +1,13 @@
 import { HttpResponse } from 'serverlet'
 import { ExpressRequest } from 'serverlet/express'
 
+import { ONE_MINUTE } from './constants'
 import { getRates } from './getRates'
 import {
   asIncomingGetRatesParams,
   GetRatesParams,
   IncomingGetRatesParams
 } from './types'
-
-const ONE_MINUTE = 60 * 1000
 
 const fixIncomingGetRatesParams = (
   rawParams: IncomingGetRatesParams

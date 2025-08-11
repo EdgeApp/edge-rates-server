@@ -1,36 +1,27 @@
 import { logger, snooze } from '../utils/utils'
+import { ONE_HOUR } from './constants'
 import {
   apiProviders,
   dbProviders,
   memoryProviders
 } from './providers/allProviders'
 import { createDatabases } from './setupDatabases'
-import { RateEngine } from './types'
+import { Frequency, RateEngine } from './types'
 
-const HOUR = 60 * 60 * 1000
-const frequencyToMs = (
-  frequency: 'minute' | 'hour' | 'day' | 'week' | 'month'
-): number => {
-  switch (frequency) {
-    case 'minute':
-      return 60 * 1000
-    case 'hour':
-      return HOUR
-    case 'day':
-      return 24 * HOUR
-    case 'week':
-      return 7 * 24 * HOUR
-    case 'month':
-      return 30 * 7 * 24 * HOUR
-  }
+const frequencyToMs: Record<Frequency, number> = {
+  minute: 60 * 1000,
+  hour: ONE_HOUR,
+  day: 24 * ONE_HOUR,
+  week: 7 * 24 * ONE_HOUR,
+  month: 30 * 24 * ONE_HOUR
 }
 
 const createEngineLoop = async (
   providerId: string,
   engine: RateEngine,
-  frequency: 'minute' | 'hour' | 'day' | 'week' | 'month'
+  frequency: Frequency
 ): Promise<void> => {
-  const delayMs = frequencyToMs(frequency)
+  const delayMs = frequencyToMs[frequency]
   while (true) {
     const startTime = Date.now()
     try {

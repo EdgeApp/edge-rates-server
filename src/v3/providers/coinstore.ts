@@ -3,7 +3,11 @@ import fetch from 'node-fetch'
 
 import { config } from '../../config'
 import { NumberMap, RateBuckets, RateProvider } from '../types'
-import { expandReturnedCryptoRates, reduceRequestedCryptoRates } from '../utils'
+import {
+  expandReturnedCryptoRates,
+  isCurrent,
+  reduceRequestedCryptoRates
+} from '../utils'
 
 const { uri } = config.providers.coinstore
 
@@ -36,17 +40,6 @@ const coinstoreTokenIdMap = {
   }
 }
 
-const ONE_MINUTE = 60 * 1000
-
-const isCurrent = (isoDate: Date, nowDate: Date): boolean => {
-  const requestedDate = isoDate.getTime()
-  const rightNow = nowDate.getTime()
-  if (requestedDate > rightNow || requestedDate + ONE_MINUTE < rightNow) {
-    return false
-  }
-  return true
-}
-
 export const coinstore: RateProvider = {
   providerId: 'coinstore',
   type: 'api',
@@ -58,18 +51,18 @@ export const coinstore: RateProvider = {
         requestedRates
       }
     }
+    const rightNow = new Date()
 
     const rateBuckets = reduceRequestedCryptoRates(
       requestedRates,
-      ONE_MINUTE,
+      rightNow,
       coinstoreTokenIdMap
     )
 
-    const currentDate = new Date()
     const allResults: RateBuckets = new Map()
     const promises: Array<Promise<void>> = []
     rateBuckets.forEach((ids, date) => {
-      if (isCurrent(new Date(date), currentDate) && ids.has('LLD')) {
+      if (isCurrent(new Date(date), rightNow) && ids.has('LLD')) {
         promises.push(
           fetchCoinstore().then(results => {
             allResults.set(date, results)
@@ -81,7 +74,7 @@ export const coinstore: RateProvider = {
 
     const out = expandReturnedCryptoRates(
       requestedRates,
-      ONE_MINUTE,
+      rightNow,
       allResults,
       coinstoreTokenIdMap
     )

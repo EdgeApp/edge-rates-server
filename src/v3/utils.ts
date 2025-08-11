@@ -1,3 +1,4 @@
+import { FIVE_MINUTES, ONE_MINUTE, TWENTY_FOUR_HOURS } from './constants'
 import {
   CryptoRate,
   CryptoRateMap,
@@ -198,13 +199,17 @@ export const createTokenId = (
 // can then be rematched with the requested rates
 export const reduceRequestedCryptoRates = (
   requestedRates: CryptoRateMap,
-  intervalMs: number,
+  rightNow: Date,
   mapping?: TokenMap
 ): DateBuckets => {
   const buckets: DateBuckets = new Map()
 
   requestedRates.forEach(rate => {
     const rateTime = rate.isoDate.getTime()
+
+    // Current rates (< five minutes old) use minute precision and historical rates use five minutes
+    const intervalMs =
+      rightNow.getTime() - rateTime < FIVE_MINUTES ? ONE_MINUTE : FIVE_MINUTES
 
     // Floor to the start of the interval bucket
     const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
@@ -229,7 +234,7 @@ export const reduceRequestedCryptoRates = (
 
 export const expandReturnedCryptoRates = (
   requestedRates: CryptoRateMap,
-  intervalMs: number,
+  rightNow: Date,
   returnedRates: RateBuckets,
   mapping?: TokenMap
 ): { foundRates: CryptoRateMap; requestedRates: CryptoRateMap } => {
@@ -238,6 +243,10 @@ export const expandReturnedCryptoRates = (
 
   requestedRates.forEach((rate, key) => {
     const rateTime = rate.isoDate.getTime()
+
+    // Current rates (< five minutes old) use minute precision and historical rates use five minutes
+    const intervalMs =
+      rightNow.getTime() - rateTime < FIVE_MINUTES ? ONE_MINUTE : FIVE_MINUTES
 
     // Floor to the start of the interval bucket
     const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
@@ -268,8 +277,7 @@ export const expandReturnedCryptoRates = (
 }
 
 export const reduceRequestedFiatRates = (
-  requestedRates: FiatRateMap,
-  intervalMs: number
+  requestedRates: FiatRateMap
 ): DateBuckets => {
   const buckets: DateBuckets = new Map()
 
@@ -277,7 +285,8 @@ export const reduceRequestedFiatRates = (
     const rateTime = rate.isoDate.getTime()
 
     // Floor to the start of the interval bucket
-    const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
+    const bucketTime =
+      Math.floor(rateTime / TWENTY_FOUR_HOURS) * TWENTY_FOUR_HOURS
     const bucketKey = new Date(bucketTime).toISOString()
     const bucket = buckets.get(bucketKey) ?? new Set()
 
@@ -290,7 +299,6 @@ export const reduceRequestedFiatRates = (
 
 export const expandReturnedFiatRates = (
   requestedRates: FiatRateMap,
-  intervalMs: number,
   returnedRates: RateBuckets
 ): { foundRates: FiatRateMap; requestedRates: FiatRateMap } => {
   const foundRates: FiatRateMap = new Map()
@@ -300,7 +308,8 @@ export const expandReturnedFiatRates = (
     const rateTime = rate.isoDate.getTime()
 
     // Floor to the start of the interval bucket
-    const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
+    const bucketTime =
+      Math.floor(rateTime / TWENTY_FOUR_HOURS) * TWENTY_FOUR_HOURS
     const bucketKey = new Date(bucketTime).toISOString()
     const bucket = returnedRates.get(bucketKey) ?? {}
 
@@ -318,15 +327,19 @@ export const expandReturnedFiatRates = (
 // This function breaks apart the requested rates into buckets of the given interval.
 type UpdateBuckets = Map<string, { [id: string]: number }>
 export const groupCryptoRatesByTime = (
-  requestedRates: CryptoRateMap,
-  intervalMs: number
+  requestedRates: CryptoRateMap
 ): UpdateBuckets => {
   const buckets: UpdateBuckets = new Map()
+  const rightNowMs = new Date().getTime()
 
   requestedRates.forEach(cryptoRate => {
     if (cryptoRate.rate == null) return
 
     const rateTime = cryptoRate.isoDate.getTime()
+
+    // Current rates (< five minutes old) use minute precision and historical rates use five minutes
+    const intervalMs =
+      rightNowMs - rateTime < FIVE_MINUTES ? ONE_MINUTE : FIVE_MINUTES
 
     // Floor to the start of the interval bucket
     const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
@@ -341,8 +354,7 @@ export const groupCryptoRatesByTime = (
 }
 
 export const groupFiatRatesByTime = (
-  requestedRates: FiatRateMap,
-  intervalMs: number
+  requestedRates: FiatRateMap
 ): UpdateBuckets => {
   const buckets: UpdateBuckets = new Map()
 
@@ -352,7 +364,8 @@ export const groupFiatRatesByTime = (
     const rateTime = fiatRate.isoDate.getTime()
 
     // Floor to the start of the interval bucket
-    const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
+    const bucketTime =
+      Math.floor(rateTime / TWENTY_FOUR_HOURS) * TWENTY_FOUR_HOURS
     const bucketKey = new Date(bucketTime).toISOString()
     const bucket = buckets.get(bucketKey) ?? {}
     bucket[fiatRate.fiatCode] = fiatRate.rate
@@ -361,3 +374,21 @@ export const groupFiatRatesByTime = (
 
   return buckets
 }
+
+// This helps providers determine which endpoint to use for the date requested.
+// For providers that only look up current rates, they would use this to ignore
+// historical requests.
+export const isCurrent = (
+  isoDate: Date,
+  rightNow: Date,
+  intervalMs: number = ONE_MINUTE
+): boolean => {
+  const requestedDate = isoDate.getTime()
+  const rightNowMs = rightNow.getTime()
+  if (requestedDate > rightNowMs || requestedDate + intervalMs < rightNowMs) {
+    return false
+  }
+  return true
+}
+export const isCurrentFiat = (isoDate: Date, rightNow: Date): boolean =>
+  isCurrent(isoDate, rightNow, TWENTY_FOUR_HOURS)
