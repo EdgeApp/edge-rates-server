@@ -10,7 +10,7 @@ import {
   RateProvider,
   UpdateRatesParams
 } from './types'
-import { toCryptoRateKey, toFiatRateKey } from './utils'
+import { toCryptoKey } from './utils'
 
 const queryProviders = async (
   providers: RateProvider[],
@@ -93,11 +93,17 @@ export const getRates: GetRatesFunc = async params => {
 
   const requestedCrypto: CryptoRateMap = new Map()
   for (const cryptoRate of params.crypto) {
-    requestedCrypto.set(toCryptoRateKey(cryptoRate), cryptoRate)
+    requestedCrypto.set(
+      `${cryptoRate.isoDate.toISOString()}_${toCryptoKey(cryptoRate.asset)}`,
+      cryptoRate
+    )
   }
   const requestedFiat: FiatRateMap = new Map()
   for (const fiatRate of params.fiat) {
-    requestedFiat.set(toFiatRateKey(fiatRate), fiatRate)
+    requestedFiat.set(
+      `${fiatRate.isoDate.toISOString()}_${fiatRate.fiatCode}`,
+      fiatRate
+    )
   }
 
   const memoryResults = await queryProviders(

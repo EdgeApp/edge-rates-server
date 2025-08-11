@@ -1,23 +1,21 @@
 import { FIVE_MINUTES, ONE_MINUTE, TWENTY_FOUR_HOURS } from './constants'
 import {
-  CryptoRate,
   CryptoRateMap,
   DateBuckets,
+  EdgeAsset,
   EdgeCurrencyPluginId,
   EdgeTokenId,
-  FiatRate,
   FiatRateMap,
   RateBuckets,
   TokenMap
 } from './types'
 
-export const toCryptoRateKey = (rate: CryptoRate): string => {
-  return `${rate.isoDate.toISOString()}_${rate.asset.pluginId}_${String(
-    rate.asset.tokenId
-  )}`
-}
-export const toFiatRateKey = (rate: FiatRate): string => {
-  return `${rate.isoDate.toISOString()}_${rate.fiatCode}`
+export const toCryptoKey = (asset: EdgeAsset): string => {
+  let tokenIdString = ''
+  if (asset.tokenId != null) {
+    tokenIdString = `_${asset.tokenId}`
+  }
+  return `${asset.pluginId}${tokenIdString}`
 }
 
 function assertNever(x: never): never {
@@ -218,9 +216,9 @@ export const reduceRequestedCryptoRates = (
 
     let id: string | undefined
     if (mapping == null) {
-      id = `${rate.asset.pluginId}_${String(rate.asset.tokenId)}`
+      id = toCryptoKey(rate.asset)
     } else {
-      id = mapping[`${rate.asset.pluginId}_${String(rate.asset.tokenId)}`]?.id
+      id = mapping[toCryptoKey(rate.asset)]?.id
     }
 
     if (id != null) {
@@ -255,9 +253,9 @@ export const expandReturnedCryptoRates = (
 
     let id: string | undefined
     if (mapping == null) {
-      id = `${rate.asset.pluginId}_${String(rate.asset.tokenId)}`
+      id = toCryptoKey(rate.asset)
     } else {
-      id = mapping[`${rate.asset.pluginId}_${String(rate.asset.tokenId)}`]?.id
+      id = mapping[toCryptoKey(rate.asset)]?.id
     }
 
     if (id == null) {
@@ -345,8 +343,7 @@ export const groupCryptoRatesByTime = (
     const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
     const bucketKey = new Date(bucketTime).toISOString()
     const bucket = buckets.get(bucketKey) ?? {}
-    bucket[`${cryptoRate.asset.pluginId}_${String(cryptoRate.asset.tokenId)}`] =
-      cryptoRate.rate
+    bucket[toCryptoKey(cryptoRate.asset)] = cryptoRate.rate
     buckets.set(bucketKey, bucket)
   })
 
