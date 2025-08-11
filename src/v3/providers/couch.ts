@@ -32,6 +32,13 @@ export const couch: RateProvider = {
   providerId: 'couch',
   type: 'db',
   getCryptoRates: async ({ targetFiat, requestedRates }) => {
+    if (targetFiat !== 'USD') {
+      return {
+        foundRates: new Map(),
+        requestedRates
+      }
+    }
+
     const rightNow = new Date()
     const rateBuckets = reduceRequestedCryptoRates(requestedRates, rightNow)
 
@@ -73,6 +80,13 @@ export const couch: RateProvider = {
     }
   },
   getFiatRates: async ({ targetFiat, requestedRates }) => {
+    if (targetFiat !== 'USD') {
+      return {
+        foundRates: new Map(),
+        requestedRates
+      }
+    }
+
     const rateBuckets = reduceRequestedFiatRates(requestedRates)
 
     const allResults: RateBuckets = new Map()
