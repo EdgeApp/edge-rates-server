@@ -2,6 +2,7 @@ import { mul } from 'biggystring'
 import { createClient } from 'redis'
 
 import { logger } from '../../utils/utils'
+import { ONE_MINUTE, TWENTY_FOUR_HOURS } from '../constants'
 import { RateBuckets, RateProvider, UpdateRatesParams } from '../types'
 import {
   expandReturnedCryptoRates,
@@ -35,9 +36,6 @@ export const setAsync = async (
   return await client.set(key, value)
 }
 
-const ONE_MINUTE = 60 * 1000
-const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000
-
 const normalizeDate = (date: string, intervalMs: number): string => {
   const rateTime = new Date(date).getTime()
 
@@ -51,7 +49,8 @@ export const redis: RateProvider = {
   providerId: 'redis',
   type: 'memory',
   getCryptoRates: async ({ targetFiat, requestedRates }) => {
-    const rateBuckets = reduceRequestedCryptoRates(requestedRates, ONE_MINUTE)
+    const rightNow = new Date()
+    const rateBuckets = reduceRequestedCryptoRates(requestedRates, rightNow)
 
     const allResults: RateBuckets = new Map()
     for (const [date, cryptoPairs] of rateBuckets.entries()) {
@@ -79,11 +78,7 @@ export const redis: RateProvider = {
       }
     }
 
-    const out = expandReturnedCryptoRates(
-      requestedRates,
-      ONE_MINUTE,
-      allResults
-    )
+    const out = expandReturnedCryptoRates(requestedRates, rightNow, allResults)
 
     return {
       foundRates: out.foundRates,
@@ -91,10 +86,7 @@ export const redis: RateProvider = {
     }
   },
   getFiatRates: async ({ targetFiat, requestedRates }) => {
-    const rateBuckets = reduceRequestedFiatRates(
-      requestedRates,
-      TWENTY_FOUR_HOURS
-    )
+    const rateBuckets = reduceRequestedFiatRates(requestedRates)
 
     const allResults: RateBuckets = new Map()
     for (const [date, fiatPairs] of rateBuckets.entries()) {
@@ -122,11 +114,7 @@ export const redis: RateProvider = {
       }
     }
 
-    const out = expandReturnedFiatRates(
-      requestedRates,
-      TWENTY_FOUR_HOURS,
-      allResults
-    )
+    const out = expandReturnedFiatRates(requestedRates, allResults)
 
     return {
       foundRates: out.foundRates,
@@ -142,13 +130,13 @@ export const redis: RateProvider = {
       return
     }
 
-    const cryptoRateBuckets = groupCryptoRatesByTime(params.crypto, ONE_MINUTE)
+    const cryptoRateBuckets = groupCryptoRatesByTime(params.crypto)
     for (const [date, cryptoRates] of cryptoRateBuckets.entries()) {
       const cryptoRedisKey = `rates_data:${date}:crypto`
       await hsetAsync(cryptoRedisKey, cryptoRates)
     }
 
-    const fiatRateBuckets = groupFiatRatesByTime(params.fiat, TWENTY_FOUR_HOURS)
+    const fiatRateBuckets = groupFiatRatesByTime(params.fiat)
     for (const [date, fiatRates] of fiatRateBuckets.entries()) {
       const fiatRedisKey = `rates_data:${date}:fiat`
       await hsetAsync(fiatRedisKey, fiatRates)

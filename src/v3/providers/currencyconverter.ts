@@ -3,7 +3,11 @@ import fetch from 'node-fetch'
 
 import { config } from '../../config'
 import { NumberMap, RateBuckets, RateProvider } from '../types'
-import { expandReturnedFiatRates, reduceRequestedFiatRates } from '../utils'
+import {
+  expandReturnedFiatRates,
+  isCurrentFiat,
+  reduceRequestedFiatRates
+} from '../utils'
 
 const {
   providers: {
@@ -58,20 +62,6 @@ const fetchCurrencyConverter = async (
   }
 }
 
-const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000
-
-const isCurrent = (isoDate: Date, nowDate: Date): boolean => {
-  const requestedDate = isoDate.getTime()
-  const rightNow = nowDate.getTime()
-  if (
-    requestedDate > rightNow ||
-    requestedDate + TWENTY_FOUR_HOURS < rightNow
-  ) {
-    return false
-  }
-  return true
-}
-
 export const currencyconverter: RateProvider = {
   providerId: 'currencyconverter',
   type: 'api',
@@ -83,16 +73,13 @@ export const currencyconverter: RateProvider = {
       }
     }
 
-    const rateBuckets = reduceRequestedFiatRates(
-      requestedRates,
-      TWENTY_FOUR_HOURS
-    )
+    const rateBuckets = reduceRequestedFiatRates(requestedRates)
 
     const currentDate = new Date()
     const allResults: RateBuckets = new Map()
     const promises: Array<Promise<void>> = []
     rateBuckets.forEach((ids, date) => {
-      if (isCurrent(new Date(date), currentDate)) {
+      if (isCurrentFiat(new Date(date), currentDate)) {
         promises.push(
           fetchCurrencyConverter(targetFiat, Array.from(ids)).then(results => {
             allResults.set(date, results)
@@ -110,11 +97,7 @@ export const currencyconverter: RateProvider = {
     })
     await Promise.all(promises)
 
-    const out = expandReturnedFiatRates(
-      requestedRates,
-      TWENTY_FOUR_HOURS,
-      allResults
-    )
+    const out = expandReturnedFiatRates(requestedRates, allResults)
 
     return {
       foundRates: out.foundRates,
