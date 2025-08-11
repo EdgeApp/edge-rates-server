@@ -80,6 +80,8 @@ export interface UpdateRatesParams {
 
 export type RateEngine = () => Promise<void>
 
+export type Frequency = 'minute' | 'hour' | 'day' | 'week' | 'month'
+
 export interface RateProvider {
   providerId: string
   type: 'memory' | 'db' | 'api'
@@ -94,7 +96,7 @@ export interface RateProvider {
   }>
   updateRates?: (params: UpdateRatesParams) => Promise<void>
   engines?: Array<{
-    frequency: 'minute' | 'hour' | 'day' | 'week' | 'month'
+    frequency: Frequency
     engine: RateEngine
   }>
 }

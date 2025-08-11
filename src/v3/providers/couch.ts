@@ -23,14 +23,12 @@ export const dbSettings: nano.DocumentScope<any> =
 export const dbData: nano.DocumentScope<RateDocument> =
   couchDB.default.db.use<RateDocument>('rates_data')
 
-const ONE_MINUTE = 60 * 1000
-const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000
-
 export const couch: RateProvider = {
   providerId: 'couch',
   type: 'db',
   getCryptoRates: async ({ targetFiat, requestedRates }) => {
-    const rateBuckets = reduceRequestedCryptoRates(requestedRates, ONE_MINUTE)
+    const rightNow = new Date()
+    const rateBuckets = reduceRequestedCryptoRates(requestedRates, rightNow)
 
     const allResults: RateBuckets = new Map()
 
@@ -63,11 +61,7 @@ export const couch: RateProvider = {
       }
     }
 
-    const out = expandReturnedCryptoRates(
-      requestedRates,
-      ONE_MINUTE,
-      allResults
-    )
+    const out = expandReturnedCryptoRates(requestedRates, rightNow, allResults)
 
     return {
       foundRates: out.foundRates,
@@ -75,10 +69,7 @@ export const couch: RateProvider = {
     }
   },
   getFiatRates: async ({ targetFiat, requestedRates }) => {
-    const rateBuckets = reduceRequestedFiatRates(
-      requestedRates,
-      TWENTY_FOUR_HOURS
-    )
+    const rateBuckets = reduceRequestedFiatRates(requestedRates)
 
     const allResults: RateBuckets = new Map()
 
@@ -110,11 +101,7 @@ export const couch: RateProvider = {
       }
     }
 
-    const out = expandReturnedFiatRates(
-      requestedRates,
-      TWENTY_FOUR_HOURS,
-      allResults
-    )
+    const out = expandReturnedFiatRates(requestedRates, allResults)
 
     return {
       foundRates: out.foundRates,
@@ -130,9 +117,10 @@ export const couch: RateProvider = {
       return
     }
 
+    const rightNow = new Date()
     const cryptoRateBuckets = reduceRequestedCryptoRates(
       params.crypto,
-      ONE_MINUTE
+      rightNow
     )
 
     const cryptoDocs: Array<{
@@ -185,10 +173,7 @@ export const couch: RateProvider = {
       docs: cryptoDocs
     })
 
-    const fiatRateBuckets = reduceRequestedFiatRates(
-      params.fiat,
-      TWENTY_FOUR_HOURS
-    )
+    const fiatRateBuckets = reduceRequestedFiatRates(params.fiat)
 
     const fiatDocs: Array<{
       _id: string

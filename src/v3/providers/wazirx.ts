@@ -3,7 +3,11 @@ import fetch from 'node-fetch'
 
 import { config } from '../../config'
 import { NumberMap, RateBuckets, RateProvider } from '../types'
-import { expandReturnedCryptoRates, reduceRequestedCryptoRates } from '../utils'
+import {
+  expandReturnedCryptoRates,
+  isCurrent,
+  reduceRequestedCryptoRates
+} from '../utils'
 
 const { uri } = config.providers.wazirx
 
@@ -27,17 +31,6 @@ const wazirxTokenIdMap = {
   }
 }
 
-const ONE_MINUTE = 60 * 1000
-
-const isCurrent = (isoDate: Date, nowDate: Date): boolean => {
-  const requestedDate = isoDate.getTime()
-  const rightNow = nowDate.getTime()
-  if (requestedDate > rightNow || requestedDate + ONE_MINUTE < rightNow) {
-    return false
-  }
-  return true
-}
-
 export const wazirx: RateProvider = {
   providerId: 'wazirx',
   type: 'api',
@@ -50,17 +43,17 @@ export const wazirx: RateProvider = {
       }
     }
 
+    const rightNow = new Date()
     const rateBuckets = reduceRequestedCryptoRates(
       requestedRates,
-      ONE_MINUTE,
+      rightNow,
       wazirxTokenIdMap
     )
 
-    const currentDate = new Date()
     const allResults: RateBuckets = new Map()
     const promises: Array<Promise<void>> = []
     rateBuckets.forEach((ids, date) => {
-      if (isCurrent(new Date(date), currentDate) && ids.has('bitcoin')) {
+      if (isCurrent(new Date(date), rightNow) && ids.has('bitcoin')) {
         promises.push(
           fetchWazirx().then(results => {
             allResults.set(date, results)
@@ -72,7 +65,7 @@ export const wazirx: RateProvider = {
 
     const out = expandReturnedCryptoRates(
       requestedRates,
-      ONE_MINUTE,
+      rightNow,
       allResults,
       wazirxTokenIdMap
     )

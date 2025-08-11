@@ -3,7 +3,11 @@ import fetch from 'node-fetch'
 
 import { config } from '../../config'
 import { NumberMap, RateBuckets, RateProvider } from '../types'
-import { expandReturnedCryptoRates, reduceRequestedCryptoRates } from '../utils'
+import {
+  expandReturnedCryptoRates,
+  isCurrent,
+  reduceRequestedCryptoRates
+} from '../utils'
 
 const { uri } = config.providers.midgard
 
@@ -29,17 +33,6 @@ const midgardTokenIdMap = {
   }
 }
 
-const ONE_MINUTE = 60 * 1000
-
-const isCurrent = (isoDate: Date, nowDate: Date): boolean => {
-  const requestedDate = isoDate.getTime()
-  const rightNow = nowDate.getTime()
-  if (requestedDate > rightNow || requestedDate + ONE_MINUTE < rightNow) {
-    return false
-  }
-  return true
-}
-
 export const midgard: RateProvider = {
   providerId: 'midgard',
   type: 'api',
@@ -51,17 +44,17 @@ export const midgard: RateProvider = {
       }
     }
 
+    const rightNow = new Date()
     const rateBuckets = reduceRequestedCryptoRates(
       requestedRates,
-      ONE_MINUTE,
+      rightNow,
       midgardTokenIdMap
     )
 
-    const currentDate = new Date()
     const allResults: RateBuckets = new Map()
     const promises: Array<Promise<void>> = []
     rateBuckets.forEach((ids, date) => {
-      if (isCurrent(new Date(date), currentDate) && ids.has('TCY')) {
+      if (isCurrent(new Date(date), rightNow) && ids.has('TCY')) {
         promises.push(
           fetchMidgard().then(results => {
             allResults.set(date, results)
@@ -73,7 +66,7 @@ export const midgard: RateProvider = {
 
     const out = expandReturnedCryptoRates(
       requestedRates,
-      ONE_MINUTE,
+      rightNow,
       allResults,
       midgardTokenIdMap
     )
