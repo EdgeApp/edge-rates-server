@@ -27,41 +27,46 @@ const queryProviders = async (
   const foundFiat: FiatRateMap = new Map()
 
   for (const p of providers) {
+    const promises: Array<Promise<void>> = []
     if (p.getFiatRates != null && requestedFiat.size > 0) {
-      try {
-        const { foundRates, requestedRates } = await p.getFiatRates({
-          targetFiat,
-          requestedRates: requestedFiat
-        })
-
-        // Save found rates
-        foundRates.forEach((newRate, key) => {
-          foundFiat.set(key, newRate)
-        })
-        // Update the remaining with just the queries with missing rates
-        requestedFiat = requestedRates
-      } catch (e) {
-        console.error(`Error getting rates from ${p.providerId}`, e)
-      }
+      promises.push(
+        p
+          .getFiatRates({
+            targetFiat,
+            requestedRates: requestedFiat
+          })
+          .then(({ foundRates, requestedRates }) => {
+            foundRates.forEach((newRate, key) => {
+              foundFiat.set(key, newRate)
+            })
+            requestedFiat = requestedRates
+          })
+          .catch(e => {
+            console.error(`Error getting rates from ${p.providerId}`, e)
+          })
+      )
     }
     if (p.getCryptoRates != null && requestedCrypto.size > 0) {
-      try {
-        const { foundRates, requestedRates } = await p.getCryptoRates({
-          targetFiat,
-          requestedRates: requestedCrypto
-        })
-
-        // Save found rates
-        foundRates.forEach((newRate, key) => {
-          foundCrypto.set(key, newRate)
-        })
-        // Update the remaining with just the queries with missing rates
-        requestedCrypto = requestedRates
-      } catch (e) {
-        console.error(`Error getting rates from ${p.providerId}`, e)
-      }
+      promises.push(
+        p
+          .getCryptoRates({
+            targetFiat,
+            requestedRates: requestedCrypto
+          })
+          .then(({ foundRates, requestedRates }) => {
+            foundRates.forEach((newRate, key) => {
+              foundCrypto.set(key, newRate)
+            })
+            requestedCrypto = requestedRates
+          })
+          .catch(e => {
+            console.error(`Error getting rates from ${p.providerId}`, e)
+          })
+      )
     }
+    await Promise.all(promises)
   }
+
   return {
     requestedCrypto,
     foundCrypto,
@@ -122,11 +127,25 @@ export const getRates: GetRatesFunc = async params => {
     dbResults.requestedFiat
   )
 
-  await updateProviders([...memoryProviders, ...dbProviders], {
+  // Update redis with couch data
+  updateProviders([...memoryProviders], {
     targetFiat,
-    crypto: apiResults.foundCrypto,
-    fiat: apiResults.foundFiat
+    crypto: dbResults.foundCrypto,
+    fiat: dbResults.foundFiat
   })
+    .catch(e => {
+      console.error('Error updating memory providers', e)
+    })
+    .finally(() => {
+      // Update redis and couch with api data
+      updateProviders([...memoryProviders, ...dbProviders], {
+        targetFiat,
+        crypto: apiResults.foundCrypto,
+        fiat: apiResults.foundFiat
+      }).catch(e => {
+        console.error('Error updating memory and couch providers', e)
+      })
+    })
 
   return {
     targetFiat,
