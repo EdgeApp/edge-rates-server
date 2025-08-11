@@ -18,7 +18,7 @@ function server(): void {
   // Set up Express:
   const app = express()
   app.enable('trust proxy')
-  app.use(express.json({ limit: '50mb' }))
+  app.use(express.json({ limit: '5mb' }))
   app.use('/', makeExpressRoute(server))
 
   // Start the HTTP server:
