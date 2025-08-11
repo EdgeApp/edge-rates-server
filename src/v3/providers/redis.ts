@@ -1,4 +1,3 @@
-import { mul } from 'biggystring'
 import { createClient } from 'redis'
 
 import { logger } from '../../utils/utils'
@@ -49,20 +48,18 @@ export const redis: RateProvider = {
   providerId: 'redis',
   type: 'memory',
   getCryptoRates: async ({ targetFiat, requestedRates }) => {
+    if (targetFiat !== 'USD') {
+      return {
+        foundRates: new Map(),
+        requestedRates
+      }
+    }
+
     const rightNow = new Date()
     const rateBuckets = reduceRequestedCryptoRates(requestedRates, rightNow)
 
     const allResults: RateBuckets = new Map()
     for (const [date, cryptoPairs] of rateBuckets.entries()) {
-      let fiatMultiplier = '1'
-      if (targetFiat !== 'USD') {
-        const fiatDate = normalizeDate(date, TWENTY_FOUR_HOURS)
-        const fiatRedisKey = `rates_data:${fiatDate}:fiat`
-        const [targetFiatRate] = await hmgetAsync(fiatRedisKey, targetFiat)
-        if (targetFiatRate == null) continue
-        fiatMultiplier = targetFiatRate
-      }
-
       const normalizedDate = normalizeDate(date, ONE_MINUTE)
       const cryptoRedisKey = `rates_data:${normalizedDate}:crypto`
       const cryptoPairsArray = Array.from(cryptoPairs.values())
@@ -73,7 +70,7 @@ export const redis: RateProvider = {
         if (rate == null) continue
         const cryptoPair = cryptoPairsArray[i]
         const cryptoMapDate = allResults.get(normalizedDate) ?? {}
-        cryptoMapDate[cryptoPair] = Number(mul(rate, fiatMultiplier))
+        cryptoMapDate[cryptoPair] = Number(rate)
         allResults.set(normalizedDate, cryptoMapDate)
       }
     }
@@ -86,19 +83,17 @@ export const redis: RateProvider = {
     }
   },
   getFiatRates: async ({ targetFiat, requestedRates }) => {
+    if (targetFiat !== 'USD') {
+      return {
+        foundRates: new Map(),
+        requestedRates
+      }
+    }
+
     const rateBuckets = reduceRequestedFiatRates(requestedRates)
 
     const allResults: RateBuckets = new Map()
     for (const [date, fiatPairs] of rateBuckets.entries()) {
-      let fiatMultiplier = '1'
-      if (targetFiat !== 'USD') {
-        const fiatDate = normalizeDate(date, TWENTY_FOUR_HOURS)
-        const fiatRedisKey = `rates_data:${fiatDate}:fiat`
-        const [targetFiatRate] = await hmgetAsync(fiatRedisKey, targetFiat)
-        if (targetFiatRate == null) continue
-        fiatMultiplier = targetFiatRate
-      }
-
       const normalizedDate = normalizeDate(date, TWENTY_FOUR_HOURS)
       const fiatRedisKey = `rates_data:${normalizedDate}:fiat`
       const fiatPairsArray = Array.from(fiatPairs.values())
@@ -109,7 +104,7 @@ export const redis: RateProvider = {
         if (rate == null) continue
         const fiatPair = fiatPairsArray[i]
         const fiatMapDate = allResults.get(normalizedDate) ?? {}
-        fiatMapDate[fiatPair] = Number(mul(rate, fiatMultiplier))
+        fiatMapDate[fiatPair] = Number(rate)
         allResults.set(normalizedDate, fiatMapDate)
       }
     }
