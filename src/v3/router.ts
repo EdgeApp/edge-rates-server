@@ -19,6 +19,13 @@ const fixIncomingGetRatesParams = (
   const params = asIncomingGetRatesParams(rawParams)
 
   params.crypto.forEach(crypto => {
+    // Sanity check that the tokenId doesn't include _
+    if (
+      typeof crypto.asset.tokenId === 'string' &&
+      crypto.asset.tokenId.includes('_')
+    ) {
+      throw new Error('tokenId cannot include _')
+    }
     if (crypto.isoDate == null) {
       crypto.isoDate = normalizedIsoDate
     }
