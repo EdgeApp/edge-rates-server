@@ -1,4 +1,4 @@
-import { logger } from '../utils/utils'
+import { logger, snooze } from '../utils/utils'
 import { ONE_HOUR } from './constants'
 import {
   apiProviders,
@@ -33,7 +33,7 @@ const createEngineLoop = async (
     const now = Date.now()
     const timeSinceStart = now - startTime
     const timeToWait = Math.max(0, delayMs - timeSinceStart)
-    await new Promise(resolve => setTimeout(resolve, timeToWait))
+    await snooze(timeToWait)
   }
 }
 
