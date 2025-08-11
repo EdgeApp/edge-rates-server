@@ -14,7 +14,8 @@ import {
   expandReturnedCryptoRates,
   expandReturnedFiatRates,
   reduceRequestedCryptoRates,
-  reduceRequestedFiatRates
+  reduceRequestedFiatRates,
+  toCryptoKey
 } from '../utils'
 
 const client = createClient()
@@ -168,8 +169,7 @@ export const groupCryptoRatesByTime = (
     const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
     const bucketKey = new Date(bucketTime).toISOString()
     const bucket = buckets.get(bucketKey) ?? {}
-    bucket[`${cryptoRate.asset.pluginId}_${String(cryptoRate.asset.tokenId)}`] =
-      cryptoRate.rate
+    bucket[toCryptoKey(cryptoRate.asset)] = cryptoRate.rate
     buckets.set(bucketKey, bucket)
   })
 

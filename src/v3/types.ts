@@ -15,7 +15,7 @@ export type EdgeTokenId = ReturnType<typeof asEdgeTokenId>
 
 export const asEdgeAsset = asObject({
   pluginId: asString,
-  tokenId: asEdgeTokenId
+  tokenId: asOptional(asEdgeTokenId)
 })
 export type EdgeAsset = ReturnType<typeof asEdgeAsset>
 

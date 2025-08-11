@@ -18,7 +18,8 @@ import {
   createTokenId,
   expandReturnedCryptoRates,
   isCurrent,
-  reduceRequestedCryptoRates
+  reduceRequestedCryptoRates,
+  toCryptoKey
 } from '../../utils'
 import { dbSettings } from '../couch'
 import { getAsync, setAsync } from '../redis'
@@ -134,7 +135,7 @@ const tokenMapping: RateEngine = async () => {
       )
       if (tokenId == null) continue
 
-      out[`${pluginId}_${String(tokenId)}`] = {
+      out[toCryptoKey({ pluginId, tokenId })] = {
         id: asset.id,
         slug: asset.name
       }

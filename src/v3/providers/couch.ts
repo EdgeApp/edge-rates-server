@@ -14,7 +14,8 @@ import {
   expandReturnedCryptoRates,
   expandReturnedFiatRates,
   reduceRequestedCryptoRates,
-  reduceRequestedFiatRates
+  reduceRequestedFiatRates,
+  toCryptoKey
 } from '../utils'
 
 const couchDB = connectCouch(config.couchUri)
@@ -162,7 +163,7 @@ export const couch: RateProvider = {
         if (rate.rate == null) {
           return
         }
-        doc.crypto[`${rate.asset.pluginId}_${String(rate.asset.tokenId)}`] = {
+        doc.crypto[toCryptoKey(rate.asset)] = {
           currencyCode: '',
           USD: rate.rate
         }
