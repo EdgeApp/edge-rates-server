@@ -18,6 +18,10 @@ const fixIncomingGetRatesParams = (
 
   const params = asIncomingGetRatesParams(rawParams)
 
+  if (params.targetFiat !== 'USD') {
+    throw new Error('targetFiat must be USD')
+  }
+
   params.crypto.forEach(crypto => {
     // Sanity check that the tokenId doesn't include _
     if (

@@ -28,6 +28,13 @@ export const couch: RateProvider = {
   providerId: 'couch',
   type: 'db',
   getCryptoRates: async ({ targetFiat, requestedRates }) => {
+    if (targetFiat !== 'USD') {
+      return {
+        foundRates: new Map(),
+        requestedRates
+      }
+    }
+
     const rightNow = new Date()
     const rateBuckets = reduceRequestedCryptoRates(requestedRates, rightNow)
 
@@ -44,19 +51,10 @@ export const couch: RateProvider = {
         if ('error' in doc) continue
 
         const rateDoc = asCouchDoc(asRateDocument)(doc.ok).doc
-
         const cryptoMapDate = allResults.get(result.id) ?? {}
-        const fiatMapDate = allResults.get(result.id) ?? {}
-        let fiatMultiplier = 1
-        if (targetFiat !== 'USD') {
-          if (fiatMapDate[targetFiat] == null) {
-            continue
-          }
-          fiatMultiplier = fiatMapDate[targetFiat]
-        }
 
         Object.entries(rateDoc.crypto).forEach(([id, rate]) => {
-          cryptoMapDate[id] = rate.USD * fiatMultiplier
+          cryptoMapDate[id] = rate.USD
         })
         allResults.set(result.id, cryptoMapDate)
       }
@@ -70,6 +68,13 @@ export const couch: RateProvider = {
     }
   },
   getFiatRates: async ({ targetFiat, requestedRates }) => {
+    if (targetFiat !== 'USD') {
+      return {
+        foundRates: new Map(),
+        requestedRates
+      }
+    }
+
     const rateBuckets = reduceRequestedFiatRates(requestedRates)
 
     const allResults: RateBuckets = new Map()
@@ -87,16 +92,9 @@ export const couch: RateProvider = {
         const rateDoc = asCouchDoc(asRateDocument)(doc.ok).doc
 
         const fiatMapDate = allResults.get(result.id) ?? {}
-        let fiatMultiplier = 1
-        if (targetFiat !== 'USD') {
-          if (fiatMapDate[targetFiat] == null) {
-            continue
-          }
-          fiatMultiplier = fiatMapDate[targetFiat]
-        }
 
         Object.entries(rateDoc.fiat).forEach(([id, rate]) => {
-          fiatMapDate[id] = rate.USD * fiatMultiplier
+          fiatMapDate[id] = rate.USD
         })
         allResults.set(result.id, fiatMapDate)
       }
