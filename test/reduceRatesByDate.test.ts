@@ -7,7 +7,7 @@ import {
 } from '../src/v3/utils'
 
 const mapping: TokenMap = {
-  bitcoin_null: {
+  bitcoin: {
     id: 'BEETEESEE',
     slug: 'bitcoin'
   }
