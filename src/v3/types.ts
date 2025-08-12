@@ -186,6 +186,7 @@ export type EdgeCurrencyPluginIdUIDMap = Record<
   EdgeCurrencyPluginId,
   string | null
 >
+export const asPlatformIdMapping = asObject(asEither(asString, asNull))
 
 export interface NumberMap {
   [key: string]: number

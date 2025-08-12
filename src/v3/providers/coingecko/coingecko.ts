@@ -4,6 +4,7 @@ import { syncedDocument } from 'edge-server-tools'
 import { config } from '../../../config'
 import { dateOnly, snooze } from '../../../utils/utils'
 import {
+  asPlatformIdMapping,
   asTokenMap,
   EdgeCurrencyPluginId,
   NumberMap,
@@ -95,6 +96,10 @@ const automatedTokenMappingsSyncDoc = syncedDocument(
   'coingecko:automated',
   asTokenMap
 )
+const platformIdMappingSyncDoc = syncedDocument(
+  'coingecko:platforms',
+  asPlatformIdMapping
+)
 manualTokenMappingsSyncDoc.onChange(manualMappings => {
   coingeckoTokenIdMap = {
     ...automatedTokenMappingsSyncDoc.doc,
@@ -127,7 +132,7 @@ const tokenMapping: RateEngine = async () => {
   const data = asCoingeckoAssetResponse(json)
 
   const invertPlatformMapping: { [key: string]: string } = {}
-  for (const [key, value] of Object.entries(coingeckoPlatformIdMapping)) {
+  for (const [key, value] of Object.entries(platformIdMappingSyncDoc.doc)) {
     if (value === null) continue
     invertPlatformMapping[value] = key
   }
@@ -167,7 +172,8 @@ const tokenMapping: RateEngine = async () => {
 
   await dbSettings.insert(
     wasExistingMappings({
-      ...automatedTokenMappingsSyncDoc,
+      id: automatedTokenMappingsSyncDoc.id,
+      rev: automatedTokenMappingsSyncDoc.rev,
       doc: combinedTokenMappings
     })
   )
@@ -225,11 +231,13 @@ export const coingecko: RateProvider = {
       name: 'rates_settings',
       templates: {
         coingecko: createDefaultTokenMappings(),
-        'coingecko:automated': createDefaultTokenMappings()
+        'coingecko:automated': createDefaultTokenMappings(),
+        'coingecko:platforms': coingeckoPlatformIdMapping
       },
       syncedDocuments: [
         manualTokenMappingsSyncDoc,
-        automatedTokenMappingsSyncDoc
+        automatedTokenMappingsSyncDoc,
+        platformIdMappingSyncDoc
       ]
     }
   ],
