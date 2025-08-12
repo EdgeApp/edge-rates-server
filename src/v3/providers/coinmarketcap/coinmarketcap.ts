@@ -69,9 +69,9 @@ const asCoinMarketCapAssetResponse = asObject({
     asObject({
       id: asNumber, // 1839,
       // "rank": 3,
-      // "name": "Binance Coin",
+      name: asString, // "Binance Coin",
       symbol: asString, // "BNB",
-      slug: asString, // "binance-coin",
+      // slug: asString, // "binance-coin",
       // "is_active": 1,
       // "first_historical_data": "2017-07-25T04:30:05.000Z",
       // "last_historical_data": "2020-05-05T20:44:02.000Z",
@@ -79,9 +79,9 @@ const asCoinMarketCapAssetResponse = asObject({
         asNull,
         asObject({
           id: asNumber, // 1027,
-          // "name": "Ethereum",
+          name: asString, // "Ethereum",
           // "symbol": "ETH",
-          slug: asString, // "ethereum",
+          // slug: asString, // "ethereum",
           token_address: asString // "0xB8c77482e45F1F44dE1745F52C74426C631bDD52"
         })
       )
@@ -127,7 +127,7 @@ const createDefaultTokenMappings = (): TokenMap => {
     if (value === null) continue
     out[key] = {
       id: value,
-      slug: key
+      displayName: key
     }
   }
   return out
@@ -158,7 +158,7 @@ automatedTokenMappingsSyncDoc.onChange(autoMappings => {
 })
 
 const tokenMapping: RateEngine = async () => {
-  const mapping: { [key: string]: { id: string; slug: string } } = {}
+  const mapping: TokenMap = {}
 
   // Add the mainnet currency mapping
   for (const [key, value] of Object.entries(
@@ -167,7 +167,7 @@ const tokenMapping: RateEngine = async () => {
     if (value === null) continue
     mapping[key] = {
       id: value,
-      slug: key
+      displayName: key
     }
   }
 
@@ -198,7 +198,7 @@ const tokenMapping: RateEngine = async () => {
 
       mapping[toCryptoKey({ pluginId, tokenId })] = {
         id: asset.id.toString(),
-        slug: asset.slug
+        displayName: asset.name
       }
     } catch (e) {
       // skip assets that we cannot create token id for

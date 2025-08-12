@@ -9,7 +9,7 @@ import {
 const mapping: TokenMap = {
   bitcoin: {
     id: 'BEETEESEE',
-    slug: 'bitcoin'
+    displayName: 'Bitcoin'
   }
 }
 const makeRate = (isoDate: string, asset = null, rate = 1): CryptoRate => ({

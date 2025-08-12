@@ -88,7 +88,7 @@ const createDefaultTokenMappings = (): TokenMap => {
     if (value === null) continue
     out[key] = {
       id: value,
-      slug: key
+      displayName: key
     }
   }
   return out
@@ -119,14 +119,14 @@ automatedTokenMappingsSyncDoc.onChange(automatedMappings => {
 })
 
 const tokenMapping: RateEngine = async () => {
-  const mapping: { [key: string]: { id: string; slug: string } } = {}
+  const mapping: TokenMap = {}
 
   // Add the mainnet currency mapping
   for (const [key, value] of Object.entries(coingeckoMainnetCurrencyMapping)) {
     if (value === null) continue
     mapping[key] = {
       id: value,
-      slug: key
+      displayName: key
     }
   }
 
@@ -163,7 +163,7 @@ const tokenMapping: RateEngine = async () => {
 
       mapping[toCryptoKey({ pluginId, tokenId })] = {
         id: asset.id,
-        slug: asset.name
+        displayName: asset.name
       }
     } catch (e) {
       // skip assets that we cannot create token id for
