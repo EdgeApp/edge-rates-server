@@ -107,7 +107,7 @@ export type GetRatesFunc = (params: GetRatesParams) => Promise<GetRatesParams>
 export const asTokenMap = asObject(
   asObject({
     id: asString,
-    slug: asString
+    displayName: asString
   })
 )
 export type TokenMap = ReturnType<typeof asTokenMap>

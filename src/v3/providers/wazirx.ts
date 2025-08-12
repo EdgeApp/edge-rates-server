@@ -2,7 +2,7 @@ import { asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../../config'
-import { NumberMap, RateBuckets, RateProvider } from '../types'
+import { NumberMap, RateBuckets, RateProvider, TokenMap } from '../types'
 import {
   expandReturnedCryptoRates,
   isCurrent,
@@ -24,10 +24,10 @@ const fetchWazirx = async (): Promise<NumberMap> => {
   return { bitcoin: btcPrice }
 }
 
-const wazirxTokenIdMap = {
+const wazirxTokenIdMap: TokenMap = {
   bitcoin: {
     id: 'bitcoin',
-    slug: 'bitcoin'
+    displayName: 'Bitcoin'
   }
 }
 

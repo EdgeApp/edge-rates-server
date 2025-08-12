@@ -2,7 +2,7 @@ import { asNumber, asObject, asString, asTuple, asValue } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../../config'
-import { NumberMap, RateBuckets, RateProvider } from '../types'
+import { NumberMap, RateBuckets, RateProvider, TokenMap } from '../types'
 import {
   expandReturnedCryptoRates,
   isCurrent,
@@ -33,10 +33,10 @@ const fetchCoinstore = async (): Promise<NumberMap> => {
   return { LLD: lldPrice }
 }
 
-const coinstoreTokenIdMap = {
+const coinstoreTokenIdMap: TokenMap = {
   liberland: {
     id: 'LLD',
-    slug: 'lld'
+    displayName: 'Liberland Dollar'
   }
 }
 
