@@ -53,8 +53,8 @@ export const couch: RateProvider = {
         const rateDoc = asCouchDoc(asRateDocument)(doc.ok).doc
         const cryptoMapDate = allResults.get(result.id) ?? {}
 
-        Object.entries(rateDoc.crypto).forEach(([id, rate]) => {
-          cryptoMapDate[id] = rate.USD
+        Object.entries(rateDoc.crypto).forEach(([pluginIdTokenId, rate]) => {
+          cryptoMapDate[pluginIdTokenId] = rate.USD
         })
         allResults.set(result.id, cryptoMapDate)
       }
@@ -93,8 +93,8 @@ export const couch: RateProvider = {
 
         const fiatMapDate = allResults.get(result.id) ?? {}
 
-        Object.entries(rateDoc.fiat).forEach(([id, rate]) => {
-          fiatMapDate[id] = rate.USD
+        Object.entries(rateDoc.fiat).forEach(([fiatCode, rate]) => {
+          fiatMapDate[fiatCode] = rate.USD
         })
         allResults.set(result.id, fiatMapDate)
       }
