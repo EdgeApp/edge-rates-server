@@ -1,7 +1,7 @@
 import { createClient } from 'redis'
 
 import { logger } from '../../utils/utils'
-import { ONE_MINUTE, TWENTY_FOUR_HOURS } from '../constants'
+import { FIVE_MINUTES, ONE_MINUTE, TWENTY_FOUR_HOURS } from '../constants'
 import {
   CryptoRateMap,
   FiatRateMap,
@@ -130,17 +130,15 @@ export const redis: RateProvider = {
       return
     }
 
-    const cryptoRateBuckets = groupCryptoRatesByTime(params.crypto, ONE_MINUTE)
+    const cryptoRateBuckets = groupCryptoRatesByTime(params.crypto)
     for (const [date, cryptoRates] of cryptoRateBuckets.entries()) {
-      const cryptoDate = normalizeDate(date, ONE_MINUTE)
-      const cryptoRedisKey = `rates_data:${cryptoDate}:crypto`
+      const cryptoRedisKey = `rates_data:${date}:crypto`
       await hsetAsync(cryptoRedisKey, cryptoRates)
     }
 
-    const fiatRateBuckets = groupFiatRatesByTime(params.fiat, TWENTY_FOUR_HOURS)
+    const fiatRateBuckets = groupFiatRatesByTime(params.fiat)
     for (const [date, fiatRates] of fiatRateBuckets.entries()) {
-      const fiatDate = normalizeDate(date, TWENTY_FOUR_HOURS)
-      const fiatRedisKey = `rates_data:${fiatDate}:fiat`
+      const fiatRedisKey = `rates_data:${date}:fiat`
       await hsetAsync(fiatRedisKey, fiatRates)
     }
   },
@@ -150,15 +148,19 @@ export const redis: RateProvider = {
 // This function breaks apart the requested rates into buckets of the given interval.
 type DateBuckets = Map<string, { [id: string]: number }>
 export const groupCryptoRatesByTime = (
-  requestedRates: CryptoRateMap,
-  intervalMs: number
+  requestedRates: CryptoRateMap
 ): DateBuckets => {
   const buckets: DateBuckets = new Map()
+  const rightNowMs = new Date().getTime()
 
   requestedRates.forEach(cryptoRate => {
     if (cryptoRate.rate == null) return
 
     const rateTime = cryptoRate.isoDate.getTime()
+
+    // Current rates (< five minutes old) use minute precision and historical rates use five minutes
+    const intervalMs =
+      rightNowMs - rateTime < FIVE_MINUTES ? ONE_MINUTE : FIVE_MINUTES
 
     // Floor to the start of the interval bucket
     const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
@@ -172,8 +174,7 @@ export const groupCryptoRatesByTime = (
 }
 
 export const groupFiatRatesByTime = (
-  requestedRates: FiatRateMap,
-  intervalMs: number
+  requestedRates: FiatRateMap
 ): DateBuckets => {
   const buckets: DateBuckets = new Map()
 
@@ -183,7 +184,8 @@ export const groupFiatRatesByTime = (
     const rateTime = fiatRate.isoDate.getTime()
 
     // Floor to the start of the interval bucket
-    const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
+    const bucketTime =
+      Math.floor(rateTime / TWENTY_FOUR_HOURS) * TWENTY_FOUR_HOURS
     const bucketKey = new Date(bucketTime).toISOString()
     const bucket = buckets.get(bucketKey) ?? {}
     bucket[fiatRate.fiatCode] = fiatRate.rate
