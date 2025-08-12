@@ -34,7 +34,7 @@ const fetchCurrencyConverter = async (
   const pairs = codes.map(code => `${code}_${targetFiat}`).join(',')
 
   const response = await fetch(
-    `${uri}/api/v8/convert?q=${pairs}${dateString}&apiKey=${apiKey}&&compact=ultra`
+    `${uri}/api/v8/convert?q=${pairs}${dateString}&apiKey=${apiKey}&compact=ultra`
   )
 
   if (!response.ok) {
