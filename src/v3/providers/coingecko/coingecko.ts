@@ -34,11 +34,16 @@ const fetchCoingecko = async (
   const headers = {
     'x-cg-pro-api-key': config.providers.coingeckopro.apiKey
   }
+  let retryCount = 0
   while (true) {
     const response = await fetch(input, { headers, ...init })
 
     if (response.status === 429) {
       await snooze(1000)
+      retryCount++
+      if (retryCount > 2) {
+        throw new Error('coingecko rate limit exceeded')
+      }
       continue // retry
     }
 
@@ -180,15 +185,19 @@ const tokenMapping: RateEngine = async () => {
 }
 
 const getCurrentRates = async (ids: Set<string>): Promise<NumberMap> => {
-  const json = await fetchCoingecko(
-    `${config.providers.coingeckopro.uri}/api/v3/simple/price?ids=${Array.from(
-      ids
-    ).join(',')}&vs_currencies=usd`
-  )
-  const data = asGeckoBulkUsdResponse(json)
   const out: NumberMap = {}
-  for (const [key, value] of Object.entries(data)) {
-    out[key] = value.usd
+  try {
+    const json = await fetchCoingecko(
+      `${
+        config.providers.coingeckopro.uri
+      }/api/v3/simple/price?ids=${Array.from(ids).join(',')}&vs_currencies=usd`
+    )
+    const data = asGeckoBulkUsdResponse(json)
+    for (const [key, value] of Object.entries(data)) {
+      out[key] = value.usd
+    }
+  } catch (e) {
+    console.error('coingecko current query error:', e)
   }
   return out
 }
@@ -210,12 +219,16 @@ const getHistoricalRates = async (
     promises.push(
       fetchCoingecko(
         `${config.providers.coingeckopro.uri}/api/v3/coins/${id}/history?date=${coingeckoDate}`
-      ).then(json => {
-        const data = asMaybe(asCoingeckoHistoricalUsdResponse)(json)
-        if (data != null) {
-          out[id] = data.market_data.current_price.usd
-        }
-      })
+      )
+        .then(json => {
+          const data = asMaybe(asCoingeckoHistoricalUsdResponse)(json)
+          if (data != null) {
+            out[id] = data.market_data.current_price.usd
+          }
+        })
+        .catch(e => {
+          console.error('coingecko historical query error:', e)
+        })
     )
   })
   await Promise.all(promises)
