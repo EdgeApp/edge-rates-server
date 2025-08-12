@@ -48,6 +48,7 @@ export const createDatabases = async (): Promise<void> => {
           ...ratesDb.templates,
           ...document.templates
         }
+        ratesDb.syncedDocuments?.push(...(document.syncedDocuments ?? []))
       }
     }
   }
