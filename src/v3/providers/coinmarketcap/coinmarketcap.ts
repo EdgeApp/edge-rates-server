@@ -11,6 +11,7 @@ import { syncedDocument } from 'edge-server-tools'
 import { config } from '../../../config'
 import { daysBetween, snooze } from '../../../utils/utils'
 import {
+  asPlatformIdMapping,
   asTokenMap,
   EdgeCurrencyPluginId,
   NumberMap,
@@ -134,6 +135,10 @@ const automatedTokenMappingsSyncDoc = syncedDocument(
   'coinmarketcap:automated',
   asTokenMap
 )
+const platformIdMappingSyncDoc = syncedDocument(
+  'coinmarketcap:platforms',
+  asPlatformIdMapping
+)
 userTokenMappingsSyncDoc.onChange(userMappings => {
   coinmarketcapTokenIdMap = {
     ...automatedTokenMappingsSyncDoc.doc,
@@ -168,7 +173,7 @@ const tokenMapping: RateEngine = async () => {
   const data = asCoinMarketCapAssetResponse(json)
 
   const invertPlatformMapping: { [key: string]: string } = {}
-  for (const [key, value] of Object.entries(coinmarketcapPlatformIdMapping)) {
+  for (const [key, value] of Object.entries(platformIdMappingSyncDoc.doc)) {
     if (value === null) continue
     invertPlatformMapping[value] = key
   }
@@ -202,7 +207,8 @@ const tokenMapping: RateEngine = async () => {
 
   await dbSettings.insert(
     wasExistingMappings({
-      ...automatedTokenMappingsSyncDoc,
+      id: automatedTokenMappingsSyncDoc.id,
+      rev: automatedTokenMappingsSyncDoc.rev,
       doc: combinedTokenMappings
     })
   )
@@ -267,9 +273,14 @@ export const coinmarketcap: RateProvider = {
       name: 'rates_settings',
       templates: {
         coinmarketcap: createDefaultTokenMappings(),
-        'coinmarketcap:automated': createDefaultTokenMappings()
+        'coinmarketcap:automated': createDefaultTokenMappings(),
+        'coinmarketcap:platforms': coinmarketcapPlatformIdMapping
       },
-      syncedDocuments: [userTokenMappingsSyncDoc, automatedTokenMappingsSyncDoc]
+      syncedDocuments: [
+        userTokenMappingsSyncDoc,
+        automatedTokenMappingsSyncDoc,
+        platformIdMappingSyncDoc
+      ]
     }
   ],
   getCryptoRates: async ({ targetFiat, requestedRates }) => {
