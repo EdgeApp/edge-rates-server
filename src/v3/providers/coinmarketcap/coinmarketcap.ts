@@ -41,6 +41,7 @@ const fetchCoinmarketcap = async (
   const headers = {
     'X-CMC_PRO_API_KEY': config.providers.coinMarketCapHistorical.apiKey
   }
+  let retryCount = 0
   while (true) {
     const response = await fetch(input, { headers, ...init })
     if (!response.ok) {
@@ -48,6 +49,10 @@ const fetchCoinmarketcap = async (
 
       if (message.includes(`"error_code": 1008`)) {
         await snooze(1000) // rate limits reset every minute
+        retryCount++
+        if (retryCount > 2) {
+          throw new Error('coinmarketcap rate limit exceeded')
+        }
         continue // retry
       }
 
@@ -215,19 +220,23 @@ const tokenMapping: RateEngine = async () => {
 }
 
 const getCurrentRates = async (ids: Set<string>): Promise<NumberMap> => {
-  const json = await fetchCoinmarketcap(
-    `${
-      config.providers.coinMarketCapHistorical.uri
-    }/v2/cryptocurrency/quotes/latest?id=${Array.from(ids).join(
-      ','
-    )}&skip_invalid=true&convert=USD`
-  )
-  const data = asCoinMarketCapCurrentQuotes(json)
   const out: NumberMap = {}
-  for (const [key, value] of Object.entries(data.data)) {
-    if (value.quote.USD.price != null) {
-      out[key] = value.quote.USD.price
+  try {
+    const json = await fetchCoinmarketcap(
+      `${
+        config.providers.coinMarketCapHistorical.uri
+      }/v2/cryptocurrency/quotes/latest?id=${Array.from(ids).join(
+        ','
+      )}&skip_invalid=true&convert=USD`
+    )
+    const data = asCoinMarketCapCurrentQuotes(json)
+    for (const [key, value] of Object.entries(data.data)) {
+      if (value.quote.USD.price != null) {
+        out[key] = value.quote.USD.price
+      }
     }
+  } catch (e) {
+    console.error('coinmarketcap current query error:', e)
   }
   return out
 }
@@ -235,6 +244,7 @@ const getHistoricalRates = async (
   ids: Set<string>,
   date: string
 ): Promise<NumberMap> => {
+  const out: NumberMap = {}
   const now = new Date()
   const days = daysBetween(new Date(date), now)
 
@@ -249,18 +259,21 @@ const getHistoricalRates = async (
     ids.add('1027') // ethereum
   }
 
-  const json = await fetchCoinmarketcap(
-    `${
-      config.providers.coinMarketCapHistorical.uri
-    }/v2/cryptocurrency/quotes/historical?id=${Array.from(ids).join(
-      ','
-    )}&time_start=${date}&count=1&interval=${interval}&skip_invalid=true&convert=USD`
-  )
+  try {
+    const json = await fetchCoinmarketcap(
+      `${
+        config.providers.coinMarketCapHistorical.uri
+      }/v2/cryptocurrency/quotes/historical?id=${Array.from(ids).join(
+        ','
+      )}&time_start=${date}&count=1&interval=${interval}&skip_invalid=true&convert=USD`
+    )
 
-  const data = asCoinMarketCapHistoricalQuotes(json)
-  const out: NumberMap = {}
-  for (const [key, value] of Object.entries(data.data)) {
-    out[key] = value.quotes[0].quote.USD.price
+    const data = asCoinMarketCapHistoricalQuotes(json)
+    for (const [key, value] of Object.entries(data.data)) {
+      out[key] = value.quotes[0].quote.USD.price
+    }
+  } catch (e) {
+    console.error('coinmarketcap historical query error:', e)
   }
   return out
 }
