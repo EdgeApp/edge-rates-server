@@ -1,7 +1,5 @@
 import { asArray, asMaybe, asNumber, asObject, asString } from 'cleaners'
-import { asCouchDoc } from 'edge-server-tools'
-import * as fs from 'fs'
-import * as path from 'path'
+import { syncedDocument } from 'edge-server-tools'
 
 import { config } from '../../../config'
 import { dateOnly, snooze } from '../../../utils/utils'
@@ -12,7 +10,8 @@ import {
   RateBuckets,
   RateEngine,
   RateProvider,
-  TokenMap
+  TokenMap,
+  wasExistingMappings
 } from '../../types'
 import {
   createTokenId,
@@ -22,7 +21,6 @@ import {
   toCryptoKey
 } from '../../utils'
 import { dbSettings } from '../couch'
-import { getAsync, setAsync } from '../redis'
 import {
   coingeckoMainnetCurrencyMapping,
   coingeckoPlatformIdMapping
@@ -76,21 +74,39 @@ const asCoingeckoHistoricalUsdResponse = asObject({
   })
 })
 
-// Mappings will eventually be saved in some database. They can be on disk for now.
-const saveToDisk = (out: TokenMap): void => {
-  const outputPath = path.join(__dirname, 'tokenMapping.json')
-  fs.writeFileSync(outputPath, JSON.stringify(out, null, 2))
-  console.log(`Token mapping saved to: ${outputPath}`)
+const createDefaultTokenMappings = (): TokenMap => {
+  const out: TokenMap = {}
+
+  // Add the mainnet currency mapping
+  for (const [key, value] of Object.entries(coingeckoMainnetCurrencyMapping)) {
+    if (value === null) continue
+    out[`${key}_null`] = {
+      id: value,
+      slug: key
+    }
+  }
+  return out
 }
 
-const readFromDisk = (): TokenMap => {
-  const outputPath = path.join(__dirname, 'tokenMapping.json')
-  if (!fs.existsSync(outputPath)) {
-    return {}
+let coingeckoTokenIdMap = createDefaultTokenMappings()
+
+const manualTokenMappingsSyncDoc = syncedDocument('coingecko', asTokenMap)
+const automatedTokenMappingsSyncDoc = syncedDocument(
+  'coingecko:automated',
+  asTokenMap
+)
+manualTokenMappingsSyncDoc.onChange(manualMappings => {
+  coingeckoTokenIdMap = {
+    ...automatedTokenMappingsSyncDoc.doc,
+    ...manualMappings
   }
-  const json = fs.readFileSync(outputPath, 'utf8')
-  return JSON.parse(json)
-}
+})
+automatedTokenMappingsSyncDoc.onChange(automatedMappings => {
+  coingeckoTokenIdMap = {
+    ...automatedMappings,
+    ...manualTokenMappingsSyncDoc.doc
+  }
+})
 
 const tokenMapping: RateEngine = async () => {
   const out: { [key: string]: { id: string; slug: string } } = {}
@@ -144,25 +160,17 @@ const tokenMapping: RateEngine = async () => {
     }
   }
 
-  const defaultsDocument = await dbSettings.get('coingecko')
-  const defaults = asCouchDoc(asTokenMap)(defaultsDocument).doc
-  const automatedMappingDocument = await dbSettings.get('coingecko:automated')
-  const automated = asCouchDoc(asTokenMap)(automatedMappingDocument).doc
-
-  // Merge the token mappings with priority: defaults > automated > new mappings
   const combinedTokenMappings: TokenMap = {
-    ...automated,
-    ...out,
-    ...defaults
+    ...automatedTokenMappingsSyncDoc.doc,
+    ...out
   }
 
-  // Update the automated mapping document
-  await dbSettings.insert({
-    ...automatedMappingDocument,
-    ...combinedTokenMappings
-  })
-  await setAsync('coingecko:automated', JSON.stringify(combinedTokenMappings))
-  saveToDisk(combinedTokenMappings)
+  await dbSettings.insert(
+    wasExistingMappings({
+      ...automatedTokenMappingsSyncDoc,
+      doc: combinedTokenMappings
+    })
+  )
 }
 
 const getCurrentRates = async (ids: Set<string>): Promise<NumberMap> => {
@@ -209,31 +217,6 @@ const getHistoricalRates = async (
   return out
 }
 
-const getTokenMappings = async (): Promise<TokenMap> => {
-  const redisMapping = await getAsync('coingecko:automated')
-  if (redisMapping != null) return JSON.parse(redisMapping)
-  try {
-    const couchMapping = await dbSettings.get('coingecko:automated')
-    return asCouchDoc(asTokenMap)(couchMapping).doc
-  } catch (e) {
-    return readFromDisk()
-  }
-}
-
-const createDefaultTokenMappings = (): TokenMap => {
-  const out: TokenMap = {}
-
-  // Add the mainnet currency mapping
-  for (const [key, value] of Object.entries(coingeckoMainnetCurrencyMapping)) {
-    if (value === null) continue
-    out[`${key}_null`] = {
-      id: value,
-      slug: key
-    }
-  }
-  return out
-}
-
 export const coingecko: RateProvider = {
   providerId: 'coingecko',
   type: 'api',
@@ -243,7 +226,11 @@ export const coingecko: RateProvider = {
       templates: {
         coingecko: createDefaultTokenMappings(),
         'coingecko:automated': createDefaultTokenMappings()
-      }
+      },
+      syncedDocuments: [
+        manualTokenMappingsSyncDoc,
+        automatedTokenMappingsSyncDoc
+      ]
     }
   ],
   getCryptoRates: async ({ targetFiat, requestedRates }) => {
@@ -253,8 +240,6 @@ export const coingecko: RateProvider = {
         requestedRates
       }
     }
-
-    const coingeckoTokenIdMap = await getTokenMappings()
 
     const rightNow = new Date()
     const rateBuckets = reduceRequestedCryptoRates(
