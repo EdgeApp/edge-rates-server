@@ -2,7 +2,7 @@ import { asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../../config'
-import { NumberMap, RateBuckets, RateProvider } from '../types'
+import { NumberMap, RateBuckets, RateProvider, TokenMap } from '../types'
 import {
   expandReturnedCryptoRates,
   isCurrent,
@@ -26,10 +26,10 @@ const fetchMidgard = async (): Promise<NumberMap> => {
   return { TCY: tcyPrice }
 }
 
-const midgardTokenIdMap = {
+const midgardTokenIdMap: TokenMap = {
   thorchainrune_tcy: {
     id: 'TCY',
-    slug: 'tcy'
+    displayName: 'tcy'
   }
 }
 
