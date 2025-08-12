@@ -119,12 +119,12 @@ automatedTokenMappingsSyncDoc.onChange(automatedMappings => {
 })
 
 const tokenMapping: RateEngine = async () => {
-  const out: { [key: string]: { id: string; slug: string } } = {}
+  const mapping: { [key: string]: { id: string; slug: string } } = {}
 
   // Add the mainnet currency mapping
   for (const [key, value] of Object.entries(coingeckoMainnetCurrencyMapping)) {
     if (value === null) continue
-    out[key] = {
+    mapping[key] = {
       id: value,
       slug: key
     }
@@ -161,7 +161,7 @@ const tokenMapping: RateEngine = async () => {
       )
       if (tokenId == null) continue
 
-      out[toCryptoKey({ pluginId, tokenId })] = {
+      mapping[toCryptoKey({ pluginId, tokenId })] = {
         id: asset.id,
         slug: asset.name
       }
@@ -172,7 +172,7 @@ const tokenMapping: RateEngine = async () => {
 
   const combinedTokenMappings: TokenMap = {
     ...automatedTokenMappingsSyncDoc.doc,
-    ...out
+    ...mapping
   }
 
   await dbSettings.insert(
