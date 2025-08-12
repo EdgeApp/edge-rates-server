@@ -119,7 +119,7 @@ const createDefaultTokenMappings = (): TokenMap => {
     coinmarketcapMainnetCurrencyMapping
   )) {
     if (value === null) continue
-    out[`${key}_null`] = {
+    out[key] = {
       id: value,
       slug: key
     }
@@ -155,7 +155,7 @@ const tokenMapping: RateEngine = async () => {
     coinmarketcapMainnetCurrencyMapping
   )) {
     if (value === null) continue
-    out[`${key}_null`] = {
+    out[key] = {
       id: value,
       slug: key
     }

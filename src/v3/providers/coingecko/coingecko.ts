@@ -80,7 +80,7 @@ const createDefaultTokenMappings = (): TokenMap => {
   // Add the mainnet currency mapping
   for (const [key, value] of Object.entries(coingeckoMainnetCurrencyMapping)) {
     if (value === null) continue
-    out[`${key}_null`] = {
+    out[key] = {
       id: value,
       slug: key
     }
@@ -114,7 +114,7 @@ const tokenMapping: RateEngine = async () => {
   // Add the mainnet currency mapping
   for (const [key, value] of Object.entries(coingeckoMainnetCurrencyMapping)) {
     if (value === null) continue
-    out[`${key}_null`] = {
+    out[key] = {
       id: value,
       slug: key
     }
