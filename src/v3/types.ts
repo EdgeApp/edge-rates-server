@@ -6,9 +6,10 @@ import {
   asNumber,
   asObject,
   asOptional,
-  asString
+  asString,
+  uncleaner
 } from 'cleaners'
-import { DatabaseSetup } from 'edge-server-tools'
+import { asCouchDoc, DatabaseSetup } from 'edge-server-tools'
 
 const asEdgeTokenId = asEither(asString, asNull)
 export type EdgeTokenId = ReturnType<typeof asEdgeTokenId>
@@ -207,3 +208,6 @@ export const asRateDocument = asObject({
   )
 })
 export type RateDocument = ReturnType<typeof asRateDocument>
+
+const asTokenMappingsDoc = asCouchDoc(asTokenMap)
+export const wasExistingMappings = uncleaner(asTokenMappingsDoc)
