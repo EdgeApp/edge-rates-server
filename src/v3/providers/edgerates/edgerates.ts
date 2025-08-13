@@ -1,6 +1,7 @@
 import { asArray, asObject, asString } from 'cleaners'
 import { asCouchDoc } from 'edge-server-tools'
 
+import { config } from '../../../config'
 import { logger } from '../../../utils/utils'
 import {
   asEdgeAsset,
@@ -55,7 +56,7 @@ const fetchRates = async (): Promise<void> => {
   }
 
   requests.forEach(request => {
-    fetch('http://127.0.0.1:8087/v3/rates', {
+    fetch(`http://${config.httpHost}:${config.httpPort}/v3/rates`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
