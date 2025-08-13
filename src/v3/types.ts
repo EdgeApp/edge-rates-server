@@ -199,7 +199,7 @@ export type DateBuckets = Map<string, Set<string>>
 export const asRateDocument = asObject({
   crypto: asObject(
     asObject({
-      currencyCode: asString,
+      // currencyCode: asString,
       USD: asNumber
     })
   ),

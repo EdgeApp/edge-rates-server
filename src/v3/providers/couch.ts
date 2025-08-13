@@ -1,5 +1,5 @@
-import { asMaybe, asObject, asValue } from 'cleaners'
-import { asCouchDoc, bulkGet, connectCouch } from 'edge-server-tools'
+import { asMaybe, asObject, asString, asValue, uncleaner } from 'cleaners'
+import { asCouchDoc, bulkGet, connectCouch, CouchDoc } from 'edge-server-tools'
 import nano from 'nano'
 
 import { config } from '../../config'
@@ -14,15 +14,18 @@ import {
   expandReturnedCryptoRates,
   expandReturnedFiatRates,
   reduceRequestedCryptoRates,
-  reduceRequestedFiatRates,
-  toCryptoKey
+  reduceRequestedFiatRates
 } from '../utils'
+import { groupCryptoRatesByTime, groupFiatRatesByTime } from './redis'
 
 const couchDB = connectCouch(config.couchUri)
 export const dbSettings: nano.DocumentScope<any> =
   couchDB.default.db.use<any>('rates_settings')
 export const dbData: nano.DocumentScope<RateDocument> =
   couchDB.default.db.use<RateDocument>('rates_data')
+
+const asRatesDoc = asCouchDoc(asRateDocument)
+const wasRatesDoc = uncleaner(asRatesDoc)
 
 export const couch: RateProvider = {
   providerId: 'couch',
@@ -50,7 +53,13 @@ export const couch: RateProvider = {
       for (const doc of result.docs) {
         if ('error' in doc) continue
 
-        const rateDoc = asCouchDoc(asRateDocument)(doc.ok).doc
+        // Handle deleted documents
+        const maybeDeletedDoc = asMaybe(asDeletedCouchDoc)(doc.ok)
+        if (maybeDeletedDoc != null) {
+          continue
+        }
+
+        const rateDoc = asRatesDoc(doc.ok).doc
         const cryptoMapDate = allResults.get(result.id) ?? {}
 
         Object.entries(rateDoc.crypto).forEach(([pluginIdTokenId, rate]) => {
@@ -89,7 +98,13 @@ export const couch: RateProvider = {
       for (const doc of result.docs) {
         if ('error' in doc) continue
 
-        const rateDoc = asCouchDoc(asRateDocument)(doc.ok).doc
+        // Handle deleted documents
+        const maybeDeletedDoc = asMaybe(asDeletedCouchDoc)(doc.ok)
+        if (maybeDeletedDoc != null) {
+          continue
+        }
+
+        const rateDoc = asRatesDoc(doc.ok).doc
 
         const fiatMapDate = allResults.get(result.id) ?? {}
 
@@ -111,116 +126,97 @@ export const couch: RateProvider = {
     if (params.targetFiat !== 'USD') {
       return
     }
-
     if (params.crypto.size === 0 && params.fiat.size === 0) {
       return
     }
 
-    const rightNow = new Date()
-    const cryptoRateBuckets = reduceRequestedCryptoRates(
-      params.crypto,
-      rightNow
-    )
+    const cryptoRateBuckets = groupCryptoRatesByTime(params.crypto)
+    const fiatRateBuckets = groupFiatRatesByTime(params.fiat)
 
-    const cryptoDocs: Array<{
-      _id: string
-      _rev?: string
-      crypto: RateDocument['crypto']
-      fiat: RateDocument['fiat']
-    }> = []
-    const dbCryptoDocuments = await bulkGet<RateDocument[]>(
+    const ids = new Set<string>([
+      ...cryptoRateBuckets.keys(),
+      ...fiatRateBuckets.keys()
+    ])
+
+    const bulkGetResult = await bulkGet<nano.Document & RateDocument>(
       config.couchUri,
       'rates_data',
-      Array.from(cryptoRateBuckets.keys()).map(id => ({ id }))
+      Array.from(ids.keys()).map(id => ({ id }))
     )
-    for (const result of dbCryptoDocuments.results) {
-      for (const doc of result.docs) {
-        if ('error' in doc) {
-          const missingDocumentError = asMaybe(asCouchMissingDocumentError)(
-            doc.error
-          )
-          if (missingDocumentError != null) {
-            cryptoDocs.push({
-              _id: result.id,
+
+    const docsMap = new Map<string, CouchDoc<RateDocument>>()
+
+    for (const result of bulkGetResult.results) {
+      const document = result.docs[0]
+
+      // Handle missing documents
+      if ('error' in document) {
+        const missingDocumentError = asMaybe(asCouchMissingDocumentError)(
+          document.error
+        )
+        if (missingDocumentError != null) {
+          docsMap.set(result.id, {
+            id: result.id,
+            doc: {
               crypto: {},
               fiat: {}
-            })
-          }
-        } else if (doc.ok.length > 0) {
-          cryptoDocs.push({
-            _id: result.id,
-            crypto: doc.ok[0].crypto,
-            fiat: doc.ok[0].fiat
+            }
           })
         }
+        continue
       }
+
+      // Handle deleted documents
+      const maybeDeletedDoc = asMaybe(asDeletedCouchDoc)(document.ok)
+      if (maybeDeletedDoc != null) {
+        docsMap.set(result.id, {
+          id: result.id,
+          doc: {
+            crypto: {},
+            fiat: {}
+          }
+        })
+        continue
+      }
+
+      // Handle existing documents
+      const couchDoc = asRatesDoc(document.ok)
+      docsMap.set(result.id, couchDoc)
     }
 
-    for (const doc of cryptoDocs) {
-      params.crypto.forEach(rate => {
-        if (rate.rate == null) {
-          return
-        }
-        doc.crypto[toCryptoKey(rate.asset)] = {
-          currencyCode: '',
-          USD: rate.rate
-        }
-      })
-    }
-
-    await dbData.bulk({
-      docs: cryptoDocs
+    cryptoRateBuckets.forEach((rates, date) => {
+      const couchDoc = docsMap.get(date)
+      if (couchDoc == null) {
+        return
+      }
+      couchDoc.doc.crypto = {
+        ...couchDoc.doc.crypto,
+        ...Object.entries(rates).reduce((acc, [asset, rate]) => {
+          acc[asset] = {
+            USD: rate
+          }
+          return acc
+        }, {})
+      }
+    })
+    fiatRateBuckets.forEach((rates, date) => {
+      const couchDoc = docsMap.get(date)
+      if (couchDoc == null) {
+        return
+      }
+      couchDoc.doc.fiat = {
+        ...couchDoc.doc.fiat,
+        ...Object.entries(rates).reduce((acc, [fiat, rate]) => {
+          acc[fiat] = {
+            USD: rate
+          }
+          return acc
+        }, {})
+      }
     })
 
-    const fiatRateBuckets = reduceRequestedFiatRates(params.fiat)
-
-    const fiatDocs: Array<{
-      _id: string
-      _rev?: string
-      crypto: RateDocument['crypto']
-      fiat: RateDocument['fiat']
-    }> = []
-    const dbFiatDocuments = await bulkGet<RateDocument[]>(
-      config.couchUri,
-      'rates_data',
-      Array.from(fiatRateBuckets.keys()).map(id => ({ id }))
-    )
-    for (const result of dbFiatDocuments.results) {
-      for (const doc of result.docs) {
-        if ('error' in doc) {
-          const missingDocumentError = asMaybe(asCouchMissingDocumentError)(
-            doc.error
-          )
-          if (missingDocumentError != null) {
-            fiatDocs.push({
-              _id: result.id,
-              crypto: {},
-              fiat: {}
-            })
-          }
-        } else if (doc.ok.length > 0) {
-          fiatDocs.push({
-            _id: result.id,
-            crypto: doc.ok[0].crypto,
-            fiat: doc.ok[0].fiat
-          })
-        }
-      }
-    }
-
-    for (const doc of fiatDocs) {
-      params.fiat.forEach(rate => {
-        if (rate.rate == null) {
-          return
-        }
-        doc.fiat[rate.fiatCode] = {
-          USD: rate.rate
-        }
-      })
-    }
-
     await dbData.bulk({
-      docs: fiatDocs
+      docs: Array.from(docsMap.values()).map(wasRatesDoc)
     })
   },
   engines: []
@@ -229,4 +225,9 @@ export const couch: RateProvider = {
 const asCouchMissingDocumentError = asObject({
   error: asValue('not_found'),
   reason: asValue('missing')
+})
+const asDeletedCouchDoc = asObject({
+  _id: asString,
+  _rev: asMaybe(asString),
+  _deleted: asValue(true)
 })
