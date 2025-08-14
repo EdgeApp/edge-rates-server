@@ -65,6 +65,7 @@ export const coinrankEngine = async (): Promise<void> => {
       )
     } catch (e) {
       const err: any = e // Weird TS issue causing :any to get removed from above line
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       const message = `coinrankEngine failure: ${err.message}`
       slackMessage(message).catch(e => logger(e))
       logger(message)

@@ -91,6 +91,7 @@ const dbResponseLogger = (response: nano.DocumentBulkResponse[]): void => {
     // Conflicts are expected and OK so no need to print. They'll be combined and retried until successfully saved.
     // Future TODO: will be to save to the db on a loop from redis store.
     .filter(doc => doc.error != null && doc.error !== 'conflict')
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     .map(doc => `${doc.id}: ${doc.error}`)
   if (failureArray.length > 0)
     logger(`Error saving document IDs: ${failureArray.join(', ')} to db_rates`)
@@ -142,7 +143,7 @@ export const getFromDb = async (
 }
 
 export const wrappedGetFromDb = async (dates: string[]): Promise<DbDoc[]> =>
-  getFromDb(dbRates, dates)
+  await getFromDb(dbRates, dates)
 
 export const getEdgeAssetDoc = memoize(
   async (): Promise<DbDoc> =>
