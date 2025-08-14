@@ -17,6 +17,10 @@ export const toCryptoKey = (asset: EdgeAsset): string => {
   }
   return `${asset.pluginId}${tokenIdString}`
 }
+export const fromCryptoKey = (key: string): EdgeAsset => {
+  const [pluginId, tokenId] = key.split('_') as [string, string?]
+  return { pluginId, tokenId }
+}
 
 function assertNever(x: never): never {
   throw new Error(`Unhandled case: ${JSON.stringify(x)}`)

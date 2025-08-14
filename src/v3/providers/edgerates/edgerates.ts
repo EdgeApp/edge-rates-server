@@ -3,13 +3,16 @@ import { asCouchDoc } from 'edge-server-tools'
 
 import { config } from '../../../config'
 import { logger } from '../../../utils/utils'
+import { LEADERBOARD_KEY } from '../../constants'
 import {
   asEdgeAsset,
   EdgeAsset,
   GetRatesParams,
   RateProvider
 } from '../../types'
+import { fromCryptoKey } from '../../utils'
 import { dbSettings } from '../couch'
+import { client } from '../redis'
 import { defaultCrypto, defaultFiat } from './defaults'
 
 const asEdgeRates = asObject({
@@ -17,16 +20,51 @@ const asEdgeRates = asObject({
   fiat: asArray(asString)
 })
 
+const getTopCryptoAssets = async (): Promise<EdgeAsset[]> => {
+  const limit = 100
+  try {
+    // zrevrange isn't exposed by library
+    const luaScript = `
+      local leaderboard = redis.call('ZREVRANGE', KEYS[1], 0, ${
+        limit - 1
+      }, 'WITHSCORES')
+      return leaderboard
+    `
+    const result = (await client.eval(luaScript, {
+      keys: [LEADERBOARD_KEY]
+    })) as string[]
+
+    const out: EdgeAsset[] = []
+    // Process pairs of [member, score, member, score, ...]
+    for (let i = 0; i < result.length; i += 2) {
+      if (i / 2 >= limit) break
+      out.push(fromCryptoKey(result[i]))
+    }
+    await client.del(LEADERBOARD_KEY)
+
+    return out
+  } catch (error) {
+    console.error('Error finalizing leaderboard:', error)
+    throw error
+  }
+}
+
 const getCurrencyList = async (): Promise<{
   crypto: EdgeAsset[]
   fiat: string[]
 }> => {
   try {
-    const edgeDoc = await dbSettings.get('edgerates')
-    const { crypto, fiat } = asCouchDoc(asEdgeRates)(edgeDoc).doc
-    return { crypto, fiat }
+    const topCryptoAssets = await getTopCryptoAssets()
+    return { crypto: topCryptoAssets, fiat: defaultFiat }
   } catch (e) {
-    logger(e)
+    logger('Error grabbing leaderboard:', e)
+  }
+  try {
+    const edgeDoc = await dbSettings.get('edgerates')
+    const { crypto } = asCouchDoc(asEdgeRates)(edgeDoc).doc
+    return { crypto, fiat: defaultFiat }
+  } catch (e) {
+    logger('Error grabbing couch settings:', e)
   }
 
   return { crypto: defaultCrypto, fiat: defaultFiat }

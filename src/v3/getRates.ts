@@ -1,8 +1,10 @@
+import { LEADERBOARD_KEY } from './constants'
 import {
   apiProviders,
   dbProviders,
   memoryProviders
 } from './providers/allProviders'
+import { client } from './providers/redis'
 import {
   CryptoRateMap,
   FiatRateMap,
@@ -90,16 +92,30 @@ const updateProviders = async (
   }
 }
 
+const updateLeaderboard = async (keys: string[]): Promise<void> => {
+  const pipeline = client.multi()
+  for (const key of keys) {
+    pipeline.zIncrBy(LEADERBOARD_KEY, 1, key)
+  }
+  await pipeline.exec()
+}
+
 export const getRates: GetRatesFunc = async params => {
   const { targetFiat } = params
 
   const requestedCrypto: CryptoRateMap = new Map()
+  const incomingKeys: string[] = []
   for (const cryptoRate of params.crypto) {
+    const cryptoKey = toCryptoKey(cryptoRate.asset)
+    incomingKeys.push(cryptoKey)
     requestedCrypto.set(
-      `${cryptoRate.isoDate.toISOString()}_${toCryptoKey(cryptoRate.asset)}`,
+      `${cryptoRate.isoDate.toISOString()}_${cryptoKey}`,
       cryptoRate
     )
   }
+  updateLeaderboard(incomingKeys).catch(e => {
+    console.error('Error updating leaderboard', e)
+  })
   const requestedFiat: FiatRateMap = new Map()
   for (const fiatRate of params.fiat) {
     requestedFiat.set(

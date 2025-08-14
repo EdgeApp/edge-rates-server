@@ -17,7 +17,7 @@ import {
   toCryptoKey
 } from '../utils'
 
-const client = createClient()
+export const client = createClient()
 client.on('connect', () => {
   logger('onConnect to Redis')
 })
