@@ -13,7 +13,7 @@ import {
 import { fromCryptoKey } from '../../utils'
 import { dbSettings } from '../couch'
 import { client } from '../redis'
-import { defaultCrypto, defaultFiat } from './defaults'
+import { defaultCrypto, defaultFiat, defaultTokenTypes } from './defaults'
 
 const asEdgeRates = asObject({
   crypto: asArray(asEdgeAsset),
@@ -114,7 +114,8 @@ export const edgerates: RateProvider = {
         edgerates: {
           crypto: defaultCrypto,
           fiat: defaultFiat
-        }
+        },
+        tokenTypes: defaultTokenTypes
       }
     }
   ],

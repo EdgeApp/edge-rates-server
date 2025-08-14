@@ -1,6 +1,6 @@
-import { EdgeCurrencyPluginIdUIDMap } from '../../types'
+import { StringNullMap } from '../../types'
 
-export const coingeckoMainnetCurrencyMapping: EdgeCurrencyPluginIdUIDMap = {
+export const coingeckoMainnetCurrencyMapping: StringNullMap = {
   algorand: 'algorand',
   arbitrum: 'ethereum',
   avalanche: 'avalanche-2',
@@ -67,7 +67,7 @@ export const coingeckoMainnetCurrencyMapping: EdgeCurrencyPluginIdUIDMap = {
   zksync: 'ethereum'
 }
 
-export const coingeckoPlatformIdMapping: EdgeCurrencyPluginIdUIDMap = {
+export const coingeckoPlatformIdMapping: StringNullMap = {
   algorand: 'algorand',
   arbitrum: 'arbitrum-one',
   avalanche: 'avalanche',
