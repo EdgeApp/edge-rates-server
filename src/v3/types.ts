@@ -116,77 +116,8 @@ export interface StringMap {
   [key: string]: string
 }
 
-export type EdgeCurrencyPluginId =
-  | 'algorand'
-  | 'arbitrum'
-  | 'avalanche'
-  | 'axelar'
-  | 'base'
-  | 'binance'
-  | 'binancesmartchain'
-  | 'bitcoin'
-  | 'bitcoincash'
-  | 'bitcoingold'
-  | 'bitcoinsv'
-  | 'bobevm'
-  | 'cardano'
-  | 'celo'
-  | 'coreum'
-  | 'cosmoshub'
-  | 'dash'
-  | 'digibyte'
-  | 'dogecoin'
-  | 'eboost'
-  | 'ecash'
-  | 'eos'
-  | 'ethereum'
-  | 'ethereumclassic'
-  | 'ethereumpow'
-  | 'fantom'
-  | 'feathercoin'
-  | 'filecoin'
-  | 'filecoinfevm'
-  | 'fio'
-  | 'groestlcoin'
-  | 'hedera'
-  | 'hyperevm'
-  | 'liberland'
-  | 'litecoin'
-  | 'monero'
-  | 'optimism'
-  | 'osmosis'
-  | 'piratechain'
-  | 'pivx'
-  | 'polkadot'
-  | 'polygon'
-  | 'pulsechain'
-  | 'qtum'
-  | 'ravencoin'
-  | 'ripple'
-  | 'rsk'
-  | 'smartcash'
-  | 'solana'
-  | 'sonic'
-  | 'stellar'
-  | 'sui'
-  | 'telos'
-  | 'tezos'
-  | 'thorchainrune'
-  | 'ton'
-  | 'tron'
-  | 'ufo'
-  | 'vertcoin'
-  | 'wax'
-  | 'zcash'
-  | 'zcoin'
-  | 'zano'
-  | 'zksync'
-
-export type EdgeCurrencyPluginIdUIDMap = Record<
-  EdgeCurrencyPluginId,
-  string | null
->
-export const asPlatformIdMapping = asObject(asEither(asString, asNull))
+export const asStringNullMap = asObject(asEither(asString, asNull))
+export type StringNullMap = ReturnType<typeof asStringNullMap>
 
 export const asNumberMap = asObject(asNumber)
 export type NumberMap = ReturnType<typeof asNumberMap>
@@ -212,3 +143,13 @@ export type RateDocument = ReturnType<typeof asRateDocument>
 
 const asTokenMappingsDoc = asCouchDoc(asTokenMap)
 export const wasExistingMappings = uncleaner(asTokenMappingsDoc)
+
+type TokenType =
+  | 'simple'
+  | 'evm'
+  | 'cosmos'
+  | 'xrpl'
+  | 'colon-delimited'
+  | 'lowercase'
+  | null
+export type TokenTypeMap = Record<string, TokenType>
