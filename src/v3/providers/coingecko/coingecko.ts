@@ -1,12 +1,12 @@
 import { asArray, asMaybe, asNumber, asObject, asString } from 'cleaners'
-import { syncedDocument } from 'edge-server-tools'
+import { asCouchDoc, syncedDocument } from 'edge-server-tools'
 
 import { config } from '../../../config'
 import { dateOnly, snooze } from '../../../utils/utils'
+import { TOKEN_TYPES_KEY } from '../../constants'
 import {
-  asPlatformIdMapping,
+  asStringNullMap,
   asTokenMap,
-  EdgeCurrencyPluginId,
   NumberMap,
   RateBuckets,
   RateEngine,
@@ -103,7 +103,7 @@ const automatedTokenMappingsSyncDoc = syncedDocument(
 )
 const platformIdMappingSyncDoc = syncedDocument(
   'coingecko:platforms',
-  asPlatformIdMapping
+  asStringNullMap
 )
 manualTokenMappingsSyncDoc.onChange(manualMappings => {
   coingeckoTokenIdMap = {
@@ -133,6 +133,9 @@ const tokenMapping: RateEngine = async () => {
   const json = await fetchCoingecko(
     `${config.providers.coingeckopro.uri}/api/v3/coins/list?include_platform=true`
   )
+  const tokenTypes = asCouchDoc(asStringNullMap)(
+    await dbSettings.get(TOKEN_TYPES_KEY)
+  )
 
   const data = asCoingeckoAssetResponse(json)
 
@@ -155,7 +158,7 @@ const tokenMapping: RateEngine = async () => {
 
     try {
       const tokenId = createTokenId(
-        pluginId as EdgeCurrencyPluginId,
+        tokenTypes.doc[pluginId],
         asset.symbol,
         contractAddress
       )

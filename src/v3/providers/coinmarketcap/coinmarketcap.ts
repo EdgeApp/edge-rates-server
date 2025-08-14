@@ -6,14 +6,14 @@ import {
   asObject,
   asString
 } from 'cleaners'
-import { syncedDocument } from 'edge-server-tools'
+import { asCouchDoc, syncedDocument } from 'edge-server-tools'
 
 import { config } from '../../../config'
 import { daysBetween, snooze } from '../../../utils/utils'
+import { TOKEN_TYPES_KEY } from '../../constants'
 import {
-  asPlatformIdMapping,
+  asStringNullMap,
   asTokenMap,
-  EdgeCurrencyPluginId,
   NumberMap,
   RateBuckets,
   RateEngine,
@@ -142,7 +142,7 @@ const automatedTokenMappingsSyncDoc = syncedDocument(
 )
 const platformIdMappingSyncDoc = syncedDocument(
   'coinmarketcap:platforms',
-  asPlatformIdMapping
+  asStringNullMap
 )
 userTokenMappingsSyncDoc.onChange(userMappings => {
   coinmarketcapTokenIdMap = {
@@ -174,6 +174,9 @@ const tokenMapping: RateEngine = async () => {
   const json = await fetchCoinmarketcap(
     `${config.providers.coinMarketCapHistorical.uri}/v1/cryptocurrency/map?aux=platform`
   )
+  const tokenTypes = asCouchDoc(asStringNullMap)(
+    await dbSettings.get(TOKEN_TYPES_KEY)
+  )
 
   const data = asCoinMarketCapAssetResponse(json)
 
@@ -190,7 +193,7 @@ const tokenMapping: RateEngine = async () => {
 
     try {
       const tokenId = createTokenId(
-        pluginId as EdgeCurrencyPluginId,
+        tokenTypes.doc[pluginId],
         asset.symbol,
         asset.platform.token_address
       )

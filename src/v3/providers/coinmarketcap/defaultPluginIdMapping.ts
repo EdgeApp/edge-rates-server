@@ -1,6 +1,6 @@
-import { EdgeCurrencyPluginIdUIDMap } from '../../types'
+import { StringNullMap } from '../../types'
 
-export const coinmarketcapMainnetCurrencyMapping: EdgeCurrencyPluginIdUIDMap = {
+export const coinmarketcapMainnetCurrencyMapping: StringNullMap = {
   algorand: '4030',
   arbitrum: '1027',
   avalanche: '5805',
@@ -67,7 +67,7 @@ export const coinmarketcapMainnetCurrencyMapping: EdgeCurrencyPluginIdUIDMap = {
   zksync: '1027'
 }
 
-export const coinmarketcapPlatformIdMapping: EdgeCurrencyPluginIdUIDMap = {
+export const coinmarketcapPlatformIdMapping: StringNullMap = {
   algorand: '17',
   arbitrum: '51',
   avalanche: '28',

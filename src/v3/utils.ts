@@ -3,7 +3,6 @@ import {
   CryptoRateMap,
   DateBuckets,
   EdgeAsset,
-  EdgeCurrencyPluginId,
   EdgeTokenId,
   FiatRateMap,
   RateBuckets,
@@ -22,98 +21,31 @@ export const fromCryptoKey = (key: string): EdgeAsset => {
   return { pluginId, tokenId }
 }
 
-function assertNever(x: never): never {
-  throw new Error(`Unhandled case: ${JSON.stringify(x)}`)
-}
-
 // Create a tokenId from a contract address and currency code.
 export const createTokenId = (
-  pluginId: EdgeCurrencyPluginId,
+  pluginType: string | null,
   currencyCode: string,
   contractAddress?: string
 ): EdgeTokenId => {
-  switch (pluginId) {
-    // No token support:
-    case 'binance':
-    case 'bitcoin':
-    case 'bitcoincash':
-    case 'bitcoingold':
-    case 'bitcoinsv':
-    case 'cardano':
-    case 'dash':
-    case 'digibyte':
-    case 'dogecoin':
-    case 'eboost':
-    case 'ecash':
-    case 'eos':
-    case 'feathercoin':
-    case 'filecoin':
-    case 'fio':
-    case 'groestlcoin':
-    case 'hedera':
-    case 'litecoin':
-    case 'monero':
-    case 'piratechain':
-    case 'pivx':
-    case 'polkadot':
-    case 'qtum':
-    case 'ravencoin':
-    case 'smartcash':
-    case 'stellar':
-    case 'telos':
-    case 'tezos':
-    case 'ton':
-    case 'ufo':
-    case 'vertcoin':
-    case 'wax':
-    case 'zcash':
-    case 'zcoin': {
-      if (contractAddress != null) {
-        // these chains don't support tokens
-        throw new Error('Tokens are not supported for this chain')
-      }
-      return null
-    }
-
-    // EVM token support:
-    case 'arbitrum':
-    case 'avalanche':
-    case 'base':
-    case 'binancesmartchain':
-    case 'bobevm':
-    case 'celo':
-    case 'ethereum':
-    case 'ethereumclassic':
-    case 'ethereumpow':
-    case 'fantom':
-    case 'filecoinfevm':
-    case 'hyperevm':
-    case 'optimism':
-    case 'polygon':
-    case 'pulsechain':
-    case 'rsk':
-    case 'sonic':
-    case 'zksync': {
-      if (contractAddress != null) {
-        return contractAddress.toLowerCase().replace(/^0x/, '')
-      }
-      return null
-    }
-
-    // Algorand token support:
-    case 'algorand': {
+  switch (pluginType) {
+    // Use contract address as-is:
+    case 'simple': {
       if (contractAddress != null) {
         return contractAddress
       }
       return null
     }
 
+    // EVM token support:
+    case 'evm': {
+      if (contractAddress != null) {
+        return contractAddress.toLowerCase().replace(/^0x/, '')
+      }
+      return null
+    }
+
     // Cosmos token support:
-    case 'axelar':
-    case 'coreum':
-    case 'cosmoshub':
-    case 'osmosis':
-    case 'thorchainrune': {
+    case 'cosmos': {
       if (contractAddress != null) {
         // Regexes inspired by a general regex in https://github.com/cosmos/cosmos-sdk
         // Broken up to more tightly enforce the rules for each type of asset so the entered value matches what a node would expect
@@ -133,16 +65,8 @@ export const createTokenId = (
       return null
     }
 
-    // Substrate token support:
-    case 'liberland': {
-      if (contractAddress != null) {
-        return contractAddress
-      }
-      return null
-    }
-
     // XRP token support:
-    case 'ripple': {
+    case 'xrpl': {
       if (contractAddress != null) {
         let currency: string
         if (currencyCode.length > 3) {
@@ -157,41 +81,28 @@ export const createTokenId = (
       return null
     }
 
-    // Solana token support:
-    case 'solana': {
-      if (contractAddress != null) {
-        return contractAddress
-      }
-      return null
-    }
-
     // Sui token support:
-    case 'sui': {
+    case 'colon-delimited': {
       if (contractAddress != null) {
         return contractAddress.replace(/:/g, '')
       }
       return null
     }
 
-    // Tron token support:
-    case 'tron': {
-      if (contractAddress != null) {
-        return contractAddress
-      }
-      return null
-    }
-
-    // Zano token support:
-    case 'zano': {
+    case 'lowercase': {
       if (contractAddress != null) {
         return contractAddress.toLowerCase()
       }
       return null
     }
 
-    // Make sure we handle all cases:
     default: {
-      return assertNever(pluginId)
+      // No token support:
+      if (contractAddress != null) {
+        // these chains don't support tokens
+        throw new Error('Tokens are not supported for this chain')
+      }
+      return null
     }
   }
 }
