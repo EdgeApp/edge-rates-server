@@ -87,11 +87,17 @@ export interface RateProvider {
   providerId: string
   type: 'memory' | 'db' | 'api'
   documents?: DatabaseSetup[]
-  getCryptoRates?: (params: GetCryptoRatesParams) => Promise<{
+  getCryptoRates?: (
+    params: GetCryptoRatesParams,
+    rightNow: Date
+  ) => Promise<{
     foundRates: CryptoRateMap
     requestedRates: CryptoRateMap
   }>
-  getFiatRates?: (params: GetFiatRatesParams) => Promise<{
+  getFiatRates?: (
+    params: GetFiatRatesParams,
+    rightNow: Date
+  ) => Promise<{
     foundRates: FiatRateMap
     requestedRates: FiatRateMap
   }>
@@ -102,7 +108,10 @@ export interface RateProvider {
   }>
 }
 
-export type GetRatesFunc = (params: GetRatesParams) => Promise<GetRatesParams>
+export type GetRatesFunc = (
+  params: GetRatesParams,
+  rightNow: Date
+) => Promise<GetRatesParams>
 
 export const asTokenMap = asObject(
   asObject({

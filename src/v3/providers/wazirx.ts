@@ -34,7 +34,7 @@ const wazirxTokenIdMap: TokenMap = {
 export const wazirx: RateProvider = {
   providerId: 'wazirx',
   type: 'api',
-  getCryptoRates: async ({ targetFiat, requestedRates }) => {
+  getCryptoRates: async ({ targetFiat, requestedRates }, rightNow) => {
     // This is a BTC-to-INR-only provider so we can check to exit early
     if (targetFiat !== 'INR') {
       return {
@@ -43,7 +43,6 @@ export const wazirx: RateProvider = {
       }
     }
 
-    const rightNow = new Date()
     const rateBuckets = reduceRequestedCryptoRates(
       requestedRates,
       rightNow,

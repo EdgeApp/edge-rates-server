@@ -18,7 +18,8 @@ const queryProviders = async (
   providers: RateProvider[],
   targetFiat: string,
   requestedCrypto: CryptoRateMap,
-  requestedFiat: FiatRateMap
+  requestedFiat: FiatRateMap,
+  rightNow: Date
 ): Promise<{
   requestedCrypto: CryptoRateMap
   foundCrypto: CryptoRateMap
@@ -33,10 +34,13 @@ const queryProviders = async (
     if (p.getFiatRates != null && requestedFiat.size > 0) {
       promises.push(
         p
-          .getFiatRates({
-            targetFiat,
-            requestedRates: requestedFiat
-          })
+          .getFiatRates(
+            {
+              targetFiat,
+              requestedRates: requestedFiat
+            },
+            rightNow
+          )
           .then(({ foundRates, requestedRates }) => {
             foundRates.forEach((newRate, key) => {
               foundFiat.set(key, newRate)
@@ -51,10 +55,13 @@ const queryProviders = async (
     if (p.getCryptoRates != null && requestedCrypto.size > 0) {
       promises.push(
         p
-          .getCryptoRates({
-            targetFiat,
-            requestedRates: requestedCrypto
-          })
+          .getCryptoRates(
+            {
+              targetFiat,
+              requestedRates: requestedCrypto
+            },
+            rightNow
+          )
           .then(({ foundRates, requestedRates }) => {
             foundRates.forEach((newRate, key) => {
               foundCrypto.set(key, newRate)
@@ -98,7 +105,7 @@ const updateLeaderboard = async (keys: string[]): Promise<void> => {
   await pipeline.exec()
 }
 
-export const getRates: GetRatesFunc = async params => {
+export const getRates: GetRatesFunc = async (params, rightNow) => {
   const { targetFiat } = params
 
   const requestedCrypto: CryptoRateMap = new Map()
@@ -126,19 +133,22 @@ export const getRates: GetRatesFunc = async params => {
     memoryProviders,
     targetFiat,
     requestedCrypto,
-    requestedFiat
+    requestedFiat,
+    rightNow
   )
   const dbResults = await queryProviders(
     dbProviders,
     targetFiat,
     memoryResults.requestedCrypto,
-    memoryResults.requestedFiat
+    memoryResults.requestedFiat,
+    rightNow
   )
   const apiResults = await queryProviders(
     apiProviders,
     targetFiat,
     dbResults.requestedCrypto,
-    dbResults.requestedFiat
+    dbResults.requestedFiat,
+    rightNow
   )
 
   // Update redis with db and api data

@@ -10,10 +10,10 @@ import {
 } from './types'
 
 const fixIncomingGetRatesParams = (
-  rawParams: IncomingGetRatesParams
+  rawParams: IncomingGetRatesParams,
+  rightNow: Date
 ): GetRatesParams => {
-  const rightNow = Date.now()
-  const normalizeTime = Math.floor(rightNow / ONE_MINUTE) * ONE_MINUTE
+  const normalizeTime = Math.floor(rightNow.getTime() / ONE_MINUTE) * ONE_MINUTE
   const normalizedIsoDate = new Date(normalizeTime)
 
   const params = asIncomingGetRatesParams(rawParams)
@@ -47,8 +47,9 @@ export const ratesV3 = async (
   request: ExpressRequest
 ): Promise<HttpResponse> => {
   try {
-    const params = fixIncomingGetRatesParams(request.req.body)
-    const result = await getRates(params)
+    const rightNow = new Date()
+    const params = fixIncomingGetRatesParams(request.req.body, rightNow)
+    const result = await getRates(params, rightNow)
     return {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(result)

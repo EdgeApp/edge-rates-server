@@ -34,7 +34,7 @@ const coinmonitorTokenIdMap: TokenMap = {
 export const coinmonitor: RateProvider = {
   providerId: 'coinmonitor',
   type: 'api',
-  getCryptoRates: async ({ targetFiat, requestedRates }) => {
+  getCryptoRates: async ({ targetFiat, requestedRates }, rightNow) => {
     // This is a BTC-to-ARS-only provider so we can check to exit early
     if (targetFiat !== 'ARS') {
       return {
@@ -42,7 +42,6 @@ export const coinmonitor: RateProvider = {
         requestedRates
       }
     }
-    const rightNow = new Date()
 
     const rateBuckets = reduceRequestedCryptoRates(
       requestedRates,

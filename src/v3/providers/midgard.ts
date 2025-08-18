@@ -36,7 +36,7 @@ const midgardTokenIdMap: TokenMap = {
 export const midgard: RateProvider = {
   providerId: 'midgard',
   type: 'api',
-  getCryptoRates: async ({ targetFiat, requestedRates }) => {
+  getCryptoRates: async ({ targetFiat, requestedRates }, rightNow) => {
     if (targetFiat !== 'USD') {
       return {
         foundRates: new Map(),
@@ -44,7 +44,6 @@ export const midgard: RateProvider = {
       }
     }
 
-    const rightNow = new Date()
     const rateBuckets = reduceRequestedCryptoRates(
       requestedRates,
       rightNow,

@@ -47,7 +47,7 @@ const normalizeDate = (date: string, intervalMs: number): string => {
 export const redis: RateProvider = {
   providerId: 'redis',
   type: 'memory',
-  getCryptoRates: async ({ targetFiat, requestedRates }) => {
+  getCryptoRates: async ({ targetFiat, requestedRates }, rightNow) => {
     if (targetFiat !== 'USD') {
       return {
         foundRates: new Map(),
@@ -55,7 +55,6 @@ export const redis: RateProvider = {
       }
     }
 
-    const rightNow = new Date()
     const rateBuckets = reduceRequestedCryptoRates(requestedRates, rightNow)
 
     const allResults: RateBuckets = new Map()
