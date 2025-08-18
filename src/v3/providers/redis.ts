@@ -2,16 +2,12 @@ import { mul } from 'biggystring'
 import { createClient } from 'redis'
 
 import { logger } from '../../utils/utils'
-import {
-  CryptoRateMap,
-  FiatRateMap,
-  RateBuckets,
-  RateProvider,
-  UpdateRatesParams
-} from '../types'
+import { RateBuckets, RateProvider, UpdateRatesParams } from '../types'
 import {
   expandReturnedCryptoRates,
   expandReturnedFiatRates,
+  groupCryptoRatesByTime,
+  groupFiatRatesByTime,
   reduceRequestedCryptoRates,
   reduceRequestedFiatRates
 } from '../utils'
@@ -40,7 +36,6 @@ export const setAsync = async (
 }
 
 const ONE_MINUTE = 60 * 1000
-const FIVE_MINUTES = 5 * 60 * 1000
 const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000
 
 const normalizeDate = (date: string, intervalMs: number): string => {
@@ -147,68 +142,17 @@ export const redis: RateProvider = {
       return
     }
 
-    const cryptoRateBuckets = groupCryptoRatesByTime(params.crypto)
+    const cryptoRateBuckets = groupCryptoRatesByTime(params.crypto, ONE_MINUTE)
     for (const [date, cryptoRates] of cryptoRateBuckets.entries()) {
       const cryptoRedisKey = `rates_data:${date}:crypto`
       await hsetAsync(cryptoRedisKey, cryptoRates)
     }
 
-    const fiatRateBuckets = groupFiatRatesByTime(params.fiat)
+    const fiatRateBuckets = groupFiatRatesByTime(params.fiat, TWENTY_FOUR_HOURS)
     for (const [date, fiatRates] of fiatRateBuckets.entries()) {
       const fiatRedisKey = `rates_data:${date}:fiat`
       await hsetAsync(fiatRedisKey, fiatRates)
     }
   },
   engines: []
-}
-
-// This function breaks apart the requested rates into buckets of the given interval.
-type DateBuckets = Map<string, { [id: string]: number }>
-export const groupCryptoRatesByTime = (
-  requestedRates: CryptoRateMap
-): DateBuckets => {
-  const buckets: DateBuckets = new Map()
-  const rightNowMs = new Date().getTime()
-
-  requestedRates.forEach(cryptoRate => {
-    if (cryptoRate.rate == null) return
-
-    const rateTime = cryptoRate.isoDate.getTime()
-
-    // Current rates (< five minutes old) use minute precision and historical rates use five minutes
-    const intervalMs =
-      rightNowMs - rateTime < FIVE_MINUTES ? ONE_MINUTE : FIVE_MINUTES
-
-    // Floor to the start of the interval bucket
-    const bucketTime = Math.floor(rateTime / intervalMs) * intervalMs
-    const bucketKey = new Date(bucketTime).toISOString()
-    const bucket = buckets.get(bucketKey) ?? {}
-    bucket[`${cryptoRate.asset.pluginId}_${String(cryptoRate.asset.tokenId)}`] =
-      cryptoRate.rate
-    buckets.set(bucketKey, bucket)
-  })
-
-  return buckets
-}
-
-export const groupFiatRatesByTime = (
-  requestedRates: FiatRateMap
-): DateBuckets => {
-  const buckets: DateBuckets = new Map()
-
-  requestedRates.forEach(fiatRate => {
-    if (fiatRate.rate == null) return
-
-    const rateTime = fiatRate.isoDate.getTime()
-
-    // Floor to the start of the interval bucket
-    const bucketTime =
-      Math.floor(rateTime / TWENTY_FOUR_HOURS) * TWENTY_FOUR_HOURS
-    const bucketKey = new Date(bucketTime).toISOString()
-    const bucket = buckets.get(bucketKey) ?? {}
-    bucket[fiatRate.fiatCode] = fiatRate.rate
-    buckets.set(bucketKey, bucket)
-  })
-
-  return buckets
 }
