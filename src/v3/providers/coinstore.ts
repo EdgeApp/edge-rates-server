@@ -45,12 +45,7 @@ export const coinstore: RateProvider = {
   type: 'api',
   getCryptoRates: async ({ targetFiat, requestedRates }, rightNow) => {
     // This is a LLD-only provider so we can check to exit early
-    if (
-      targetFiat !== 'USD' ||
-      ![...requestedRates.values()].some(
-        r => r.asset.pluginId === 'liberland' && r.asset.tokenId == null
-      )
-    ) {
+    if (targetFiat !== 'USD') {
       return {
         foundRates: new Map(),
         requestedRates
@@ -66,7 +61,7 @@ export const coinstore: RateProvider = {
     const allResults: RateBuckets = new Map()
     const promises: Array<Promise<void>> = []
     rateBuckets.forEach((ids, date) => {
-      if (isCurrent(new Date(date), rightNow)) {
+      if (isCurrent(new Date(date), rightNow) && ids.has('LLD')) {
         promises.push(
           fetchCoinstore().then(results => {
             allResults.set(date, results)

@@ -36,12 +36,7 @@ export const coinmonitor: RateProvider = {
   type: 'api',
   getCryptoRates: async ({ targetFiat, requestedRates }, rightNow) => {
     // This is a BTC-to-ARS-only provider so we can check to exit early
-    if (
-      targetFiat !== 'ARS' ||
-      ![...requestedRates.values()].some(
-        r => r.asset.pluginId === 'bitcoin' && r.asset.tokenId == null
-      )
-    ) {
+    if (targetFiat !== 'ARS') {
       return {
         foundRates: new Map(),
         requestedRates
@@ -57,7 +52,7 @@ export const coinmonitor: RateProvider = {
     const allResults: RateBuckets = new Map()
     const promises: Array<Promise<void>> = []
     rateBuckets.forEach((ids, date) => {
-      if (isCurrent(new Date(date), rightNow)) {
+      if (isCurrent(new Date(date), rightNow) && ids.has('bitcoin')) {
         promises.push(
           fetchCoinmonitor().then(results => {
             allResults.set(date, results)

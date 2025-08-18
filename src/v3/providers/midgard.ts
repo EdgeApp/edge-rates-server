@@ -37,12 +37,7 @@ export const midgard: RateProvider = {
   providerId: 'midgard',
   type: 'api',
   getCryptoRates: async ({ targetFiat, requestedRates }, rightNow) => {
-    if (
-      targetFiat !== 'USD' ||
-      ![...requestedRates.values()].some(
-        r => r.asset.pluginId === 'thorchainrune' && r.asset.tokenId === 'tcy'
-      )
-    ) {
+    if (targetFiat !== 'USD') {
       return {
         foundRates: new Map(),
         requestedRates
@@ -58,7 +53,7 @@ export const midgard: RateProvider = {
     const allResults: RateBuckets = new Map()
     const promises: Array<Promise<void>> = []
     rateBuckets.forEach((ids, date) => {
-      if (isCurrent(new Date(date), rightNow)) {
+      if (isCurrent(new Date(date), rightNow) && ids.has('TCY')) {
         promises.push(
           fetchMidgard().then(results => {
             allResults.set(date, results)
