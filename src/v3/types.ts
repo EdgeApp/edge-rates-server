@@ -126,7 +126,7 @@ export interface StringMap {
 }
 
 export const asStringNullMap = asObject(asEither(asString, asNull))
-export type StringNullMap = Record<string, string | null>
+export type StringNullMap = ReturnType<typeof asStringNullMap>
 
 export interface NumberMap {
   [key: string]: number
