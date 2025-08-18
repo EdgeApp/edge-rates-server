@@ -151,18 +151,13 @@ export const couch: RateProvider = {
 
       // Handle missing documents
       if ('error' in document) {
-        const missingDocumentError = asMaybe(asCouchMissingDocumentError)(
-          document.error
-        )
-        if (missingDocumentError != null) {
-          docsMap.set(result.id, {
-            id: result.id,
-            doc: {
-              crypto: {},
-              fiat: {}
-            }
-          })
-        }
+        docsMap.set(result.id, {
+          id: result.id,
+          doc: {
+            crypto: {},
+            fiat: {}
+          }
+        })
         continue
       }
 
@@ -222,10 +217,6 @@ export const couch: RateProvider = {
   engines: []
 }
 
-const asCouchMissingDocumentError = asObject({
-  error: asValue('not_found'),
-  reason: asValue('missing')
-})
 const asDeletedCouchDoc = asObject({
   _id: asString,
   _rev: asMaybe(asString),
