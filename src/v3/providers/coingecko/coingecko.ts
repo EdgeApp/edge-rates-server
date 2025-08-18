@@ -257,7 +257,7 @@ export const coingecko: RateProvider = {
       ]
     }
   ],
-  getCryptoRates: async ({ targetFiat, requestedRates }) => {
+  getCryptoRates: async ({ targetFiat, requestedRates }, rightNow) => {
     if (targetFiat !== 'USD' || config.providers.coingeckopro.apiKey === '') {
       return {
         foundRates: new Map(),
@@ -265,7 +265,6 @@ export const coingecko: RateProvider = {
       }
     }
 
-    const rightNow = new Date()
     const rateBuckets = reduceRequestedCryptoRates(
       requestedRates,
       rightNow,

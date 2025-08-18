@@ -31,7 +31,7 @@ const wasRatesDoc = uncleaner(asRatesDoc)
 export const couch: RateProvider = {
   providerId: 'couch',
   type: 'db',
-  getCryptoRates: async ({ targetFiat, requestedRates }) => {
+  getCryptoRates: async ({ targetFiat, requestedRates }, rightNow) => {
     if (targetFiat !== 'USD') {
       return {
         foundRates: new Map(),
@@ -39,7 +39,6 @@ export const couch: RateProvider = {
       }
     }
 
-    const rightNow = new Date()
     const rateBuckets = reduceRequestedCryptoRates(requestedRates, rightNow)
 
     const allResults: RateBuckets = new Map()

@@ -43,7 +43,7 @@ const coinstoreTokenIdMap: TokenMap = {
 export const coinstore: RateProvider = {
   providerId: 'coinstore',
   type: 'api',
-  getCryptoRates: async ({ targetFiat, requestedRates }) => {
+  getCryptoRates: async ({ targetFiat, requestedRates }, rightNow) => {
     // This is a LLD-only provider so we can check to exit early
     if (
       targetFiat !== 'USD' ||
@@ -56,7 +56,6 @@ export const coinstore: RateProvider = {
         requestedRates
       }
     }
-    const rightNow = new Date()
 
     const rateBuckets = reduceRequestedCryptoRates(
       requestedRates,
