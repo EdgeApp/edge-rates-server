@@ -90,11 +90,9 @@ const updateProviders = async (
 ): Promise<void> => {
   for (const p of providers) {
     if (p.updateRates != null) {
-      try {
-        await p.updateRates(rates)
-      } catch (error) {
-        console.error(`Error updating rates from ${p.providerId}`, error)
-      }
+      p.updateRates(rates).catch(err =>
+        console.error(`Error updating rates from ${p.providerId}`, err)
+      )
     }
   }
 }
@@ -154,24 +152,13 @@ export const getRates: GetRatesFunc = async (params, rightNow) => {
   )
 
   // Update redis with couch data
-  updateProviders([...memoryProviders], {
+  updateProviders([...memoryProviders, ...dbProviders], {
     targetFiat,
-    crypto: dbResults.foundCrypto,
-    fiat: dbResults.foundFiat
+    crypto: new Map([...dbResults.foundCrypto, ...apiResults.foundCrypto]),
+    fiat: new Map([...dbResults.foundFiat, ...apiResults.foundFiat])
+  }).catch(e => {
+    console.error('Error updating providers', e)
   })
-    .catch(e => {
-      console.error('Error updating memory providers', e)
-    })
-    .finally(() => {
-      // Update redis and couch with api data
-      updateProviders([...memoryProviders, ...dbProviders], {
-        targetFiat,
-        crypto: apiResults.foundCrypto,
-        fiat: apiResults.foundFiat
-      }).catch(e => {
-        console.error('Error updating memory and couch providers', e)
-      })
-    })
 
   return {
     targetFiat,
