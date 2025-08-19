@@ -88,7 +88,7 @@ export const couch: RateProvider = {
 
     const allResults: RateBuckets = new Map()
 
-    const documents = await bulkGet<RateDocument[]>(
+    const documents = await bulkGet<RateDocument>(
       config.couchUri,
       'rates_data',
       Array.from(rateBuckets.keys()).map(id => ({ id }))
