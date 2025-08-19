@@ -1,9 +1,10 @@
 import { DatabaseSetup, setupDatabase } from 'edge-server-tools'
 
 import { config } from '../config'
+import { logger } from '../utils/utils'
 import { apiProviders } from './providers/allProviders'
 
-export const createDatabases = async (): Promise<void> => {
+const createDatabases = async (): Promise<void> => {
   const ratesDbs: DatabaseSetup[] = [
     {
       name: 'rates_settings',
@@ -57,3 +58,7 @@ export const createDatabases = async (): Promise<void> => {
     await setupDatabase(config.couchUri, setup)
   }
 }
+
+createDatabases()
+  .then(() => process.exit(0))
+  .catch(e => logger('createDatabases failure', e))
