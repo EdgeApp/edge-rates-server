@@ -18,6 +18,12 @@ const fixIncomingGetRatesParams = (
 
   const params = asIncomingGetRatesParams(rawParams)
 
+  if (params.crypto.length > 100) {
+    throw new Error('crypto array must be less than 100')
+  }
+  if (params.fiat.length > 256) {
+    throw new Error('fiat array must be less than 256')
+  }
   if (params.targetFiat !== 'USD') {
     throw new Error('targetFiat must be USD')
   }
