@@ -1,11 +1,10 @@
-import { logger, snooze } from '../utils/utils'
+import { snooze } from '../utils/utils'
 import { ONE_HOUR } from './constants'
 import {
   apiProviders,
   dbProviders,
   memoryProviders
 } from './providers/allProviders'
-import { createDatabases } from './setupDatabases'
 import { Frequency, RateEngine } from './types'
 
 const frequencyToMs: Record<Frequency, number> = {
@@ -56,6 +55,4 @@ const startEngines = (): void => {
     }
   }
 }
-createDatabases()
-  .then(() => startEngines())
-  .catch(e => logger('createDatabases failure', e))
+startEngines()

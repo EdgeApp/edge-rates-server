@@ -5,7 +5,6 @@ import { makeExpressRoute } from 'serverlet/express'
 
 import { config } from '../config'
 import { ratesV3 } from './router'
-import { createDatabases } from './setupDatabases'
 
 async function main(): Promise<void> {
   await server()
@@ -29,9 +28,7 @@ function server(): void {
   console.log(`HTTP v3 server listening on port ${httpPort}`)
 }
 
-createDatabases()
-  .then(async () => await main())
-  .catch(error => {
-    console.error(error)
-    process.exit(1)
-  })
+main().catch(error => {
+  console.error(error)
+  process.exit(1)
+})
