@@ -128,6 +128,7 @@ export interface StringMap {
 export const asStringNullMap = asObject(asEither(asString, asNull))
 export type StringNullMap = ReturnType<typeof asStringNullMap>
 
+export const asNumberMap = asObject(asNumber)
 export interface NumberMap {
   [key: string]: number
 }
@@ -153,3 +154,16 @@ export type RateDocument = ReturnType<typeof asRateDocument>
 
 const asTokenMappingsDoc = asCouchDoc(asTokenMap)
 export const wasExistingMappings = uncleaner(asTokenMappingsDoc)
+
+const asCrossChainMapping = asObject(
+  asObject({
+    sourceChain: asString,
+    destChain: asString,
+    currencyCode: asString,
+    tokenId: asString
+  })
+)
+export type CrossChainMapping = ReturnType<typeof asCrossChainMapping>
+
+export const asCrossChainDoc = asCouchDoc(asCrossChainMapping)
+export const wasCrossChainDoc = uncleaner(asCrossChainDoc)

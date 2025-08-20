@@ -5,13 +5,18 @@ import { config } from '../../../config'
 import { dateOnly, snooze } from '../../../utils/utils'
 import { TOKEN_TYPES_KEY } from '../../constants'
 import {
+  asCrossChainDoc,
+  asNumberMap,
   asStringNullMap,
   asTokenMap,
+  CrossChainMapping,
   NumberMap,
   RateBuckets,
   RateEngine,
   RateProvider,
+  StringNullMap,
   TokenMap,
+  wasCrossChainDoc,
   wasExistingMappings
 } from '../../types'
 import {
@@ -127,6 +132,67 @@ automatedTokenMappingsSyncDoc.onChange(automatedMappings => {
   }
 })
 
+const coingeckoToCrossChainMapping = async (
+  coingeckoAssets: ReturnType<typeof asCoingeckoAssetResponse>,
+  tokenTypes: StringNullMap
+): Promise<CrossChainMapping> => {
+  const invertPlatformMapping: { [key: string]: string } = {}
+  for (const [key, value] of Object.entries(coingeckoPlatformIdMapping)) {
+    if (value === null) continue
+    invertPlatformMapping[value] = key
+  }
+  const platformPriorityDoc = await dbSettings.get('platformPriority')
+  const platformPriority = asCouchDoc(asNumberMap)(platformPriorityDoc).doc
+
+  const out: CrossChainMapping = {}
+
+  for (const asset of coingeckoAssets) {
+    let destAsset: { destChain: string; edgeTokenId: string } | undefined
+
+    const platforms = Object.entries(asset.platforms)
+    const getPriority = (k: string): number =>
+      platformPriority[k] ?? Number.MAX_SAFE_INTEGER
+
+    const sortedPlatforms = platforms.sort(
+      (a, b) =>
+        getPriority(invertPlatformMapping[a[0]]) -
+        getPriority(invertPlatformMapping[b[0]])
+    )
+
+    for (const [platform, address] of sortedPlatforms) {
+      const edgePluginId = invertPlatformMapping[platform]
+      if (edgePluginId == null) continue
+
+      const tokenType = tokenTypes[edgePluginId]
+      if (tokenType == null) continue
+
+      try {
+        const tokenId = createTokenId(tokenType, asset.symbol, address)
+        if (tokenId == null) continue
+
+        if (destAsset == null) {
+          destAsset = {
+            destChain: edgePluginId,
+            edgeTokenId: tokenId
+          }
+        } else {
+          out[`${edgePluginId}_${tokenId}`] = {
+            sourceChain: edgePluginId,
+            destChain: destAsset.destChain,
+            currencyCode: asset.symbol,
+            tokenId: destAsset.edgeTokenId
+          }
+        }
+      } catch (error) {
+        console.log('cross chain mapping error', platform, address, error)
+        continue
+      }
+    }
+  }
+
+  return out
+}
+
 const tokenMapping: RateEngine = async () => {
   const mapping: TokenMap = {}
 
@@ -192,6 +258,20 @@ const tokenMapping: RateEngine = async () => {
       id: automatedTokenMappingsSyncDoc.id,
       rev: automatedTokenMappingsSyncDoc.rev,
       doc: combinedTokenMappings
+    })
+  )
+
+  const crossChainDocument = await dbSettings.get('crosschain:automated')
+  const crossChainDoc = asCrossChainDoc(crossChainDocument)
+  const crossChainMappings = await coingeckoToCrossChainMapping(
+    data,
+    tokenTypes.doc
+  )
+  await dbSettings.insert(
+    wasCrossChainDoc({
+      id: crossChainDoc.id,
+      rev: crossChainDoc.rev,
+      doc: crossChainMappings
     })
   )
 }
