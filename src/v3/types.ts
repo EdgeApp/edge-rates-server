@@ -7,6 +7,7 @@ import {
   asObject,
   asOptional,
   asString,
+  asValue,
   uncleaner
 } from 'cleaners'
 import { asCouchDoc, DatabaseSetup } from 'edge-server-tools'
@@ -162,3 +163,27 @@ type TokenType =
   | 'lowercase'
   | null
 export type TokenTypeMap = Record<string, TokenType>
+
+const asTokenType = asEither(
+  asValue('simple'),
+  asValue('evm'),
+  asValue('cosmos'),
+  asValue('xrpl'),
+  asValue('colon-delimited'),
+  asValue('lowercase'),
+  asNull
+)
+export const asTokenTypeMap = asObject(asTokenType)
+
+const asCrossChainMapping = asObject(
+  asObject({
+    sourceChain: asString,
+    destChain: asString,
+    currencyCode: asString,
+    tokenId: asString
+  })
+)
+export type CrossChainMapping = ReturnType<typeof asCrossChainMapping>
+
+export const asCrossChainDoc = asCouchDoc(asCrossChainMapping)
+export const wasCrossChainDoc = uncleaner(asCrossChainDoc)
