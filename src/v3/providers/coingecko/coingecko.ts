@@ -105,6 +105,15 @@ const platformIdMappingSyncDoc = syncedDocument(
   'coingecko:platforms',
   asStringNullMap
 )
+manualTokenMappingsSyncDoc.sync(dbSettings).catch(e => {
+  console.error('manualTokenMappingsSyncDoc sync error', e)
+})
+automatedTokenMappingsSyncDoc.sync(dbSettings).catch(e => {
+  console.error('automatedTokenMappingsSyncDoc sync error', e)
+})
+platformIdMappingSyncDoc.sync(dbSettings).catch(e => {
+  console.error('platformIdMappingSyncDoc sync error', e)
+})
 manualTokenMappingsSyncDoc.onChange(manualMappings => {
   coingeckoTokenIdMap = {
     ...automatedTokenMappingsSyncDoc.doc,

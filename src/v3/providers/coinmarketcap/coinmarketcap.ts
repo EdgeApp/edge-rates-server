@@ -144,6 +144,15 @@ const platformIdMappingSyncDoc = syncedDocument(
   'coinmarketcap:platforms',
   asStringNullMap
 )
+userTokenMappingsSyncDoc.sync(dbSettings).catch(e => {
+  console.error('manualTokenMappingsSyncDoc sync error', e)
+})
+automatedTokenMappingsSyncDoc.sync(dbSettings).catch(e => {
+  console.error('automatedTokenMappingsSyncDoc sync error', e)
+})
+platformIdMappingSyncDoc.sync(dbSettings).catch(e => {
+  console.error('platformIdMappingSyncDoc sync error', e)
+})
 userTokenMappingsSyncDoc.onChange(userMappings => {
   coinmarketcapTokenIdMap = {
     ...automatedTokenMappingsSyncDoc.doc,
