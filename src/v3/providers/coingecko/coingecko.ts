@@ -1,15 +1,20 @@
 import { asArray, asMaybe, asNumber, asObject, asString } from 'cleaners'
-import { asCouchDoc, syncedDocument } from 'edge-server-tools'
+import { asCouchDoc, CouchDoc, syncedDocument } from 'edge-server-tools'
 
 import { config } from '../../../config'
-import { dateOnly, snooze } from '../../../utils/utils'
+import { REDIS_COINRANK_KEY_PREFIX } from '../../../constants'
+import { CoinrankMarkets } from '../../../types'
+import { dateOnly, logger, snooze } from '../../../utils/utils'
 import { TOKEN_TYPES_KEY } from '../../constants'
 import {
   asCrossChainDoc,
   asNumberMap,
   asStringNullMap,
+  asTokenInfoDoc,
   asTokenMap,
+  asTokenMappingsDoc,
   CrossChainMapping,
+  EdgeTokenInfo,
   NumberMap,
   RateBuckets,
   RateEngine,
@@ -17,7 +22,8 @@ import {
   StringNullMap,
   TokenMap,
   wasCrossChainDoc,
-  wasExistingMappings
+  wasExistingMappings,
+  wasTokenInfoDoc
 } from '../../types'
 import {
   createTokenId,
@@ -26,7 +32,8 @@ import {
   reduceRequestedCryptoRates,
   toCryptoKey
 } from '../../utils'
-import { dbSettings } from '../couch'
+import { dbSettings, dbTokens } from '../couch'
+import { getAsync } from '../redis'
 import {
   coingeckoMainnetCurrencyMapping,
   coingeckoPlatformIdMapping
@@ -276,6 +283,117 @@ const tokenMapping: RateEngine = async () => {
   )
 }
 
+const asTokenList = asObject({
+  tokens: asArray(
+    asObject({
+      // chainId: asEither(asNumber, asNull),
+      address: asString,
+      name: asString,
+      symbol: asString,
+      decimals: asNumber
+      // logoURI: asString
+    })
+  )
+})
+type CoinGeckoTokenInfo = ReturnType<typeof asTokenList>['tokens'][number]
+const fetchCoinGeckoTokenList = async (
+  platform: string
+): Promise<CoinGeckoTokenInfo[]> => {
+  const response = await fetchCoingecko(
+    `${config.providers.coingeckopro.uri}/api/v3/token_lists/${platform}/all.json`
+  )
+  const tokenList = asTokenList(response)
+  return tokenList.tokens
+}
+
+const updateTokenInfos = async (): Promise<void> => {
+  const newTokenInfoDocs: Array<CouchDoc<EdgeTokenInfo>> = []
+
+  const coingeckoIdsDocument = await dbSettings.get('coingecko:automated')
+  const coingeckoIds = asTokenMappingsDoc(coingeckoIdsDocument).doc
+
+  const tokenTypesDoc = await dbSettings.get(TOKEN_TYPES_KEY)
+  const tokenTypes = asCouchDoc(asStringNullMap)(tokenTypesDoc).doc
+
+  const crosschainDocument = await dbSettings.get('crosschain:automated')
+  const crosschain = asCrossChainDoc(crosschainDocument).doc
+
+  const coinranksStr = await getAsync(`${REDIS_COINRANK_KEY_PREFIX}_iso:USD`)
+  if (coinranksStr == null) return
+  const coinrankMarkets: CoinrankMarkets = JSON.parse(coinranksStr)?.markets
+  const idRankMap = new Map<string, number | null>()
+  for (const market of coinrankMarkets) {
+    idRankMap.set(market.assetId, market.rank)
+  }
+
+  for (const [edgePluginId, platform] of Object.entries(
+    platformIdMappingSyncDoc.doc
+  )) {
+    const tokenType = tokenTypes[edgePluginId]
+    if (platform == null || tokenType == null) continue
+
+    try {
+      const tokenList = await fetchCoinGeckoTokenList(platform)
+      for (const token of tokenList) {
+        const tokenId = createTokenId(tokenType, token.symbol, token.address)
+        if (tokenId == null) continue
+        const cryptoKey = toCryptoKey({ pluginId: edgePluginId, tokenId })
+        if (coingeckoIds[cryptoKey] == null) continue
+
+        let id: string | undefined = coingeckoIds[cryptoKey]?.id
+        if (id == null) {
+          const crosschainAsset = crosschain[cryptoKey]
+          if (crosschainAsset != null) {
+            const crosschainKey = toCryptoKey({
+              pluginId: crosschainAsset.destChain,
+              tokenId: crosschainAsset.tokenId
+            })
+            id = coingeckoIds[crosschainKey]?.id
+          }
+        }
+        const rank = idRankMap.get(id) ?? Number.MAX_SAFE_INTEGER
+
+        const newInfo: EdgeTokenInfo = {
+          rank: rank ?? Number.MAX_SAFE_INTEGER,
+          currencyCode: token.symbol,
+          displayName: token.name,
+          multiplier: token.decimals,
+          networkLocation: { contractAddress: token.address },
+          chainPluginId: edgePluginId,
+          tokenId: tokenId
+        }
+
+        try {
+          const tokenInfoDocument = await dbTokens.get(cryptoKey)
+          const tokenInfo = asTokenInfoDoc(tokenInfoDocument).doc
+          if (tokenInfo.rank !== newInfo.rank) {
+            newTokenInfoDocs.push(
+              wasTokenInfoDoc({
+                doc: newInfo,
+                id: cryptoKey,
+                rev: tokenInfoDocument._rev
+              })
+            )
+          }
+        } catch (e) {
+          newTokenInfoDocs.push(
+            wasTokenInfoDoc({
+              doc: newInfo,
+              id: cryptoKey
+            })
+          )
+        }
+      }
+    } catch (error) {
+      logger(`${edgePluginId} ${platform} tokenList failure`, error)
+    }
+  }
+
+  await dbTokens.bulk({
+    docs: newTokenInfoDocs
+  })
+}
+
 const getCurrentRates = async (ids: Set<string>): Promise<NumberMap> => {
   const out: NumberMap = {}
   try {
@@ -395,6 +513,10 @@ export const coingecko: RateProvider = {
     {
       frequency: 'day',
       engine: tokenMapping
+    },
+    {
+      frequency: 'hour',
+      engine: updateTokenInfos
     }
   ]
 }

@@ -152,7 +152,7 @@ export const asRateDocument = asObject({
 })
 export type RateDocument = ReturnType<typeof asRateDocument>
 
-const asTokenMappingsDoc = asCouchDoc(asTokenMap)
+export const asTokenMappingsDoc = asCouchDoc(asTokenMap)
 export const wasExistingMappings = uncleaner(asTokenMappingsDoc)
 
 export const asCrossChainMapping = asObject(
@@ -167,3 +167,18 @@ export type CrossChainMapping = ReturnType<typeof asCrossChainMapping>
 
 export const asCrossChainDoc = asCouchDoc(asCrossChainMapping)
 export const wasCrossChainDoc = uncleaner(asCrossChainDoc)
+
+// couch id [chainCode]:[tokenId]
+const asEdgeTokenInfo = asObject({
+  rank: asNumber, // v3/coins/markets
+  currencyCode: asString, // v3/coins/list, v3/coins/markets, v3/token_lists
+  displayName: asString, // v3/coins/list, v3/coins/markets, v3/token_lists
+  multiplier: asNumber, // v3/token_lists
+  networkLocation: asOptional(asObject(asString)),
+  chainPluginId: asString, // v3/coins/list, v3/token_lists
+  tokenId: asString // v3/coins/list, v3/token_lists
+})
+export type EdgeTokenInfo = ReturnType<typeof asEdgeTokenInfo>
+
+export const asTokenInfoDoc = asCouchDoc(asEdgeTokenInfo)
+export const wasTokenInfoDoc = uncleaner(asTokenInfoDoc)
