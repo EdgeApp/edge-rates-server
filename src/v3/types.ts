@@ -212,3 +212,26 @@ export const asV2CurrencyCodeMapDoc = (raw: any) => {
 }
 
 export type V2CurrencyCodeMapDoc = ReturnType<typeof asV2CurrencyCodeMapDoc>
+
+const asJsonObject = (raw: unknown): JsonObject => {
+  if (raw == null || typeof raw !== 'object') {
+    throw new TypeError('Expected a JSON object')
+  }
+  return raw as JsonObject
+}
+
+// couch id [chainCode]:[tokenId]
+const asEdgeTokenInfo = asObject({
+  rank: asNumber, // v3/coins/markets
+  contractAddress: asString, // v3/coins/list, v3/coins/markets, v3/token_lists
+  currencyCode: asString, // v3/coins/list, v3/coins/markets, v3/token_lists
+  displayName: asString, // v3/coins/list, v3/coins/markets, v3/token_lists
+  decimals: asNumber, // v3/token_lists
+  networkLocation: asOptional(asJsonObject),
+  chainPluginId: asString, // v3/coins/list, v3/token_lists
+  tokenId: asString // v3/coins/list, v3/token_lists
+})
+export type EdgeTokenInfo = ReturnType<typeof asEdgeTokenInfo>
+
+export const asTokenInfoDoc = asCouchDoc(asEdgeTokenInfo)
+export const wasTokenInfoDoc = uncleaner(asTokenInfoDoc)

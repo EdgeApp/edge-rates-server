@@ -1,4 +1,8 @@
-import { type DatabaseSetup, setupDatabase } from 'edge-server-tools'
+import {
+  type DatabaseSetup,
+  makeMangoIndex,
+  setupDatabase
+} from 'edge-server-tools'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
@@ -42,6 +46,40 @@ const createDatabases = async (): Promise<void> => {
     {
       name: 'rates_data',
       options: { partitioned: false },
+      templates: {},
+      syncedDocuments: []
+    },
+    {
+      name: 'rates_tokens',
+      options: { partitioned: false },
+      documents: {
+        '_design/idxTokensText': makeMangoIndex('idx_tokens_text', [
+          'currencyCode',
+          'displayName',
+          'tokenId',
+          'contractAddress'
+        ]),
+        '_design/idxTokensTextPlugin': makeMangoIndex(
+          'idx_tokens_text_plugin',
+          [
+            'currencyCode',
+            'displayName',
+            'tokenId',
+            'chainPluginId',
+            'contractAddress'
+          ]
+        ),
+        '_design/idxTokenIdPlugin': makeMangoIndex('idx_tokenId_plugin', [
+          'chainPluginId',
+          'tokenId'
+        ]),
+        '_design/idxTokenId': makeMangoIndex('idx_tokenId', ['tokenId']),
+        '_design/idxRank': makeMangoIndex('idx_rank', ['rank']),
+        '_design/idxRankPlugin': makeMangoIndex('idx_rank_plugin', [
+          'chainPluginId',
+          'rank'
+        ])
+      },
       templates: {},
       syncedDocuments: []
     }
