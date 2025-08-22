@@ -4,6 +4,7 @@ import { pickMethod, pickPath } from 'serverlet'
 import { makeExpressRoute } from 'serverlet/express'
 
 import { config } from '../config'
+import { findTokensV1, getTokenV1, listTokensV1 } from './getTokenInfo'
 import { ratesV3 } from './router'
 
 async function main(): Promise<void> {
@@ -12,6 +13,9 @@ async function main(): Promise<void> {
 
 function server(): void {
   const server = pickPath({
+    '/v1/getToken': pickMethod({ GET: getTokenV1 }),
+    '/v1/findTokens': pickMethod({ GET: findTokensV1 }),
+    '/v1/listTokens': pickMethod({ GET: listTokensV1 }),
     '/v3/rates': pickMethod({ POST: ratesV3 })
   })
 
