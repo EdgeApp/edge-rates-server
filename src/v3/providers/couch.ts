@@ -5,6 +5,7 @@ import nano from 'nano'
 import { config } from '../../config'
 import {
   asRateDocument,
+  EdgeTokenInfo,
   RateBuckets,
   RateDocument,
   RateProvider,
@@ -24,6 +25,8 @@ export const dbSettings: nano.DocumentScope<any> =
   couchDB.default.db.use<any>('rates_settings')
 export const dbData: nano.DocumentScope<RateDocument> =
   couchDB.default.db.use<RateDocument>('rates_data')
+export const dbTokens: nano.DocumentScope<EdgeTokenInfo> =
+  couchDB.default.db.use<EdgeTokenInfo>('rates_tokens')
 
 const asRatesDoc = asCouchDoc(asRateDocument)
 const wasRatesDoc = uncleaner(asRatesDoc)
