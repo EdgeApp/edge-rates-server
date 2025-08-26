@@ -9,7 +9,6 @@ import { getDelay, logger, snooze } from './utils/utils'
 const PAGE_SIZE = 250
 const DEFAULT_WAIT_MS = 5 * 1000
 const MAX_WAIT_MS = 5 * 60 * 1000
-const NUM_PAGES = 8
 
 const { defaultFiatCode } = config
 
@@ -55,8 +54,10 @@ export const coinrankEngine = async (): Promise<void> => {
         const reply = await response.json()
         const marketsPage = asCoingeckoMarkets(reply)
         markets = [...markets, ...marketsPage]
+        if (marketsPage.length < PAGE_SIZE) {
+          break
+        }
         page++
-        if (page > NUM_PAGES) break
       }
       const data: CoinrankRedis = { lastUpdate, markets }
       await setAsync(
@@ -65,6 +66,7 @@ export const coinrankEngine = async (): Promise<void> => {
       )
     } catch (e) {
       const err: any = e // Weird TS issue causing :any to get removed from above line
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       const message = `coinrankEngine failure: ${err.message}`
       slackMessage(message).catch(e => logger(e))
       logger(message)

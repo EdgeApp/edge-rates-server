@@ -30,6 +30,7 @@ export const uidEngine = async (): Promise<void> => {
 
             // Remove the UIDs for the currency codes we've hardcoded
             for (let i = 0; i < edgeDoc.allEdgeCurrencies.length; i++) {
+              // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
               delete assetMap[edgeDoc.allEdgeCurrencies[i]]
             }
 
@@ -45,6 +46,7 @@ export const uidEngine = async (): Promise<void> => {
       await Promise.allSettled(promises)
       wrappedSaveToDb([edgeDoc])
     } catch (e) {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       const message = `ratesEngine failure: ${e}`
       slackMessage(message).catch(e => logger(e))
       logger(message)

@@ -1,8 +1,10 @@
-/* eslint-disable @typescript-eslint/camelcase */
+/* eslint-disable @typescript-eslint/naming-convention */
 
 import {
   asArray,
   asDate,
+  asEither,
+  asNull,
   asNumber,
   asObject,
   asOptional,
@@ -37,7 +39,7 @@ const asCoingeckoAsset = (raw: any) => {
     image: asString,
     current_price: asOptional(asNumber),
     market_cap: asOptional(asNumber),
-    market_cap_rank: asNumber,
+    market_cap_rank: asEither(asNumber, asNull),
 
     high_24h: asOptional(asNumber),
     low_24h: asOptional(asNumber),
