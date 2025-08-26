@@ -93,6 +93,7 @@ const asRatesRequest = asExtendedReq({
 })
 
 // Hack to add type definitions for middleware
+// eslint-disable-next-line @typescript-eslint/no-invalid-void-type
 type ExpressRequest = ReturnType<typeof asRatesRequest> | void
 
 const { couchUri, fiatCurrencyCodes: FIAT_CODES } = config
@@ -159,10 +160,7 @@ const v1IsoChecker: express.RequestHandler = (req, res, next): void => {
   const exReq = req as ExpressRequest
   if (exReq?.requestedRates == null) return next(500)
 
-  if (
-    exReq.requestedRates.data.every(pair => isIsoPair(pair.currency_pair)) ===
-    true
-  ) {
+  if (exReq.requestedRates.data.every(pair => isIsoPair(pair.currency_pair))) {
     res.status(400).send(`Please use v2 of this API to query with ISO codes`)
     return
   }
@@ -216,6 +214,7 @@ const exchangeRatesCleaner: express.RequestHandler = (req, res, next): void => {
   next()
 }
 
+// eslint-disable-next-line @typescript-eslint/no-misused-promises
 const queryRedis: express.RequestHandler = async (
   req,
   res,
@@ -281,6 +280,7 @@ const queryRedis: express.RequestHandler = async (
   next()
 }
 
+// eslint-disable-next-line @typescript-eslint/no-misused-promises
 const queryExchangeRates: express.RequestHandler = async (
   req,
   res,
@@ -352,6 +352,7 @@ const getRedisMarkets = async (
         // but will fall back to this expired data if refresh fails
       } catch (e) {
         // JSON parsing error, redisResult remains undefined
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         logger(`Error parsing Redis data for ${fiatCode}: ${e}`)
         // Continue to try to get fresh data
       }
@@ -421,6 +422,7 @@ const getRedisMarkets = async (
 
       return redisData
     } catch (e) {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       logger(`Error converting USD data to ${fiatCode}: ${e}`)
       // If conversion fails but we have cached data (even if expired), return that
       if (redisResult != null) {
@@ -431,11 +433,13 @@ const getRedisMarkets = async (
       return undefined
     }
   } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     logger(`Error in getRedisMarkets for ${fiatCode}: ${e}`)
     return undefined
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-misused-promises
 const sendCoinrankList: express.RequestHandler = async (
   req,
   res,
@@ -445,6 +449,7 @@ const sendCoinrankList: express.RequestHandler = async (
   res.json({ data })
 }
 
+// eslint-disable-next-line @typescript-eslint/no-misused-promises
 const sendCoinrankAsset: express.RequestHandler = async (
   req,
   res,
@@ -487,6 +492,7 @@ const sendCoinrankAsset: express.RequestHandler = async (
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-misused-promises
 const sendCoinranks: express.RequestHandler = async (
   req,
   res,

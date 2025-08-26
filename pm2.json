@@ -2,7 +2,7 @@
   "apps": [
     {
       "name": "ratesServer",
-      "script": "lib/index.js",
+      "script": "lib/v3/index.js",
       "instances": "max",
       "exec_mode": "cluster",
       "error_file": "/var/log/pm2/ratesServer.error.log",
@@ -10,7 +10,7 @@
     },
     {
       "name": "ratesEngines",
-      "script": "lib/indexEngines.js",
+      "script": "lib/v3/indexEngines.js",
       "cron_restart": "0 0 15 * * ?",
       "error_file": "/var/log/pm2/ratesEngines.error.log",
       "out_file": "/var/log/pm2/ratesEngines.out.log"

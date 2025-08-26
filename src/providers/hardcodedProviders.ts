@@ -45,10 +45,7 @@ export const fallbackConstantRates = (
       continue
     }
 
-    const inversePair = pair.currency_pair
-      .split('_')
-      .reverse()
-      .join('_')
+    const inversePair = pair.currency_pair.split('_').reverse().join('_')
     if (assetMap[inversePair] != null) {
       const invertedRate = assetMap[inversePair]
       rates[pair.date][dbSafeCurrencyPair] =

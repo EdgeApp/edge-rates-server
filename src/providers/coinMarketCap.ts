@@ -86,12 +86,14 @@ export const coinMarketCapCurrent = async (
   try {
     const response = await fetch(
       `${currentUri}/v2/cryptocurrency/quotes/latest?id=${
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         ids.length > 2 ? ids : ids.concat(DEFAULT_CODES)
       }&skip_invalid=true&convert=${subIso(DEFAULT_FIAT)}`,
       CURRENT_OPTIONS
     )
     if (response.status !== 200) {
       logger(
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         `coinMarketCapCurrent returned code ${response.status} for ${ids} at ${date}`
       )
       throw new Error(response.statusText)
@@ -173,14 +175,16 @@ const coinMarketCapHistorical = async (
 
   try {
     let url = `${historicalUri}/v2/cryptocurrency/quotes/historical?id=${
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       ids.length > 2 ? ids : ids.concat(DEFAULT_CODES)
     }&time_start=${date}&count=1&interval=5m&skip_invalid=true&convert=${subIso(
       DEFAULT_FIAT
     )}`
     if (dailyAverage) url += `&interval=daily`
     const response = await fetch(url, HISTORICAL_OPTIONS)
-    if (response.status !== 200 || response.ok === false) {
+    if (response.status !== 200 || !response.ok) {
       logger(
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         `coinMarketCapHistorical returned code ${response.status} for ${ids} at ${date}`
       )
       throw new Error(response.statusText)
@@ -238,8 +242,12 @@ export const coinMarketCap = async (
   // Query
   const providers = Object.keys(datesAndCodesWanted).map(async date => {
     if (withinLastFiveMinutes(date))
-      return coinMarketCapCurrent(date, datesAndCodesWanted[date], edgeAssetMap)
-    return coinMarketCapHistorical(
+      return await coinMarketCapCurrent(
+        date,
+        datesAndCodesWanted[date],
+        edgeAssetMap
+      )
+    return await coinMarketCapHistorical(
       date,
       datesAndCodesWanted[date],
       edgeAssetMap
@@ -269,7 +277,7 @@ export const coinMarketCapAssets = async (): Promise<AssetMap> => {
       await snooze(1000) // rate limits reset every minute
       continue // retry
     }
-    if (response.ok === false) {
+    if (!response.ok) {
       const text = await response.text()
       throw new Error(text)
     }

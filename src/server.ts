@@ -36,6 +36,7 @@ export const createServer = (
   app.use(morgan(MorganTemplate))
   // configure app to use bodyParser() and return 400 error if body is not json
   app.use(bodyParser.json({ limit: '50mb' }))
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   app.use((err, _req, _res, next) => next(err != null ? BodyParseError : null))
   // Parse the url string
   app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
@@ -46,8 +47,10 @@ export const createServer = (
   // Add endpoint for load balancer
   app.use('/', heartbeat())
   // 404 Error Route
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   app.use((_req, _res, next) => next(RouteError))
   // Catch and handle errors
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   app.use((err, _req, res, _next) => {
     res.status(err.errorCode ?? 500).json({ error: err })
   })
