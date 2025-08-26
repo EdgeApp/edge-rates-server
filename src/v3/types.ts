@@ -155,7 +155,7 @@ export type RateDocument = ReturnType<typeof asRateDocument>
 const asTokenMappingsDoc = asCouchDoc(asTokenMap)
 export const wasExistingMappings = uncleaner(asTokenMappingsDoc)
 
-const asCrossChainMapping = asObject(
+export const asCrossChainMapping = asObject(
   asObject({
     sourceChain: asString,
     destChain: asString,
