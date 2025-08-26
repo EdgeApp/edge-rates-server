@@ -175,7 +175,7 @@ const asTokenType = asEither(
 )
 export const asTokenTypeMap = asObject(asTokenType)
 
-const asCrossChainMapping = asObject(
+export const asCrossChainMapping = asObject(
   asObject({
     sourceChain: asString,
     destChain: asString,
