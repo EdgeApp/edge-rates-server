@@ -1,5 +1,5 @@
 import { mul } from 'biggystring'
-import { asArray, asMaybe, asObject, asOptional, asString } from 'cleaners'
+import { asArray, asMaybe, asObject, asString } from 'cleaners'
 import express from 'express'
 import nano from 'nano'
 import fetch from 'node-fetch'
@@ -7,18 +7,17 @@ import promisify from 'promisify-node'
 
 import { config } from './config'
 import { REDIS_COINRANK_KEY_PREFIX } from './constants'
-import { asReturnGetRate, getExchangeRates } from './rates'
+import { getExchangeRates, type ReturnGetRate } from './rates'
 import {
   asCoinrankAssetReq,
   asCoinrankReq,
   asExchangeRateResponse,
-  CoinrankAssetReq,
-  CoinrankRedis,
-  CoinrankReq
+  type CoinrankAssetReq,
+  type CoinrankRedis,
+  type CoinrankReq
 } from './types'
-import { asExtendedReq } from './utils/asExtendedReq'
 import {
-  DbDoc,
+  type DbDoc,
   getAsync,
   hgetallAsync,
   hmgetAsync,
@@ -87,14 +86,16 @@ const asExchangeRatesReq = asObject({
   data: asArray(asExchangeRateReq)
 })
 
-const asRatesRequest = asExtendedReq({
-  requestedRates: asOptional(asExchangeRatesReq),
-  requestedRatesResult: asOptional(asReturnGetRate)
-})
+interface RatesRequest {
+  requestedRates?: {
+    data: ExchangeRateReq[]
+  }
+  requestedRatesResult?: ReturnGetRate
+}
 
 // Hack to add type definitions for middleware
 // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-type ExpressRequest = ReturnType<typeof asRatesRequest> | void
+type ExpressRequest = RatesRequest | void
 
 const { couchUri, fiatCurrencyCodes: FIAT_CODES } = config
 const EXCHANGE_RATES_BATCH_LIMIT = 100
@@ -128,7 +129,10 @@ const v1ExchangeRateIsoAdder: express.RequestHandler = (
   next
 ): void => {
   const exReq = req as ExpressRequest
-  if (exReq?.requestedRates == null) return next(500)
+  if (exReq?.requestedRates == null) {
+    next(500)
+    return
+  }
 
   exReq.requestedRates.data = exReq.requestedRates.data.map(req => ({
     currency_pair: maybeAddIsoToPair(req.currency_pair),
@@ -144,7 +148,10 @@ const v1ExchangeRateIsoSubtractor: express.RequestHandler = (
   next
 ): void => {
   const exReq = req as ExpressRequest
-  if (exReq?.requestedRatesResult == null) return next(500)
+  if (exReq?.requestedRatesResult == null) {
+    next(500)
+    return
+  }
 
   exReq.requestedRatesResult.data = exReq.requestedRatesResult.data.map(
     rate => ({
@@ -158,7 +165,10 @@ const v1ExchangeRateIsoSubtractor: express.RequestHandler = (
 
 const v1IsoChecker: express.RequestHandler = (req, res, next): void => {
   const exReq = req as ExpressRequest
-  if (exReq?.requestedRates == null) return next(500)
+  if (exReq?.requestedRates == null) {
+    next(500)
+    return
+  }
 
   if (exReq.requestedRates.data.every(pair => isIsoPair(pair.currency_pair))) {
     res.status(400).send(`Please use v2 of this API to query with ISO codes`)
@@ -174,7 +184,10 @@ const v1IsoChecker: express.RequestHandler = (req, res, next): void => {
 
 const exchangeRateCleaner: express.RequestHandler = (req, res, next): void => {
   const exReq = req as ExpressRequest
-  if (exReq == null) return next(500)
+  if (exReq == null) {
+    next(500)
+    return
+  }
 
   const { currency_pair, date } = req.query
   try {
@@ -196,10 +209,12 @@ const exchangeRateCleaner: express.RequestHandler = (req, res, next): void => {
 
 const exchangeRatesCleaner: express.RequestHandler = (req, res, next): void => {
   const exReq = req as ExpressRequest
-  if (exReq == null) return next(500)
-
+  if (exReq == null) {
+    next(500)
+    return
+  }
   try {
-    exReq.requestedRates = asExchangeRatesReq(exReq.body)
+    exReq.requestedRates = asExchangeRatesReq(req.body)
   } catch (e) {
     res
       .status(400)
@@ -221,13 +236,16 @@ const queryRedis: express.RequestHandler = async (
   next
 ): Promise<void> => {
   const exReq = req as ExpressRequest
-  if (exReq?.requestedRates == null) return next(500)
+  if (exReq?.requestedRates == null) {
+    next(500)
+    return
+  }
 
   // Redis will store all crypto code rates in USD and USD to all fiat codes
   // This middleware splits up incoming pairs into two rates, crypto_USD and USD_fiat,
   // so each unique timestamp only requires a single query to redis to get all applicable rates.
 
-  const reqMap: { [date: string]: string[] } = {}
+  const reqMap: Record<string, string[]> = {}
   for (const req of exReq.requestedRates.data) {
     const [cryptoCode, fiatCode] = req.currency_pair.split('_')
     if (reqMap[req.date] == null) reqMap[req.date] = []
@@ -287,10 +305,14 @@ const queryExchangeRates: express.RequestHandler = async (
   next
 ): Promise<void> => {
   const exReq = req as ExpressRequest
-  if (exReq?.requestedRates == null) return next(500)
+  if (exReq?.requestedRates == null) {
+    next(500)
+    return
+  }
 
   if (exReq.requestedRates.data.length === 0) {
-    return next()
+    next()
+    return
   }
 
   try {
@@ -311,14 +333,20 @@ const queryExchangeRates: express.RequestHandler = async (
 
 const sendExchangeRate: express.RequestHandler = (req, res, next): void => {
   const exReq = req as ExpressRequest
-  if (exReq?.requestedRatesResult == null) return next(500)
+  if (exReq?.requestedRatesResult == null) {
+    next(500)
+    return
+  }
 
   res.json(exReq.requestedRatesResult.data[0])
 }
 
 const sendExchangeRates: express.RequestHandler = (req, res, next): void => {
   const exReq = req as ExpressRequest
-  if (exReq?.requestedRatesResult == null) return next(500)
+  if (exReq?.requestedRatesResult == null) {
+    next(500)
+    return
+  }
 
   res.json({ data: exReq.requestedRatesResult.data })
 }
@@ -456,7 +484,10 @@ const sendCoinrankAsset: express.RequestHandler = async (
   next
 ): Promise<void> => {
   const exReq = req as ExpressRequest
-  if (exReq == null) return next(500)
+  if (exReq == null) {
+    next(500)
+    return
+  }
 
   let query: CoinrankAssetReq
   try {
@@ -499,7 +530,10 @@ const sendCoinranks: express.RequestHandler = async (
   next
 ): Promise<void> => {
   const exReq = req as ExpressRequest
-  if (exReq == null) return next(500)
+  if (exReq == null) {
+    next(500)
+    return
+  }
 
   let query: CoinrankReq
   try {

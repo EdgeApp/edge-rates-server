@@ -1,4 +1,4 @@
-import { EdgeAsset, TokenTypeMap } from '../../types'
+import type { EdgeAsset, TokenTypeMap } from '../../types'
 
 export const defaultCrypto: EdgeAsset[] = [
   { pluginId: 'bitcoin', tokenId: null },

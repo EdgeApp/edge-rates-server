@@ -2,7 +2,7 @@ import { createClient } from 'redis'
 
 import { logger } from '../../utils/utils'
 import { ONE_MINUTE, TWENTY_FOUR_HOURS } from '../constants'
-import { RateBuckets, RateProvider, UpdateRatesParams } from '../types'
+import type { RateBuckets, RateProvider, UpdateRatesParams } from '../types'
 import {
   expandReturnedCryptoRates,
   expandReturnedFiatRates,

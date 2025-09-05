@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 
-import { CryptoRate, FiatRate, TokenMap } from '../src/v3/types'
+import type { CryptoRate, FiatRate, TokenMap } from '../src/v3/types'
 import {
   reduceRequestedCryptoRates,
   reduceRequestedFiatRates

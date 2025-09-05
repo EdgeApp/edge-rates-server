@@ -1,4 +1,4 @@
-import { AssetMap, NewRates, RateMap, ReturnRate } from '../rates'
+import type { AssetMap, NewRates, RateMap, ReturnRate } from '../rates'
 import { config } from './../config'
 
 const { defaultFiatCode: DEFAULT_FIAT } = config
@@ -15,8 +15,9 @@ export function normalizeDate(dateSrc: string): string {
   return dateNorm.toISOString()
 }
 
-export const snooze = async (ms: number): Promise<void> =>
+export const snooze = async (ms: number): Promise<void> => {
   await new Promise((resolve: Function) => setTimeout(resolve, ms))
+}
 
 export const getNullRateArray = (rates: ReturnRate[]): ReturnRate[] => {
   return rates.filter(rate => rate.exchangeRate == null)
@@ -67,7 +68,7 @@ export const logger = (...args): void => {
 type IsoOp = (code: string) => string
 type IsoOpObject = (code: any) => string
 
-export const isIsoCode = (code: string): boolean => code.indexOf('iso:') === 0
+export const isIsoCode = (code: string): boolean => code.startsWith('iso:')
 
 export const subIso: IsoOp = code =>
   isIsoCode(code) ? code.split(':')[1] : code
@@ -170,8 +171,8 @@ export const memoize = <T>(
   key: string,
   timeLimit: number = ONE_DAY
 ): (() => Promise<T>) => {
-  const cache: { [key: string]: T } | {} = {}
-  const expiration: { [key: string]: number } = {}
+  const cache: Record<string, T> | object = {}
+  const expiration: Record<string, number> = {}
   return async (...args) => {
     try {
       if (expiration[key] == null || expiration[key] < Date.now()) {

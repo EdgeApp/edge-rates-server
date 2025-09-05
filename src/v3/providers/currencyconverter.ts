@@ -2,7 +2,7 @@ import { asNumber, asObject } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../../config'
-import { NumberMap, RateBuckets, RateProvider } from '../types'
+import type { NumberMap, RateBuckets, RateProvider } from '../types'
 import {
   expandReturnedFiatRates,
   isCurrentFiat,

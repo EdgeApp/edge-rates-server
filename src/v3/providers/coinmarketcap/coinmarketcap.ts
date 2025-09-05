@@ -14,11 +14,11 @@ import { TOKEN_TYPES_KEY } from '../../constants'
 import {
   asStringNullMap,
   asTokenMap,
-  NumberMap,
-  RateBuckets,
-  RateEngine,
-  RateProvider,
-  TokenMap,
+  type NumberMap,
+  type RateBuckets,
+  type RateEngine,
+  type RateProvider,
+  type TokenMap,
   wasExistingMappings
 } from '../../types'
 import {
@@ -189,7 +189,7 @@ const tokenMapping: RateEngine = async () => {
 
   const data = asCoinMarketCapAssetResponse(json)
 
-  const invertPlatformMapping: { [key: string]: string } = {}
+  const invertPlatformMapping: Record<string, string> = {}
   for (const [key, value] of Object.entries(platformIdMappingSyncDoc.doc)) {
     if (value === null) continue
     invertPlatformMapping[value] = key

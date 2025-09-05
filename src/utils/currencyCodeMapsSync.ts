@@ -76,7 +76,9 @@ export const setupCurrencyCodeMapsSync = (): void => {
       }
 
       // Fire and forget - don't await in the callback
-      updateKey().catch(e => logger('Unhandled error in updateKey', key, e))
+      updateKey().catch(e => {
+        logger('Unhandled error in updateKey', key, e)
+      })
     }
   })
 }

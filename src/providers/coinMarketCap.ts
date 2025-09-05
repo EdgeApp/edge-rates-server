@@ -9,7 +9,7 @@ import {
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { AssetMap, NewRates, ReturnRate } from './../rates'
+import type { AssetMap, NewRates, ReturnRate } from './../rates'
 import {
   assetMapReducer,
   combineRates,
@@ -59,7 +59,7 @@ const asCoinMarketCapCurrentResponse = asObject({
 })
 
 const coinMarketCapCurrentQuote = (
-  data: { [id: string]: ReturnType<typeof asCoinMarketCapCurrentQuotes> },
+  data: Record<string, ReturnType<typeof asCoinMarketCapCurrentQuotes>>,
   id: string
 ): string => data[id].quote[subIso(DEFAULT_FIAT)].price.toString()
 
@@ -100,9 +100,10 @@ export const coinMarketCapCurrent = async (
     }
     const rawJson = asCoinMarketCapCurrentResponse(await response.json())
 
-    const cleanJson: {
-      [id: string]: ReturnType<typeof asCoinMarketCapCurrentQuotes>
-    } = {}
+    const cleanJson: Record<
+      string,
+      ReturnType<typeof asCoinMarketCapCurrentQuotes>
+    > = {}
     for (const rawRate of Object.keys(rawJson.data)) {
       try {
         const cleanRate = asCoinMarketCapCurrentQuotes(rawJson.data[rawRate])
@@ -147,7 +148,7 @@ const asCoinMarketCapHistoricalResponse = asObject({
 })
 
 const coinMarketCapHistoricalQuote = (
-  data: { [code: string]: ReturnType<typeof ascoinMarketCapHistoricalQuotes> },
+  data: Record<string, ReturnType<typeof ascoinMarketCapHistoricalQuotes>>,
   code: string
 ): string => data[code].quotes?.[0].quote[subIso(DEFAULT_FIAT)].price.toString()
 
@@ -192,9 +193,10 @@ const coinMarketCapHistorical = async (
 
     const rawJson = asCoinMarketCapHistoricalResponse(await response.json())
 
-    const cleanJson: {
-      [id: string]: ReturnType<typeof ascoinMarketCapHistoricalQuotes>
-    } = {}
+    const cleanJson: Record<
+      string,
+      ReturnType<typeof ascoinMarketCapHistoricalQuotes>
+    > = {}
     for (const rawRate of Object.keys(rawJson.data)) {
       try {
         const cleanRate = ascoinMarketCapHistoricalQuotes(rawJson.data[rawRate])
@@ -228,7 +230,7 @@ export const coinMarketCap = async (
   }
 
   // Gather codes
-  const datesAndCodesWanted: { [key: string]: string[] } = {}
+  const datesAndCodesWanted: Record<string, string[]> = {}
   for (const pair of rateObj) {
     const fromCurrency = fromCode(pair.currency_pair)
     if (!isIsoCode(fromCurrency) && hasUniqueId(fromCurrency, edgeAssetMap)) {

@@ -2,7 +2,7 @@ import { asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../../config'
-import { NumberMap, RateBuckets, RateProvider, TokenMap } from '../types'
+import type { NumberMap, RateBuckets, RateProvider, TokenMap } from '../types'
 import {
   expandReturnedCryptoRates,
   isCurrent,

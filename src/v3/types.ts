@@ -10,7 +10,7 @@ import {
   asValue,
   uncleaner
 } from 'cleaners'
-import { asCouchDoc, DatabaseSetup } from 'edge-server-tools'
+import { asCouchDoc, type DatabaseSetup } from 'edge-server-tools'
 
 const asEdgeTokenId = asEither(asString, asNull)
 export type EdgeTokenId = ReturnType<typeof asEdgeTokenId>
@@ -122,9 +122,7 @@ export const asTokenMap = asObject(
 )
 export type TokenMap = ReturnType<typeof asTokenMap>
 
-export interface StringMap {
-  [key: string]: string
-}
+export type StringMap = Record<string, string>
 
 export const asStringNullMap = asObject(asEither(asString, asNull))
 export type StringNullMap = ReturnType<typeof asStringNullMap>

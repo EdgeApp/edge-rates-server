@@ -1,7 +1,7 @@
 import fetch from 'node-fetch'
 
 import { config } from './config'
-import { ExchangeRateReq } from './exchangeRateRouter'
+import type { ExchangeRateReq } from './exchangeRateRouter'
 import { getEdgeAssetDoc, hgetallAsync, slackMessage } from './utils/dbUtils'
 import { getDelay, logger, normalizeDate, snooze } from './utils/utils'
 
@@ -90,14 +90,18 @@ export const ratesEngine = async (): Promise<void> => {
             },
             method: 'POST',
             body: JSON.stringify({ data: data.splice(0, 100) })
-          }).catch(e => logger('ratesEngine query error', e))
+          }).catch(e => {
+            logger('ratesEngine query error', e)
+          })
         )
       }
       await Promise.all(promises)
     } catch (e) {
       // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       const message = `ratesEngine failure: ${e}`
-      slackMessage(message).catch(e => logger(e))
+      slackMessage(message).catch(e => {
+        logger(e)
+      })
       logger(message)
     } finally {
       logger('ratesEngine loop complete')

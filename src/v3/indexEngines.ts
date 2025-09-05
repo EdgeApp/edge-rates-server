@@ -5,7 +5,7 @@ import {
   dbProviders,
   memoryProviders
 } from './providers/allProviders'
-import { Frequency, RateEngine } from './types'
+import type { Frequency, RateEngine } from './types'
 
 const frequencyToMs: Record<Frequency, number> = {
   minute: 60 * 1000,

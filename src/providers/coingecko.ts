@@ -2,7 +2,7 @@ import { asArray, asNumber, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { AssetMap, NewRates, ReturnRate } from '../rates'
+import type { AssetMap, NewRates, ReturnRate } from '../rates'
 import {
   assetMapReducer,
   createReducedRateMap,
@@ -28,9 +28,7 @@ const asCoingeckoQuote = asObject({
 })
 
 const asCoingeckoHistoricalUsdResponse = asObject({
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   market_data: asObject({
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     current_price: asObject({
       usd: asNumber
     })
@@ -134,7 +132,7 @@ export const coingecko = async (
   edgeAssetMap: AssetMap
 ): Promise<NewRates> => {
   // Gather codes
-  const datesAndCodesWanted: { [key: string]: string[] } = {}
+  const datesAndCodesWanted: Record<string, string[]> = {}
   for (const pair of requestedRates) {
     const fromCurrency = fromCode(pair.currency_pair)
     if (!isIsoCode(fromCurrency) && hasUniqueId(fromCurrency, edgeAssetMap)) {

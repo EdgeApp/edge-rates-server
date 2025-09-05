@@ -2,7 +2,7 @@ import { asArray, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { AssetMap, NewRates, ReturnRate } from '../rates'
+import type { AssetMap, NewRates, ReturnRate } from '../rates'
 import {
   assetMapReducer,
   combineRates,
@@ -139,7 +139,7 @@ export const coincap = async (
   const rates = {}
 
   // Gather codes
-  const datesAndCodesWanted: { [key: string]: string[] } = {}
+  const datesAndCodesWanted: Record<string, string[]> = {}
   for (const pair of rateObj) {
     if (datesAndCodesWanted[pair.date] == null) {
       datesAndCodesWanted[pair.date] = []

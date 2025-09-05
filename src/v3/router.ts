@@ -1,6 +1,6 @@
 import { syncedDocument } from 'edge-server-tools'
-import { HttpResponse } from 'serverlet'
-import { ExpressRequest } from 'serverlet/express'
+import type { HttpResponse } from 'serverlet'
+import type { ExpressRequest } from 'serverlet/express'
 
 import { ONE_MINUTE } from './constants'
 import { getRates } from './getRates'
@@ -8,9 +8,9 @@ import { dbSettings } from './providers/couch'
 import {
   asCrossChainMapping,
   asIncomingGetRatesParams,
-  CrossChainMapping,
-  GetRatesParams,
-  IncomingGetRatesParams
+  type CrossChainMapping,
+  type GetRatesParams,
+  type IncomingGetRatesParams
 } from './types'
 import { toCryptoKey } from './utils'
 

@@ -1,5 +1,5 @@
 import { FIVE_MINUTES, ONE_MINUTE, TWENTY_FOUR_HOURS } from './constants'
-import {
+import type {
   CryptoRateMap,
   DateBuckets,
   EdgeAsset,
@@ -238,7 +238,7 @@ export const expandReturnedFiatRates = (
 }
 
 // This function breaks apart the requested rates into buckets of the given interval.
-type UpdateBuckets = Map<string, { [id: string]: number }>
+type UpdateBuckets = Map<string, Record<string, number>>
 export const groupCryptoRatesByTime = (
   requestedRates: CryptoRateMap
 ): UpdateBuckets => {

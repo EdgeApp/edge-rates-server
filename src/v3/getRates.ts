@@ -5,7 +5,7 @@ import {
   memoryProviders
 } from './providers/allProviders'
 import { client } from './providers/redis'
-import {
+import type {
   CryptoRateMap,
   FiatRateMap,
   GetRatesFunc,
@@ -90,9 +90,9 @@ const updateProviders = async (
 ): Promise<void> => {
   for (const p of providers) {
     if (p.updateRates != null) {
-      p.updateRates(rates).catch(err =>
+      p.updateRates(rates).catch(err => {
         console.error(`Error updating rates from ${p.providerId}`, err)
-      )
+      })
     }
   }
 }

@@ -24,9 +24,17 @@ async function initDb(): Promise<void> {
   // Set up currency code maps sync (only runs in this process)
   setupCurrencyCodeMapsSync()
 
-  ratesEngine().catch(e => logger('ratesEngine failure', e))
-  uidEngine().catch(e => logger('uidEngine failure', e))
-  coinrankEngine().catch(e => logger('coinrankEngine failure', e))
+  ratesEngine().catch(e => {
+    logger('ratesEngine failure', e)
+  })
+  uidEngine().catch(e => {
+    logger('uidEngine failure', e)
+  })
+  coinrankEngine().catch(e => {
+    logger('coinrankEngine failure', e)
+  })
 }
 
-initDb().catch(e => logger('initDbe failure', e))
+initDb().catch(e => {
+  logger('initDbe failure', e)
+})

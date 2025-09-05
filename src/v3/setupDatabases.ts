@@ -1,4 +1,4 @@
-import { DatabaseSetup, setupDatabase } from 'edge-server-tools'
+import { type DatabaseSetup, setupDatabase } from 'edge-server-tools'
 
 import { config } from '../config'
 import { logger } from '../utils/utils'
@@ -61,4 +61,6 @@ const createDatabases = async (): Promise<void> => {
 
 createDatabases()
   .then(() => process.exit(0))
-  .catch(e => logger('createDatabases failure', e))
+  .catch(e => {
+    logger('createDatabases failure', e)
+  })

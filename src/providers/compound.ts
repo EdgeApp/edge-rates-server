@@ -2,7 +2,7 @@ import { asArray, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { NewRates, ReturnRate } from './../rates'
+import type { NewRates, ReturnRate } from './../rates'
 import {
   createReducedRateMapArray,
   logger,

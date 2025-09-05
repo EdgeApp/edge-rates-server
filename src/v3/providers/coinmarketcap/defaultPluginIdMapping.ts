@@ -1,4 +1,4 @@
-import { StringNullMap } from '../../types'
+import type { StringNullMap } from '../../types'
 
 export const coinmarketcapMainnetCurrencyMapping: StringNullMap = {
   algorand: '4030',

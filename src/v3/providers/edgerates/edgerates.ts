@@ -6,9 +6,9 @@ import { logger } from '../../../utils/utils'
 import { LEADERBOARD_KEY } from '../../constants'
 import {
   asEdgeAsset,
-  EdgeAsset,
-  GetRatesParams,
-  RateProvider
+  type EdgeAsset,
+  type GetRatesParams,
+  type RateProvider
 } from '../../types'
 import { fromCryptoKey } from '../../utils'
 import { dbSettings } from '../couch'

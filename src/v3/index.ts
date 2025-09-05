@@ -7,7 +7,7 @@ import { config } from '../config'
 import { ratesV3 } from './router'
 
 async function main(): Promise<void> {
-  await server()
+  server()
 }
 
 function server(): void {

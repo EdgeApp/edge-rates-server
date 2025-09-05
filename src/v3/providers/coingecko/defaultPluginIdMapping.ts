@@ -1,4 +1,4 @@
-import { StringNullMap } from '../../types'
+import type { StringNullMap } from '../../types'
 
 export const coingeckoMainnetCurrencyMapping: StringNullMap = {
   algorand: 'algorand',

@@ -1,7 +1,12 @@
 import { div } from 'biggystring'
 
 import { currencyCodeArray, fromCode, toCode } from '../utils/utils'
-import { AssetMap, NewRates, PRECISION, ReturnRate } from './../rates'
+import {
+  type AssetMap,
+  type NewRates,
+  PRECISION,
+  type ReturnRate
+} from './../rates'
 
 export const zeroRates = (
   rateObj: ReturnRate[],

@@ -2,7 +2,11 @@ import fetch from 'node-fetch'
 
 import { config } from './config'
 import { REDIS_COINRANK_KEY_PREFIX } from './constants'
-import { asCoingeckoMarkets, CoinrankMarkets, CoinrankRedis } from './types'
+import {
+  asCoingeckoMarkets,
+  type CoinrankMarkets,
+  type CoinrankRedis
+} from './types'
 import { setAsync, slackMessage } from './utils/dbUtils'
 import { getDelay, logger, snooze } from './utils/utils'
 
@@ -65,9 +69,11 @@ export const coinrankEngine = async (): Promise<void> => {
       )
     } catch (e) {
       const err: any = e // Weird TS issue causing :any to get removed from above line
-      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
+
       const message = `coinrankEngine failure: ${err.message}`
-      slackMessage(message).catch(e => logger(e))
+      slackMessage(message).catch(e => {
+        logger(e)
+      })
       logger(message)
     }
   }

@@ -454,7 +454,7 @@ const test4 = {
   ]
 }
 
-const fetchem = async (test: object): Promise<void> => {
+const fetchem = async (test: object): Promise<any> => {
   const response = await fetch('http://127.0.0.1:8087/v3/rates', {
     method: 'POST',
     headers: {
@@ -463,18 +463,18 @@ const fetchem = async (test: object): Promise<void> => {
     body: JSON.stringify(test)
   })
   const json = await response.json()
-  console.log(JSON.stringify(json, null, 2))
+  return json
 }
 
 const main = async (): Promise<void> => {
-  console.log('test1')
-  console.log(JSON.stringify(await fetchem(test1), null, 2))
-  console.log('test2')
-  console.log(JSON.stringify(await fetchem(test2), null, 2))
-  console.log('test3')
-  console.log(JSON.stringify(await fetchem(test3), null, 2))
-  console.log('test4')
-  console.log(JSON.stringify(await fetchem(test4), null, 2))
+  const test1Result = await fetchem(test1)
+  console.log('test1', JSON.stringify(test1Result, null, 2))
+  const test2Result = await fetchem(test2)
+  console.log('test2', JSON.stringify(test2Result, null, 2))
+  const test3Result = await fetchem(test3)
+  console.log('test3', JSON.stringify(test3Result, null, 2))
+  const test4Result = await fetchem(test4)
+  console.log('test4', JSON.stringify(test4Result, null, 2))
 }
 
 main().catch(e => {

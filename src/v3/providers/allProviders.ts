@@ -1,4 +1,4 @@
-import { RateProvider } from '../types'
+import type { RateProvider } from '../types'
 import { coingecko } from './coingecko/coingecko'
 import { coinmarketcap } from './coinmarketcap/coinmarketcap'
 // import { coinmonitor } from './coinmonitor'

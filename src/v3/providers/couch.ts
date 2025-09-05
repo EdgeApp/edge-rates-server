@@ -1,14 +1,19 @@
 import { asMaybe, asObject, asString, asValue, uncleaner } from 'cleaners'
-import { asCouchDoc, bulkGet, connectCouch, CouchDoc } from 'edge-server-tools'
-import nano from 'nano'
+import {
+  asCouchDoc,
+  bulkGet,
+  connectCouch,
+  type CouchDoc
+} from 'edge-server-tools'
+import type nano from 'nano'
 
 import { config } from '../../config'
 import {
   asRateDocument,
-  RateBuckets,
-  RateDocument,
-  RateProvider,
-  UpdateRatesParams
+  type RateBuckets,
+  type RateDocument,
+  type RateProvider,
+  type UpdateRatesParams
 } from '../types'
 import {
   expandReturnedCryptoRates,

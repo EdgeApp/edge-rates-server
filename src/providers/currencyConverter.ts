@@ -2,7 +2,7 @@ import { asMap, asNumber, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { NewRates, ReturnRate } from './../rates'
+import type { NewRates, ReturnRate } from './../rates'
 import {
   combineRates,
   createReducedRateMap,
@@ -101,7 +101,6 @@ const query = async (
           `currencyConverter returned code ${status} for ${codes} at ${date}`
         )
         throw new Error(
-          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           `currencyConverter returned with status: ${status} and error: ${error}`
         )
       }
@@ -124,7 +123,6 @@ const query = async (
           `currencyConverter returned code ${status} for ${codes} at ${date}`
         )
         throw new Error(
-          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           `currencyConverter returned with status: ${status} and error: ${error}`
         )
       }
@@ -152,7 +150,7 @@ export const currencyConverter = async (
   }
 
   // Gather codes
-  const datesAndCodesWanted: { [key: string]: string[] } = {}
+  const datesAndCodesWanted: Record<string, string[]> = {}
   for (const pair of rateObj) {
     if (datesAndCodesWanted[pair.date] == null)
       datesAndCodesWanted[pair.date] = []

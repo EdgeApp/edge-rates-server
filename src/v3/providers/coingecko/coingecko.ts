@@ -10,14 +10,13 @@ import {
   asStringNullMap,
   asTokenMap,
   asTokenTypeMap,
-  CrossChainMapping,
-  NumberMap,
-  RateBuckets,
-  RateEngine,
-  RateProvider,
-  StringNullMap,
-  TokenMap,
-  TokenTypeMap,
+  type CrossChainMapping,
+  type NumberMap,
+  type RateBuckets,
+  type RateEngine,
+  type RateProvider,
+  type TokenMap,
+  type TokenTypeMap,
   wasCrossChainDoc,
   wasExistingMappings
 } from '../../types'
@@ -136,9 +135,9 @@ automatedTokenMappingsSyncDoc.onChange(automatedMappings => {
 
 const coingeckoToCrossChainMapping = async (
   coingeckoAssets: ReturnType<typeof asCoingeckoAssetResponse>,
-  tokenTypes: StringNullMap
+  tokenTypes: TokenTypeMap
 ): Promise<CrossChainMapping> => {
-  const invertPlatformMapping: { [key: string]: string } = {}
+  const invertPlatformMapping: Record<string, string> = {}
   for (const [key, value] of Object.entries(platformIdMappingSyncDoc.doc)) {
     if (value === null) continue
     invertPlatformMapping[value] = key
@@ -216,7 +215,7 @@ const tokenMapping: RateEngine = async () => {
 
   const data = asCoingeckoAssetResponse(json)
 
-  const invertPlatformMapping: { [key: string]: string } = {}
+  const invertPlatformMapping: Record<string, string> = {}
   for (const [key, value] of Object.entries(platformIdMappingSyncDoc.doc)) {
     if (value === null) continue
     invertPlatformMapping[value] = key

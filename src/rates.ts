@@ -9,10 +9,10 @@ import {
   uncleaner
 } from 'cleaners'
 import { asCouchDoc } from 'edge-server-tools'
-import nano from 'nano'
+import type nano from 'nano'
 
 import { config } from './config'
-import { ExchangeRateReq } from './exchangeRateRouter'
+import type { ExchangeRateReq } from './exchangeRateRouter'
 import { coincap } from './providers/coincap'
 import { coingecko } from './providers/coingecko'
 import { coinMarketCap } from './providers/coinMarketCap'
@@ -29,7 +29,7 @@ import { openExchangeRates } from './providers/openExchangeRates'
 import { wazirx } from './providers/wazirx'
 import {
   asDbDoc,
-  DbDoc,
+  type DbDoc,
   getFromDb,
   hgetallAsync,
   hsetAsync,
@@ -78,18 +78,12 @@ export interface ReturnRate {
   error?: string
 }
 
-export interface RateMap {
-  [pair: string]: string
-}
+export type RateMap = Record<string, string>
 
-export interface NewRates {
-  [date: string]: RateMap
-}
+export type NewRates = Record<string, RateMap>
 
 // TODO: Future architecture changes should convert data types like these to Map()
-export interface AssetMap {
-  [currencyCode: string]: string
-}
+export type AssetMap = Record<string, string>
 
 const sanitizeNewRates = (
   newRates: RateMap,
@@ -240,7 +234,9 @@ export const getExchangeRates = async (
         return uncleaner(asCouchDoc(asObject(asString)))(cleanDoc)
       })
 
-    Promise.all(redisPromises).catch(e => logger('redis hsetAsync error:', e))
+    Promise.all(redisPromises).catch(e => {
+      logger('redis hsetAsync error:', e)
+    })
 
     // Save to Couchdb
     saveToDb(localDb, out.documents)
@@ -255,8 +251,7 @@ export const currencyBridgeDB = (
   rateObj: ReturnGetRate,
   constantCurrencyCodes: AssetMap
 ): void => {
-  for (let i = 0; i < rateObj.data.length; i++) {
-    const rate = rateObj.data[i]
+  for (const rate of rateObj.data) {
     if (rate.exchangeRate != null) continue
     const dbIndex = rateObj.documents.findIndex(doc => doc._id === rate.date)
     if (rateObj.documents[dbIndex] == null) continue

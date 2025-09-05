@@ -2,7 +2,7 @@ import { asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { NewRates, RateMap, ReturnRate } from './../rates'
+import type { NewRates, RateMap, ReturnRate } from './../rates'
 import { logger } from './../utils/utils'
 
 const { uri } = config.providers.wazirx

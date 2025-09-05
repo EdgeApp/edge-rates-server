@@ -23,7 +23,7 @@ const ram = {
 const client = {
   set: async (key, value, options) => {
     ram[key] = [value, options.EX]
-    return await Promise.resolve()
+    await Promise.resolve()
   },
   exists: async (key: string) => {
     let keyExists = Object.prototype.hasOwnProperty.call(ram, key)
@@ -38,7 +38,7 @@ const client = {
 
 const messageQueue: string[] = []
 const callback = async (message: string): Promise<void> => {
-  await messageQueue.push(message)
+  messageQueue.push(message)
 }
 
 for (const message of fixtures.errorMessages) {

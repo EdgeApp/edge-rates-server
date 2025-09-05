@@ -2,7 +2,7 @@ import { asMap, asNumber, asObject } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { NewRates, ReturnRate } from './../rates'
+import type { NewRates, ReturnRate } from './../rates'
 import {
   combineRates,
   createReducedRateMap,
@@ -83,7 +83,7 @@ export const openExchangeRates = async (
   }
 
   // Gather codes
-  const datesAndCodesWanted: { [key: string]: string[] } = {}
+  const datesAndCodesWanted: Record<string, string[]> = {}
   for (const pair of rateObj) {
     if (datesAndCodesWanted[pair.date] == null)
       datesAndCodesWanted[pair.date] = []

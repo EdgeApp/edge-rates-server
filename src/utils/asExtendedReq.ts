@@ -1,5 +1,5 @@
-import { asObject, CleanerShape } from 'cleaners'
-import express from 'express'
+import { asObject, type CleanerShape } from 'cleaners'
+import type express from 'express'
 
 export const asExtendedReq =
   <T>(asExtension: CleanerShape<T>) =>
