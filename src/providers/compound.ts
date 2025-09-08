@@ -2,7 +2,7 @@ import { asArray, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { NewRates, ReturnRate } from './../rates'
+import type { NewRates, ReturnRate } from './../rates'
 import {
   createReducedRateMapArray,
   logger,
@@ -43,7 +43,7 @@ export const compound = async (
   // Query
   try {
     const response = await fetch(`${uri}/api/v2/ctoken`)
-    if (response.status !== 200 || response.ok === false)
+    if (response.status !== 200 || !response.ok)
       throw new Error(
         `Compound returned with status: ${JSON.stringify(
           response.status

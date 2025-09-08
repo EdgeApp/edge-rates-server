@@ -2,7 +2,7 @@ import { asArray, asNumber, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { AssetMap, NewRates, ReturnRate } from '../rates'
+import type { AssetMap, NewRates, ReturnRate } from '../rates'
 import {
   assetMapReducer,
   createReducedRateMap,
@@ -28,9 +28,7 @@ const asCoingeckoQuote = asObject({
 })
 
 const asCoingeckoHistoricalUsdResponse = asObject({
-  // eslint-disable-next-line @typescript-eslint/camelcase
   market_data: asObject({
-    // eslint-disable-next-line @typescript-eslint/camelcase
     current_price: asObject({
       usd: asNumber
     })
@@ -67,6 +65,7 @@ const coingeckoCurrent = async (
     )
     if (!response.ok) {
       logger(
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         `coingecko returned code ${response.status} for ${codesWanted} at ${currentTime}`
       )
       throw new Error(response.statusText)
@@ -104,6 +103,7 @@ const coingeckoHistorical = async (
       )
       if (!response.ok) {
         logger(
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           `coingecko returned code ${response.status} for ${codesWanted} at ${date}`
         )
         throw new Error(response.statusText)
@@ -114,9 +114,8 @@ const coingeckoHistorical = async (
       const pair = Object.entries(assetMap).find(pair => pair[1] === code)
       if (pair == null) return
 
-      rates[date][
-        `${pair[0]}_iso:USD`
-      ] = json.market_data.current_price.usd.toString()
+      rates[date][`${pair[0]}_iso:USD`] =
+        json.market_data.current_price.usd.toString()
     } catch (e) {
       logger('No Coingecko quote:', e)
     }
@@ -133,7 +132,7 @@ export const coingecko = async (
   edgeAssetMap: AssetMap
 ): Promise<NewRates> => {
   // Gather codes
-  const datesAndCodesWanted: { [key: string]: string[] } = {}
+  const datesAndCodesWanted: Record<string, string[]> = {}
   for (const pair of requestedRates) {
     const fromCurrency = fromCode(pair.currency_pair)
     if (!isIsoCode(fromCurrency) && hasUniqueId(fromCurrency, edgeAssetMap)) {

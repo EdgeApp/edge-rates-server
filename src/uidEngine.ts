@@ -29,8 +29,8 @@ export const uidEngine = async (): Promise<void> => {
             const assetMap = { ...edgeDoc[provider], ...newMap }
 
             // Remove the UIDs for the currency codes we've hardcoded
-            for (let i = 0; i < edgeDoc.allEdgeCurrencies.length; i++) {
-              delete assetMap[edgeDoc.allEdgeCurrencies[i]]
+            for (const currencyCode of edgeDoc.allEdgeCurrencies) {
+              delete assetMap[currencyCode]
             }
 
             // Combine our codes with the new ones
@@ -39,14 +39,21 @@ export const uidEngine = async (): Promise<void> => {
               ...currencyCodeMaps[provider]
             }
           })
-          .catch(e => logger(`Failed to update ${provider}`, e))
-          .finally(logger(`${provider} provider updated`))
+          .catch(e => {
+            logger(`Failed to update ${provider}`, e)
+          })
+          .finally(() => {
+            logger(`${provider} provider updated`)
+          })
       )
       await Promise.allSettled(promises)
       wrappedSaveToDb([edgeDoc])
     } catch (e) {
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       const message = `ratesEngine failure: ${e}`
-      slackMessage(message).catch(e => logger(e))
+      slackMessage(message).catch(e => {
+        logger(e)
+      })
       logger(message)
     }
     logger('UID Cache updated. Snoozing for 1 hour')

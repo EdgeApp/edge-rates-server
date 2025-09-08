@@ -2,7 +2,7 @@ import { asMap, asNumber, asObject, asOptional, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { NewRates, ReturnRate } from './../rates'
+import type { NewRates, ReturnRate } from './../rates'
 import {
   combineRates,
   createReducedRateMap,
@@ -48,6 +48,7 @@ const currencyConverterQuote = (
 const currencyConverterQuoteBroken = (
   results: ReturnType<typeof asCurrencyConvertorQuotes>,
   pair: string
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string
 ): string => results[pair].val.toString()
 
 const currencyConverterRateMap = createReducedRateMap(
@@ -72,11 +73,13 @@ const query = async (
   }
   try {
     const response = await fetch(
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       `${uri}/api/v7/convert?q=${codes}${dateString}&apiKey=${apiKey}`
     )
 
-    if (response.ok === false) {
+    if (!response.ok) {
       logger(
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         `currencyConverter returned code ${response.status} for ${codes} at ${date}`
       )
       throw new Error(
@@ -94,6 +97,7 @@ const query = async (
         (error != null && error !== '')
       ) {
         logger(
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           `currencyConverter returned code ${status} for ${codes} at ${date}`
         )
         throw new Error(
@@ -115,6 +119,7 @@ const query = async (
         (error != null && error !== '')
       ) {
         logger(
+          // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
           `currencyConverter returned code ${status} for ${codes} at ${date}`
         )
         throw new Error(
@@ -127,6 +132,7 @@ const query = async (
       logger('Currency convertor success')
     }
   } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
     logger(`Failed to get ${codes} from currencyconverterapi.com`, e)
   }
   return rates
@@ -144,7 +150,7 @@ export const currencyConverter = async (
   }
 
   // Gather codes
-  const datesAndCodesWanted: { [key: string]: string[] } = {}
+  const datesAndCodesWanted: Record<string, string[]> = {}
   for (const pair of rateObj) {
     if (datesAndCodesWanted[pair.date] == null)
       datesAndCodesWanted[pair.date] = []
@@ -157,8 +163,7 @@ export const currencyConverter = async (
     if (
       isIsoCode(fromCurrency) &&
       fromCurrency !== DEFAULT_FIAT &&
-      datesAndCodesWanted[pair.date].indexOf(currencyConverterToDefaultPair) ===
-        -1
+      !datesAndCodesWanted[pair.date].includes(currencyConverterToDefaultPair)
     ) {
       datesAndCodesWanted[pair.date].push(currencyConverterToDefaultPair)
     }
@@ -170,9 +175,9 @@ export const currencyConverter = async (
     if (
       isIsoCode(toCurrency) &&
       toCurrency !== DEFAULT_FIAT &&
-      datesAndCodesWanted[pair.date].indexOf(
+      !datesAndCodesWanted[pair.date].includes(
         invertPair(currencyConverterFromDefaultPair)
-      ) === -1
+      )
     ) {
       datesAndCodesWanted[pair.date].push(
         invertPair(currencyConverterFromDefaultPair)
@@ -181,8 +186,8 @@ export const currencyConverter = async (
   }
 
   // Query
-  const providers = Object.keys(datesAndCodesWanted).map(async date =>
-    query(date, datesAndCodesWanted[date], currentTime)
+  const providers = Object.keys(datesAndCodesWanted).map(
+    async date => await query(date, datesAndCodesWanted[date], currentTime)
   )
   try {
     const response = await Promise.all(providers)

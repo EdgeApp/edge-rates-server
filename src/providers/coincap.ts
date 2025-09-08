@@ -2,7 +2,7 @@ import { asArray, asObject, asString } from 'cleaners'
 import fetch from 'node-fetch'
 
 import { config } from '../config'
-import { AssetMap, NewRates, ReturnRate } from '../rates'
+import type { AssetMap, NewRates, ReturnRate } from '../rates'
 import {
   assetMapReducer,
   combineRates,
@@ -75,9 +75,10 @@ const currentQuery = async (
   try {
     const response = await fetch(url, OPTIONS)
     const json = asCoincapCurrentResponse(await response.json())
-    if (response.ok === false) {
+    if (!response.ok) {
       const text = await response.text()
       logger(
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         `coincapCurrent returned code ${response.status} for ${codes} at ${date}: ${text}`
       )
       throw new Error(text)
@@ -103,11 +104,12 @@ const historicalQuery = async (
   if (id === '') return rates
   try {
     const response = await fetch(
-      `${uri}/v2/assets/${id}/history?interval=m1&start=${timestamp}&end=${timestamp +
-        ONE_MINUTE}`,
+      `${uri}/v2/assets/${id}/history?interval=m1&start=${timestamp}&end=${
+        timestamp + ONE_MINUTE
+      }`,
       OPTIONS
     )
-    if (response.ok === false) {
+    if (!response.ok) {
       const text = await response.text()
       logger(
         `coincapHistorical returned code ${response.status.toString()} for ${id} at ${date}: ${text}`
@@ -137,7 +139,7 @@ export const coincap = async (
   const rates = {}
 
   // Gather codes
-  const datesAndCodesWanted: { [key: string]: string[] } = {}
+  const datesAndCodesWanted: Record<string, string[]> = {}
   for (const pair of rateObj) {
     if (datesAndCodesWanted[pair.date] == null) {
       datesAndCodesWanted[pair.date] = []
@@ -182,7 +184,7 @@ export const coincapAssets = async (): Promise<AssetMap> => {
       await snooze(1000) // rate limits reset every minute
       continue // retry
     }
-    if (response.ok === false) {
+    if (!response.ok) {
       const text = await response.text()
       throw new Error(text)
     }

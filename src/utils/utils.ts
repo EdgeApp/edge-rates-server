@@ -1,4 +1,4 @@
-import { AssetMap, NewRates, RateMap, ReturnRate } from '../rates'
+import type { AssetMap, NewRates, RateMap, ReturnRate } from '../rates'
 import { config } from './../config'
 
 const { defaultFiatCode: DEFAULT_FIAT } = config
@@ -15,8 +15,9 @@ export function normalizeDate(dateSrc: string): string {
   return dateNorm.toISOString()
 }
 
-export const snooze = async (ms: number): Promise<void> =>
-  new Promise((resolve: Function) => setTimeout(resolve, ms))
+export const snooze = async (ms: number): Promise<void> => {
+  await new Promise((resolve: Function) => setTimeout(resolve, ms))
+}
 
 export const getNullRateArray = (rates: ReturnRate[]): ReturnRate[] => {
   return rates.filter(rate => rate.exchangeRate == null)
@@ -67,7 +68,7 @@ export const logger = (...args): void => {
 type IsoOp = (code: string) => string
 type IsoOpObject = (code: any) => string
 
-export const isIsoCode = (code: string): boolean => code.indexOf('iso:') === 0
+export const isIsoCode = (code: string): boolean => code.startsWith('iso:')
 
 export const subIso: IsoOp = code =>
   isIsoCode(code) ? code.split(':')[1] : code
@@ -83,10 +84,10 @@ export const toCurrencyPair = (
   codeB: string = DEFAULT_FIAT
 ): string => `${codeA}_${codeB}`
 
-export const toIsoPair = (opA: IsoOp, opB: IsoOp = opA) => (
-  codeA: string,
-  codeB: string = DEFAULT_FIAT
-) => toCurrencyPair(opA(codeA), opB(codeB))
+export const toIsoPair =
+  (opA: IsoOp, opB: IsoOp = opA) =>
+  (codeA: string, codeB: string = DEFAULT_FIAT) =>
+    toCurrencyPair(opA(codeA), opB(codeB))
 
 export const fromFiatToFiat = toIsoPair(addIso, addIso)
 
@@ -113,32 +114,35 @@ export const invertCodeMapKey = (id: string, assetMap: AssetMap): string =>
   Object.keys(assetMap).find(key => assetMap[key] === id) ??
   'FAKE_CODE_TO_SATISFY_TYPECHECKER'
 
-export const createReducedRateMapArray = <T>(
-  createCurrencyPair: IsoOpObject,
-  createCurrencyQuote: (code: T) => string
-) => (data: T[]): RateMap =>
-  data.reduce((out, code) => {
-    return {
-      ...out,
-      [createCurrencyPair(code)]: createCurrencyQuote(code)
-    }
-  }, {})
+export const createReducedRateMapArray =
+  <T>(
+    createCurrencyPair: IsoOpObject,
+    createCurrencyQuote: (code: T) => string
+  ) =>
+  (data: T[]): RateMap =>
+    data.reduce((out, code) => {
+      return {
+        ...out,
+        [createCurrencyPair(code)]: createCurrencyQuote(code)
+      }
+    }, {})
 
 const useCurrencyCodeAsIs = (code: string): string => code
 
-export const createReducedRateMap = <T>(
-  createCurrencyPair: IsoOp,
-  createCurrencyQuote: (rates: T, code: string) => string,
-  uniqueId: (id: string, assetMap: AssetMap) => string = useCurrencyCodeAsIs
-) => (data, assetMap = {}): RateMap =>
-  Object.keys(data).reduce((out, code) => {
-    return {
-      ...out,
-      [createCurrencyPair(
-        uniqueId(code, assetMap).toUpperCase()
-      )]: createCurrencyQuote(data, code)
-    }
-  }, {})
+export const createReducedRateMap =
+  <T>(
+    createCurrencyPair: IsoOp,
+    createCurrencyQuote: (rates: T, code: string) => string,
+    uniqueId: (id: string, assetMap: AssetMap) => string = useCurrencyCodeAsIs
+  ) =>
+  (data, assetMap = {}): RateMap =>
+    Object.keys(data).reduce((out, code) => {
+      return {
+        ...out,
+        [createCurrencyPair(uniqueId(code, assetMap).toUpperCase())]:
+          createCurrencyQuote(data, code)
+      }
+    }, {})
 
 export const dateOnly = (date: string): string => date.split('T')[0]
 
@@ -167,8 +171,8 @@ export const memoize = <T>(
   key: string,
   timeLimit: number = ONE_DAY
 ): (() => Promise<T>) => {
-  const cache: { [key: string]: T } | {} = {}
-  const expiration: { [key: string]: number } = {}
+  const cache: Record<string, T> | object = {}
+  const expiration: Record<string, number> = {}
   return async (...args) => {
     try {
       if (expiration[key] == null || expiration[key] < Date.now()) {

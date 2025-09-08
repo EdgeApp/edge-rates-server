@@ -7,7 +7,6 @@
     "esModuleInterop": true,
     "module": "es2015",
     "moduleResolution": "node",
-    "jsx": "react",
     "resolveJsonModule": true,
     "target": "es2020",
 

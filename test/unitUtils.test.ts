@@ -9,43 +9,44 @@ import fixtures from './unitUtils.json'
 for (const test of fixtures.normalizeDate) {
   const { input, output } = test
 
-  describe(`normalizeDate`, function() {
-    it(`testing input ${input}`, function() {
+  describe(`normalizeDate`, function () {
+    it(`testing input ${input}`, function () {
       assert.equal(normalizeDate(input), output)
     })
   })
 }
 
-var globalTime = 0
+let globalTime = 0
 const ram = {
   // "errorMessage": [value, expirationTimeInSeconds]
 }
 const client = {
   set: async (key, value, options) => {
     ram[key] = [value, options.EX]
-    return Promise.resolve()
+    await Promise.resolve()
   },
   exists: async (key: string) => {
-    var keyExists = Object.prototype.hasOwnProperty.call(ram, key)
+    let keyExists = Object.prototype.hasOwnProperty.call(ram, key)
     if (keyExists && ram[key][1] < globalTime) {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete ram[key]
       keyExists = false
     }
-    return Promise.resolve(keyExists ? 1 : 0)
+    return await Promise.resolve(keyExists ? 1 : 0)
   }
 }
 
 const messageQueue: string[] = []
 const callback = async (message: string): Promise<void> => {
-  await messageQueue.push(message)
+  messageQueue.push(message)
 }
 
 for (const message of fixtures.errorMessages) {
   const { input, output } = message
   const processMessage = createThrottledMessage(client, callback)
 
-  describe(`errorMessages`, function() {
-    it(`testing input: ${input}`, async function() {
+  describe(`errorMessages`, function () {
+    it(`testing input: ${input}`, async function () {
       await processMessage(input)
       // T-0
       assert.equal(messageQueue[messageQueue.length - 1], output) // successfully added to queue for each iteration
@@ -74,8 +75,8 @@ for (const message of fixtures.errorMessages) {
 for (const test of fixtures.asRateParam) {
   const { input, output } = test
 
-  describe(`asRateParam`, function() {
-    it(`testing input ${JSON.stringify(input)}`, function() {
+  describe(`asRateParam`, function () {
+    it(`testing input ${JSON.stringify(input)}`, function () {
       let result
       try {
         result = asExchangeRateReq(input)
@@ -91,8 +92,8 @@ for (const test of fixtures.asRateParam) {
   })
 }
 
-describe(`getDelay tests`, function() {
-  it(`getDelay 1:30 0 15`, function() {
+describe(`getDelay tests`, function () {
+  it(`getDelay 1:30 0 15`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:01:30.000Z'),
@@ -102,7 +103,7 @@ describe(`getDelay tests`, function() {
       15000
     )
   })
-  it(`getDelay 1:35.100 0 15`, function() {
+  it(`getDelay 1:35.100 0 15`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:01:35.100Z'),
@@ -112,7 +113,7 @@ describe(`getDelay tests`, function() {
       9900
     )
   })
-  it(`getDelay 1:29.999 0 120`, function() {
+  it(`getDelay 1:29.999 0 120`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:01:29.999Z'),
@@ -122,7 +123,7 @@ describe(`getDelay tests`, function() {
       30001
     )
   })
-  it(`getDelay 1:29.999 60 120`, function() {
+  it(`getDelay 1:29.999 60 120`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:01:29.999Z'),
@@ -132,7 +133,7 @@ describe(`getDelay tests`, function() {
       90001
     )
   })
-  it(`getDelay 51:30 0 120`, function() {
+  it(`getDelay 51:30 0 120`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:51:30.000Z'),
@@ -142,7 +143,7 @@ describe(`getDelay tests`, function() {
       30000
     )
   })
-  it(`getDelay 51:29.999 0 120`, function() {
+  it(`getDelay 51:29.999 0 120`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:51:29.999Z'),
@@ -152,7 +153,7 @@ describe(`getDelay tests`, function() {
       30001
     )
   })
-  it(`getDelay 51:29.999 60 120`, function() {
+  it(`getDelay 51:29.999 60 120`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:51:29.999Z'),
@@ -163,7 +164,7 @@ describe(`getDelay tests`, function() {
     )
   })
 
-  it(`getDelay 1:30 0 180`, function() {
+  it(`getDelay 1:30 0 180`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:01:30.000Z'),
@@ -173,7 +174,7 @@ describe(`getDelay tests`, function() {
       90000
     )
   })
-  it(`getDelay 1:29.999 0 180`, function() {
+  it(`getDelay 1:29.999 0 180`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:01:29.999Z'),
@@ -184,7 +185,7 @@ describe(`getDelay tests`, function() {
     )
   })
 
-  it(`getDelay 51:29.999 60 180`, function() {
+  it(`getDelay 51:29.999 60 180`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:51:29.999Z'),
@@ -194,7 +195,7 @@ describe(`getDelay tests`, function() {
       30001
     )
   })
-  it(`getDelay 58:29.999 60 180`, function() {
+  it(`getDelay 58:29.999 60 180`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:58:29.999Z'),
@@ -205,7 +206,7 @@ describe(`getDelay tests`, function() {
     )
   })
 
-  it(`getDelay 58:29.999 0 30`, function() {
+  it(`getDelay 58:29.999 0 30`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:58:29.999Z'),
@@ -215,7 +216,7 @@ describe(`getDelay tests`, function() {
       1
     )
   })
-  it(`getDelay 55:59.999 0 30`, function() {
+  it(`getDelay 55:59.999 0 30`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:55:59.999Z'),
@@ -225,7 +226,7 @@ describe(`getDelay tests`, function() {
       1
     )
   })
-  it(`getDelay 59:59.999 0 30`, function() {
+  it(`getDelay 59:59.999 0 30`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:59:59.999Z'),
@@ -235,7 +236,7 @@ describe(`getDelay tests`, function() {
       1
     )
   })
-  it(`getDelay 59:59.999 30 60`, function() {
+  it(`getDelay 59:59.999 30 60`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:59:59.999Z'),
@@ -245,7 +246,7 @@ describe(`getDelay tests`, function() {
       30001
     )
   })
-  it(`getDelay 59:59.999 0 60`, function() {
+  it(`getDelay 59:59.999 0 60`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:59:59.999Z'),
@@ -255,7 +256,7 @@ describe(`getDelay tests`, function() {
       1
     )
   })
-  it(`getDelay 58:09.999 30 60`, function() {
+  it(`getDelay 58:09.999 30 60`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:58:09.999Z'),
@@ -265,7 +266,7 @@ describe(`getDelay tests`, function() {
       20001
     )
   })
-  it(`getDelay 58:09.999 0 60`, function() {
+  it(`getDelay 58:09.999 0 60`, function () {
     assert.equal(
       getDelay({
         now: new Date('2024-01-10T00:58:09.999Z'),

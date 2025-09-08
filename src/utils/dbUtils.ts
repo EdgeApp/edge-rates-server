@@ -91,6 +91,7 @@ const dbResponseLogger = (response: nano.DocumentBulkResponse[]): void => {
     // Conflicts are expected and OK so no need to print. They'll be combined and retried until successfully saved.
     // Future TODO: will be to save to the db on a loop from redis store.
     .filter(doc => doc.error != null && doc.error !== 'conflict')
+
     .map(doc => `${doc.id}: ${doc.error}`)
   if (failureArray.length > 0)
     logger(`Error saving document IDs: ${failureArray.join(', ')} to db_rates`)
@@ -105,17 +106,21 @@ export const saveToDb = (
     .bulk({ docs })
     .then(response => {
       dbResponseLogger(response)
-      resolveConflicts(response, docs).catch(e =>
+      resolveConflicts(response, docs).catch(e => {
         logger('Error resolving conflicts', e.message)
-      )
+      })
     })
     .catch(e => {
       logger(e)
-      slackMessage(e).catch(e)
+      slackMessage(e).catch(e => {
+        logger('Error posting to slack', e)
+      })
     })
 }
 
-export const wrappedSaveToDb = (docs: DbDoc[]): void => saveToDb(dbRates, docs)
+export const wrappedSaveToDb = (docs: DbDoc[]): void => {
+  saveToDb(dbRates, docs)
+}
 
 export const getFromDb = async (
   localDb: nano.DocumentScope<DbDoc>,
@@ -124,7 +129,9 @@ export const getFromDb = async (
   // Grab existing db data for requested dates
   const response = await localDb.fetch({ keys: dates }).catch(e => {
     if (e.error !== 'not_found') {
-      slackMessage(e).catch(e)
+      slackMessage(e).catch(e => {
+        logger('Error posting to slack', e)
+      })
     }
   })
   if (response == null)
@@ -142,7 +149,7 @@ export const getFromDb = async (
 }
 
 export const wrappedGetFromDb = async (dates: string[]): Promise<DbDoc[]> =>
-  getFromDb(dbRates, dates)
+  await getFromDb(dbRates, dates)
 
 export const getEdgeAssetDoc = memoize(
   async (): Promise<DbDoc> =>

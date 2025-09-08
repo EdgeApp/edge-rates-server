@@ -9,7 +9,7 @@ import {
 import fetch from 'node-fetch'
 
 import { config } from './../config'
-import { AssetMap, NewRates, ReturnRate } from './../rates'
+import type { AssetMap, NewRates, ReturnRate } from './../rates'
 import {
   assetMapReducer,
   combineRates,
@@ -59,7 +59,7 @@ const asCoinMarketCapCurrentResponse = asObject({
 })
 
 const coinMarketCapCurrentQuote = (
-  data: { [id: string]: ReturnType<typeof asCoinMarketCapCurrentQuotes> },
+  data: Record<string, ReturnType<typeof asCoinMarketCapCurrentQuotes>>,
   id: string
 ): string => data[id].quote[subIso(DEFAULT_FIAT)].price.toString()
 
@@ -86,21 +86,24 @@ export const coinMarketCapCurrent = async (
   try {
     const response = await fetch(
       `${currentUri}/v2/cryptocurrency/quotes/latest?id=${
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         ids.length > 2 ? ids : ids.concat(DEFAULT_CODES)
       }&skip_invalid=true&convert=${subIso(DEFAULT_FIAT)}`,
       CURRENT_OPTIONS
     )
     if (response.status !== 200) {
       logger(
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         `coinMarketCapCurrent returned code ${response.status} for ${ids} at ${date}`
       )
       throw new Error(response.statusText)
     }
     const rawJson = asCoinMarketCapCurrentResponse(await response.json())
 
-    const cleanJson: {
-      [id: string]: ReturnType<typeof asCoinMarketCapCurrentQuotes>
-    } = {}
+    const cleanJson: Record<
+      string,
+      ReturnType<typeof asCoinMarketCapCurrentQuotes>
+    > = {}
     for (const rawRate of Object.keys(rawJson.data)) {
       try {
         const cleanRate = asCoinMarketCapCurrentQuotes(rawJson.data[rawRate])
@@ -145,7 +148,7 @@ const asCoinMarketCapHistoricalResponse = asObject({
 })
 
 const coinMarketCapHistoricalQuote = (
-  data: { [code: string]: ReturnType<typeof ascoinMarketCapHistoricalQuotes> },
+  data: Record<string, ReturnType<typeof ascoinMarketCapHistoricalQuotes>>,
   code: string
 ): string => data[code].quotes?.[0].quote[subIso(DEFAULT_FIAT)].price.toString()
 
@@ -173,14 +176,16 @@ const coinMarketCapHistorical = async (
 
   try {
     let url = `${historicalUri}/v2/cryptocurrency/quotes/historical?id=${
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
       ids.length > 2 ? ids : ids.concat(DEFAULT_CODES)
     }&time_start=${date}&count=1&interval=5m&skip_invalid=true&convert=${subIso(
       DEFAULT_FIAT
     )}`
     if (dailyAverage) url += `&interval=daily`
     const response = await fetch(url, HISTORICAL_OPTIONS)
-    if (response.status !== 200 || response.ok === false) {
+    if (response.status !== 200 || !response.ok) {
       logger(
+        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
         `coinMarketCapHistorical returned code ${response.status} for ${ids} at ${date}`
       )
       throw new Error(response.statusText)
@@ -188,9 +193,10 @@ const coinMarketCapHistorical = async (
 
     const rawJson = asCoinMarketCapHistoricalResponse(await response.json())
 
-    const cleanJson: {
-      [id: string]: ReturnType<typeof ascoinMarketCapHistoricalQuotes>
-    } = {}
+    const cleanJson: Record<
+      string,
+      ReturnType<typeof ascoinMarketCapHistoricalQuotes>
+    > = {}
     for (const rawRate of Object.keys(rawJson.data)) {
       try {
         const cleanRate = ascoinMarketCapHistoricalQuotes(rawJson.data[rawRate])
@@ -224,7 +230,7 @@ export const coinMarketCap = async (
   }
 
   // Gather codes
-  const datesAndCodesWanted: { [key: string]: string[] } = {}
+  const datesAndCodesWanted: Record<string, string[]> = {}
   for (const pair of rateObj) {
     const fromCurrency = fromCode(pair.currency_pair)
     if (!isIsoCode(fromCurrency) && hasUniqueId(fromCurrency, edgeAssetMap)) {
@@ -238,8 +244,12 @@ export const coinMarketCap = async (
   // Query
   const providers = Object.keys(datesAndCodesWanted).map(async date => {
     if (withinLastFiveMinutes(date))
-      return coinMarketCapCurrent(date, datesAndCodesWanted[date], edgeAssetMap)
-    return coinMarketCapHistorical(
+      return await coinMarketCapCurrent(
+        date,
+        datesAndCodesWanted[date],
+        edgeAssetMap
+      )
+    return await coinMarketCapHistorical(
       date,
       datesAndCodesWanted[date],
       edgeAssetMap
@@ -269,7 +279,7 @@ export const coinMarketCapAssets = async (): Promise<AssetMap> => {
       await snooze(1000) // rate limits reset every minute
       continue // retry
     }
-    if (response.ok === false) {
+    if (!response.ok) {
       const text = await response.text()
       throw new Error(text)
     }
