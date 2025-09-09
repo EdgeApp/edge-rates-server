@@ -2,11 +2,14 @@ import { syncedDocument } from 'edge-server-tools'
 import type { HttpResponse } from 'serverlet'
 import type { ExpressRequest } from 'serverlet/express'
 
+import { config } from '../config'
+import { slackPoster } from '../utils/postToSlack'
 import { ONE_MINUTE } from './constants'
 import { getRates } from './getRates'
 import { dbSettings } from './providers/couch'
 import {
   asCrossChainMapping,
+  asGetRatesParams,
   asIncomingGetRatesParams,
   type CrossChainMapping,
   type GetRatesParams,
@@ -146,5 +149,64 @@ export const ratesV3 = async (
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ error: `Invalid request body ${String(e)}` })
     }
+  }
+}
+
+export const heartbeatV3 = async (
+  request: ExpressRequest
+): Promise<HttpResponse> => {
+  const testData = {
+    targetFiat: 'USD',
+    crypto: [
+      {
+        asset: {
+          pluginId: 'bitcoin',
+          tokenId: null
+        }
+      }
+    ],
+    fiat: [
+      {
+        fiatCode: 'EUR'
+      }
+    ]
+  }
+
+  const response = await fetch(
+    `http://${config.httpHost}:${config.httpPort}/v3/rates`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(testData)
+    }
+  )
+
+  if (!response.ok) {
+    return {
+      status: 500,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ error: 'Failed to fetch rates' })
+    }
+  }
+
+  const json = await response.json()
+  const data = asGetRatesParams(json)
+  const btcRate = data.crypto.find(c => c.asset.pluginId === 'bitcoin')
+  const eurRate = data.fiat.find(f => f.fiatCode === 'EUR')
+  if (btcRate == null || eurRate == null) {
+    slackPoster('Rates server heartbeat failed').catch(console.error)
+    return {
+      status: 500,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ error: 'Failed to fetch rates' })
+    }
+  }
+
+  return {
+    status: response.status,
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(json)
   }
 }
