@@ -4,7 +4,7 @@ import { pickMethod, pickPath } from 'serverlet'
 import { makeExpressRoute } from 'serverlet/express'
 
 import { config } from '../config'
-import { ratesV3 } from './router'
+import { heartbeatV3, ratesV3 } from './router'
 
 async function main(): Promise<void> {
   server()
@@ -12,6 +12,7 @@ async function main(): Promise<void> {
 
 function server(): void {
   const server = pickPath({
+    '/': pickMethod({ GET: heartbeatV3 }),
     '/v3/rates': pickMethod({ POST: ratesV3 })
   })
 
