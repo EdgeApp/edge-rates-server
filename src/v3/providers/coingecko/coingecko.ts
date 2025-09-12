@@ -73,7 +73,7 @@ const asCoingeckoAssetResponse = asArray(
 
 const asGeckoBulkUsdResponse = asObject(
   asObject({
-    usd: asNumber
+    usd: asMaybe(asNumber)
   })
 )
 
@@ -247,7 +247,9 @@ const getCurrentRates = async (ids: Set<string>): Promise<NumberMap> => {
     )
     const data = asGeckoBulkUsdResponse(json)
     for (const [key, value] of Object.entries(data)) {
-      out[key] = value.usd
+      if (value.usd != null) {
+        out[key] = value.usd
+      }
     }
   } catch (e) {
     console.error('coingecko current query error:', e)
