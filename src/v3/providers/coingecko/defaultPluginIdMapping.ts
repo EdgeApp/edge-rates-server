@@ -1,6 +1,7 @@
 import type { StringNullMap } from '../../types'
 
 export const coingeckoMainnetCurrencyMapping: StringNullMap = {
+  abstract: 'ethereum',
   algorand: 'algorand',
   arbitrum: 'ethereum',
   avalanche: 'avalanche-2',
@@ -13,6 +14,7 @@ export const coingeckoMainnetCurrencyMapping: StringNullMap = {
   bitcoingold: 'bitcoin-gold',
   bitcoinsv: 'bitcoin-cash-sv',
   bobevm: 'ethereum',
+  botanix: 'bitcoin',
   cardano: 'cardano',
   celo: 'celo',
   coreum: 'coreum',
@@ -59,7 +61,7 @@ export const coingeckoMainnetCurrencyMapping: StringNullMap = {
   ton: 'the-open-network',
   tron: 'tron',
   ufo: null,
-  vertcoin: null,
+  vertcoin: 'vertcoin',
   wax: null,
   zcash: 'zcash',
   zcoin: 'zcoin',
@@ -68,6 +70,7 @@ export const coingeckoMainnetCurrencyMapping: StringNullMap = {
 }
 
 export const coingeckoPlatformIdMapping: StringNullMap = {
+  abstract: 'abstract',
   algorand: 'algorand',
   arbitrum: 'arbitrum-one',
   avalanche: 'avalanche',
@@ -80,6 +83,7 @@ export const coingeckoPlatformIdMapping: StringNullMap = {
   bitcoingold: null,
   bitcoinsv: null,
   bobevm: 'bob-network',
+  botanix: 'botanix',
   cardano: 'cardano',
   celo: 'celo',
   coreum: 'coreum',

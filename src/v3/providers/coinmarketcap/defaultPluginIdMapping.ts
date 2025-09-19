@@ -1,6 +1,7 @@
 import type { StringNullMap } from '../../types'
 
 export const coinmarketcapMainnetCurrencyMapping: StringNullMap = {
+  abstract: '1027',
   algorand: '4030',
   arbitrum: '1027',
   avalanche: '5805',
@@ -13,6 +14,7 @@ export const coinmarketcapMainnetCurrencyMapping: StringNullMap = {
   bitcoingold: '2083',
   bitcoinsv: '3602',
   bobevm: '1027',
+  botanix: '1',
   cardano: '2010',
   celo: '5567',
   coreum: '16399',
@@ -68,6 +70,7 @@ export const coinmarketcapMainnetCurrencyMapping: StringNullMap = {
 }
 
 export const coinmarketcapPlatformIdMapping: StringNullMap = {
+  abstract: '247',
   algorand: '17',
   arbitrum: '51',
   avalanche: '28',
@@ -80,6 +83,7 @@ export const coinmarketcapPlatformIdMapping: StringNullMap = {
   bitcoingold: null,
   bitcoinsv: null,
   bobevm: null,
+  botanix: null,
   cardano: '29',
   celo: '35',
   coreum: null,
