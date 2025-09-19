@@ -15,7 +15,7 @@ import {
   type GetRatesParams,
   type IncomingGetRatesParams
 } from './types'
-import { toCryptoKey } from './utils'
+import { create30MinuteSyncInterval, toCryptoKey } from './utils'
 
 const fixIncomingGetRatesParams = (
   rawParams: IncomingGetRatesParams,
@@ -99,12 +99,8 @@ const automatedCrossChainSyncDoc = syncedDocument(
   'crosschain:automated',
   asCrossChainMapping
 )
-defaultCrossChainSyncDoc.sync(dbSettings).catch(e => {
-  console.error('defaultCrossChainSyncDoc sync error', e)
-})
-automatedCrossChainSyncDoc.sync(dbSettings).catch(e => {
-  console.error('automatedCrossChainSyncDoc sync error', e)
-})
+create30MinuteSyncInterval(defaultCrossChainSyncDoc, dbSettings)
+create30MinuteSyncInterval(automatedCrossChainSyncDoc, dbSettings)
 defaultCrossChainSyncDoc.onChange(defaultMappings => {
   crosschainMappings = {
     ...automatedCrossChainSyncDoc.doc,

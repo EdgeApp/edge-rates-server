@@ -1,3 +1,6 @@
+import type { SyncedDocument } from 'edge-server-tools'
+import type nano from 'nano'
+
 import { FIVE_MINUTES, ONE_MINUTE, TWENTY_FOUR_HOURS } from './constants'
 import type {
   CryptoRateMap,
@@ -304,3 +307,25 @@ export const isCurrent = (
 }
 export const isCurrentFiat = (isoDate: Date, rightNow: Date): boolean =>
   isCurrent(isoDate, rightNow, TWENTY_FOUR_HOURS)
+
+/**
+ * Create an interval to manually refresh the synced document.
+ * This is a workaround in case we lose the connection to the CouchDB changes feed.
+ */
+export const create30MinuteSyncInterval = (
+  syncedDocument: SyncedDocument<unknown>,
+  db: nano.DocumentScope<any>
+): void => {
+  syncedDocument
+    .sync(db)
+    .then(() => {
+      setInterval(() => {
+        syncedDocument.sync(db).catch(e => {
+          console.error('interval sync error', syncedDocument.id, e)
+        })
+      }, 30 * ONE_MINUTE)
+    })
+    .catch(e => {
+      console.error('create30MinuteSyncInterval error', syncedDocument.id, e)
+    })
+}
