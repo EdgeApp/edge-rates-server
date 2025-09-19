@@ -1,4 +1,4 @@
-import type { EdgeAsset, TokenTypeMap } from '../../types'
+import type { CrossChainMapping, EdgeAsset, TokenTypeMap } from '../../types'
 
 export const defaultCrypto: EdgeAsset[] = [
   { pluginId: 'bitcoin', tokenId: null },
@@ -554,4 +554,48 @@ export const defaultPlatformPriority: Record<string, number> = {
   smartcash: 580,
   binance: 590,
   fantom: 600
+
+export const defaultCrossChainMapping: CrossChainMapping = {
+  amoy: {
+    sourceChain: 'amoy',
+    destChain: 'polygon',
+    currencyCode: 'POL',
+    tokenId: null
+  },
+  bitcointestnet: {
+    sourceChain: 'bitcointestnet',
+    destChain: 'bitcoin',
+    currencyCode: 'TESTBTC',
+    tokenId: null
+  },
+  bitcointestnet4: {
+    sourceChain: 'bitcointestnet4',
+    destChain: 'bitcoin',
+    currencyCode: 'TESTBTC',
+    tokenId: null
+  },
+  filecoinfevmcalibration: {
+    sourceChain: 'filecoinfevmcalibration',
+    destChain: 'filecoin',
+    currencyCode: 'tFIL',
+    tokenId: null
+  },
+  sepolia: {
+    sourceChain: 'sepolia',
+    destChain: 'ethereum',
+    currencyCode: 'ETH',
+    tokenId: null
+  },
+  thorchainrunestagenet: {
+    sourceChain: 'thorchainrunestagenet',
+    destChain: 'thorchainrune',
+    currencyCode: 'RUNE',
+    tokenId: null
+  },
+  thorchainrunestagenet_tcy: {
+    sourceChain: 'thorchainrunestagenet',
+    destChain: 'thorchainrune',
+    currencyCode: 'TCY',
+    tokenId: 'tcy'
+  }
 }

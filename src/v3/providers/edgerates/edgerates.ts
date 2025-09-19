@@ -14,6 +14,7 @@ import { fromCryptoKey } from '../../utils'
 import { dbSettings } from '../couch'
 import { client } from '../redis'
 import {
+  defaultCrossChainMapping,
   defaultCrypto,
   defaultFiat,
   defaultPlatformPriority,
@@ -122,7 +123,8 @@ export const edgerates: RateProvider = {
         },
         tokenTypes: defaultTokenTypes,
         platformPriority: defaultPlatformPriority,
-        'crosschain:automated': {}
+        'crosschain:automated': {},
+        crosschain: defaultCrossChainMapping
       }
     }
   ],

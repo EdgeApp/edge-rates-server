@@ -59,9 +59,9 @@ const fixIncomingGetRatesParams = (
 
 // Map incoming crypto assets to their cross-chain canonical versions
 // Also return a mapping from each original asset key to its canonical key
+let crosschainMappings: CrossChainMapping = {}
 const applyCrossChainMappings = (
-  params: GetRatesParams,
-  mapping: CrossChainMapping
+  params: GetRatesParams
 ): {
   mappedParams: GetRatesParams
   originalToCanonicalKey: Map<string, string>
@@ -69,7 +69,7 @@ const applyCrossChainMappings = (
   const originalToCanonicalKey = new Map<string, string>()
   const mappedCrypto = params.crypto.map(c => {
     const originalKey = toCryptoKey(c.asset)
-    const cross = mapping[originalKey]
+    const cross = crosschainMappings[originalKey]
     if (cross == null) {
       originalToCanonicalKey.set(originalKey, originalKey)
       return c
@@ -91,12 +91,31 @@ const applyCrossChainMappings = (
   }
 }
 
-const crosschainMappings = syncedDocument(
+const defaultCrossChainSyncDoc = syncedDocument(
+  'crosschain',
+  asCrossChainMapping
+)
+const automatedCrossChainSyncDoc = syncedDocument(
   'crosschain:automated',
   asCrossChainMapping
 )
-crosschainMappings.sync(dbSettings).catch(e => {
-  console.error('crosschainMappings sync error', e)
+defaultCrossChainSyncDoc.sync(dbSettings).catch(e => {
+  console.error('defaultCrossChainSyncDoc sync error', e)
+})
+automatedCrossChainSyncDoc.sync(dbSettings).catch(e => {
+  console.error('automatedCrossChainSyncDoc sync error', e)
+})
+defaultCrossChainSyncDoc.onChange(defaultMappings => {
+  crosschainMappings = {
+    ...automatedCrossChainSyncDoc.doc,
+    ...defaultMappings
+  }
+})
+automatedCrossChainSyncDoc.onChange(automatedMappings => {
+  crosschainMappings = {
+    ...automatedMappings,
+    ...defaultCrossChainSyncDoc.doc
+  }
 })
 
 export const ratesV3 = async (
@@ -107,10 +126,8 @@ export const ratesV3 = async (
     const params = fixIncomingGetRatesParams(request.req.body, rightNow)
 
     // Map all incoming crypto assets to their canonical versions
-    const { mappedParams, originalToCanonicalKey } = applyCrossChainMappings(
-      params,
-      crosschainMappings.doc
-    )
+    const { mappedParams, originalToCanonicalKey } =
+      applyCrossChainMappings(params)
     const result = await getRates(mappedParams, rightNow)
 
     // Build a quick lookup from canonical key + isoDate -> rate

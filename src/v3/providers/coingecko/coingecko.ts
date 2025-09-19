@@ -226,13 +226,15 @@ const tokenMapping: RateEngine = async () => {
     })
   )
 
-  const crossChainDocument = await dbSettings.get('crosschain:automated')
-  const crossChainDoc = asCrossChainDoc(crossChainDocument)
+  const crossChainDefaultDocument = await dbSettings.get('crosschain')
+  const crossChainDefaultDoc = asCrossChainDoc(crossChainDefaultDocument)
+  const crossChainAutoDocument = await dbSettings.get('crosschain:automated')
+  const crossChainAutoDoc = asCrossChainDoc(crossChainAutoDocument)
   await dbSettings.insert(
     wasCrossChainDoc({
-      id: crossChainDoc.id,
-      rev: crossChainDoc.rev,
-      doc: crossChainMapping
+      id: crossChainAutoDoc.id,
+      rev: crossChainAutoDoc.rev,
+      doc: { ...crossChainMapping, ...crossChainDefaultDoc.doc }
     })
   )
 }
