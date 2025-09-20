@@ -3,6 +3,7 @@ import { coingecko } from './coingecko/coingecko'
 import { coinmarketcap } from './coinmarketcap/coinmarketcap'
 // import { coinmonitor } from './coinmonitor'
 import { coinstore } from './coinstore'
+import { constantRates } from './constantRates'
 import { couch } from './couch'
 import { currencyconverter } from './currencyconverter'
 import { edgerates } from './edgerates/edgerates'
@@ -19,6 +20,7 @@ const looselyOrderedProviders: RateProvider[] = [
   wazirx,
   coinmarketcap,
   coingecko,
+  constantRates,
   currencyconverter,
   couch,
   redis

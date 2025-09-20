@@ -178,7 +178,7 @@ export const asCrossChainMapping = asObject(
     sourceChain: asString,
     destChain: asString,
     currencyCode: asString,
-    tokenId: asString
+    tokenId: asEdgeTokenId
   })
 )
 export type CrossChainMapping = ReturnType<typeof asCrossChainMapping>

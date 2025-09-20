@@ -1,4 +1,4 @@
-import type { EdgeAsset, TokenTypeMap } from '../../types'
+import type { CrossChainMapping, EdgeAsset, TokenTypeMap } from '../../types'
 
 export const defaultCrypto: EdgeAsset[] = [
   { pluginId: 'bitcoin', tokenId: null },
@@ -29,6 +29,8 @@ export const defaultCrypto: EdgeAsset[] = [
   { pluginId: 'rsk', tokenId: null },
   { pluginId: 'ethereum', tokenId: null },
   { pluginId: 'ethereumclassic', tokenId: null },
+  { pluginId: 'abstract', tokenId: null },
+  { pluginId: 'botanix', tokenId: null },
   { pluginId: 'ethereum', tokenId: '1985365e9f78359a9b6ad760e32412f4a445e862' },
   { pluginId: 'ethereum', tokenId: '6b175474e89094c44da98b954eedeac495271d0f' },
   { pluginId: 'ethereum', tokenId: '89d24a6b4ccb1b6faa2625fe562bdd9a23260359' },
@@ -427,6 +429,7 @@ export const defaultFiat: string[] = [
 ]
 
 export const defaultTokenTypes: TokenTypeMap = {
+  abstract: 'evm',
   algorand: 'simple',
   arbitrum: 'evm',
   avalanche: 'evm',
@@ -439,6 +442,7 @@ export const defaultTokenTypes: TokenTypeMap = {
   bitcoingold: null,
   bitcoinsv: null,
   bobevm: 'evm',
+  botanix: 'evm',
   cardano: null,
   celo: 'evm',
   coreum: 'cosmos',
@@ -553,5 +557,52 @@ export const defaultPlatformPriority: Record<string, number> = {
   pulsechain: 570,
   smartcash: 580,
   binance: 590,
-  fantom: 600
+  fantom: 600,
+  abstract: 610,
+  botanix: 620
+}
+
+export const defaultCrossChainMapping: CrossChainMapping = {
+  amoy: {
+    sourceChain: 'amoy',
+    destChain: 'polygon',
+    currencyCode: 'POL',
+    tokenId: null
+  },
+  bitcointestnet: {
+    sourceChain: 'bitcointestnet',
+    destChain: 'bitcoin',
+    currencyCode: 'TESTBTC',
+    tokenId: null
+  },
+  bitcointestnet4: {
+    sourceChain: 'bitcointestnet4',
+    destChain: 'bitcoin',
+    currencyCode: 'TESTBTC',
+    tokenId: null
+  },
+  filecoinfevmcalibration: {
+    sourceChain: 'filecoinfevmcalibration',
+    destChain: 'filecoin',
+    currencyCode: 'tFIL',
+    tokenId: null
+  },
+  sepolia: {
+    sourceChain: 'sepolia',
+    destChain: 'ethereum',
+    currencyCode: 'ETH',
+    tokenId: null
+  },
+  thorchainrunestagenet: {
+    sourceChain: 'thorchainrunestagenet',
+    destChain: 'thorchainrune',
+    currencyCode: 'RUNE',
+    tokenId: null
+  },
+  thorchainrunestagenet_tcy: {
+    sourceChain: 'thorchainrunestagenet',
+    destChain: 'thorchainrune',
+    currencyCode: 'TCY',
+    tokenId: 'tcy'
+  }
 }
