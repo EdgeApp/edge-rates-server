@@ -4,7 +4,7 @@ import type { ExpressRequest } from 'serverlet/express'
 
 import { config } from '../config'
 import { slackPoster } from '../utils/postToSlack'
-import { ONE_MINUTE } from './constants'
+import { CRYPTO_LIMIT, FIAT_LIMIT, ONE_MINUTE } from './constants'
 import { getRates } from './getRates'
 import { dbSettings } from './providers/couch'
 import {
@@ -26,11 +26,11 @@ const fixIncomingGetRatesParams = (
 
   const params = asIncomingGetRatesParams(rawParams)
 
-  if (params.crypto.length > 100) {
-    throw new Error('crypto array must be less than 100')
+  if (params.crypto.length > CRYPTO_LIMIT) {
+    throw new Error(`crypto array must be less than ${CRYPTO_LIMIT}`)
   }
-  if (params.fiat.length > 256) {
-    throw new Error('fiat array must be less than 256')
+  if (params.fiat.length > FIAT_LIMIT) {
+    throw new Error(`fiat array must be less than ${FIAT_LIMIT}`)
   }
   if (params.targetFiat !== 'USD') {
     throw new Error('targetFiat must be USD')
