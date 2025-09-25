@@ -4,7 +4,7 @@ import type { ExpressRequest } from 'serverlet/express'
 
 import { config } from '../config'
 import { slackPoster } from '../utils/postToSlack'
-import { ONE_MINUTE } from './constants'
+import { CRYPTO_LIMIT, FIAT_LIMIT, ONE_MINUTE } from './constants'
 import { getRates } from './getRates'
 import { dbSettings } from './providers/couch'
 import {
@@ -12,6 +12,8 @@ import {
   asGetRatesParams,
   asIncomingGetRatesParams,
   type CrossChainMapping,
+  type CryptoRate,
+  type FiatRate,
   type GetRatesParams,
   type IncomingGetRatesParams
 } from './types'
@@ -26,14 +28,11 @@ const fixIncomingGetRatesParams = (
 
   const params = asIncomingGetRatesParams(rawParams)
 
-  if (params.crypto.length > 100) {
-    throw new Error('crypto array must be less than 100')
+  if (params.crypto.length > CRYPTO_LIMIT) {
+    throw new Error(`crypto array must be less than ${CRYPTO_LIMIT}`)
   }
-  if (params.fiat.length > 256) {
-    throw new Error('fiat array must be less than 256')
-  }
-  if (params.targetFiat !== 'USD') {
-    throw new Error('targetFiat must be USD')
+  if (params.fiat.length > FIAT_LIMIT) {
+    throw new Error(`fiat array must be less than ${FIAT_LIMIT}`)
   }
 
   params.crypto.forEach(crypto => {
@@ -114,6 +113,83 @@ automatedCrossChainSyncDoc.onChange(automatedMappings => {
   }
 })
 
+const toDatedFiatKey = (asset: FiatRate): string => {
+  return `${asset.isoDate.toISOString()}_${asset.fiatCode}`
+}
+const toDatedCryptoKey = (asset: CryptoRate): string => {
+  return `${asset.isoDate.toISOString()}_${toCryptoKey(asset.asset)}`
+}
+/**
+ * Break up a non-USD request into two queries. The first finds all the
+ * USD rates and the second finds all of the fiat/USD rates on across all
+ *  the dates requested.
+ */
+const getNonUsdRates = async (
+  initialParams: GetRatesParams,
+  rightNow: Date
+): Promise<GetRatesParams> => {
+  // Get requested rates in USD
+  const usdParams = {
+    ...initialParams,
+    targetFiat: 'USD'
+  }
+  const usdResult = await getRates(usdParams, rightNow)
+
+  // Loop over the USD rates and store them in a map. At the same time,
+  // save the date strings we'll need to query the original requested fiat for
+  const usdCryptoRatesMap = new Map<string, number | undefined>()
+  const dateSet = new Set<string>()
+  for (const crypto of usdResult.crypto) {
+    usdCryptoRatesMap.set(toDatedCryptoKey(crypto), crypto.rate)
+    dateSet.add(crypto.isoDate.toISOString())
+  }
+  const usdFiatRatesMap = new Map<string, number | undefined>()
+  for (const fiat of usdResult.fiat) {
+    usdFiatRatesMap.set(toDatedFiatKey(fiat), fiat.rate)
+    dateSet.add(fiat.isoDate.toISOString())
+  }
+
+  // Get fiat/USD rates
+  // The number of unique dates across crypto and fiat could exceed 256 so we need to chunk them
+  const dateArray = Array.from(dateSet)
+  const chunkSize = FIAT_LIMIT
+  const fiatUsdDateExchangeRateMap = new Map<string, number | undefined>()
+  for (let i = 0; i < dateArray.length; i += chunkSize) {
+    const chunk = dateArray.slice(i, i + chunkSize)
+    const fiatParams = {
+      targetFiat: 'USD',
+      crypto: [],
+      fiat: chunk.map(date => ({
+        isoDate: new Date(date),
+        fiatCode: initialParams.targetFiat,
+        rate: undefined
+      }))
+    }
+    const fiatResult = await getRates(fiatParams, rightNow)
+    for (const fiat of fiatResult.fiat) {
+      fiatUsdDateExchangeRateMap.set(fiat.isoDate.toISOString(), fiat.rate)
+    }
+  }
+
+  // Loop over the initial request and bridge the rates
+  for (const crypto of initialParams.crypto) {
+    const usdCryptoRate = usdCryptoRatesMap.get(toDatedCryptoKey(crypto))
+    const fiatRate = fiatUsdDateExchangeRateMap.get(
+      crypto.isoDate.toISOString()
+    )
+    if (usdCryptoRate == null || fiatRate == null) continue
+    crypto.rate = usdCryptoRate / fiatRate
+  }
+  for (const fiat of initialParams.fiat) {
+    const usdFiatRate = usdFiatRatesMap.get(toDatedFiatKey(fiat))
+    const fiatRate = fiatUsdDateExchangeRateMap.get(fiat.isoDate.toISOString())
+    if (usdFiatRate == null || fiatRate == null) continue
+    fiat.rate = usdFiatRate / fiatRate
+  }
+
+  return initialParams
+}
+
 export const ratesV3 = async (
   request: ExpressRequest
 ): Promise<HttpResponse> => {
@@ -124,7 +200,11 @@ export const ratesV3 = async (
     // Map all incoming crypto assets to their canonical versions
     const { mappedParams, originalToCanonicalKey } =
       applyCrossChainMappings(params)
-    const result = await getRates(mappedParams, rightNow)
+
+    const result =
+      mappedParams.targetFiat === 'USD'
+        ? await getRates(mappedParams, rightNow)
+        : await getNonUsdRates(mappedParams, rightNow)
 
     // Build a quick lookup from canonical key + isoDate -> rate
     const canonicalLookup = new Map<string, number>()

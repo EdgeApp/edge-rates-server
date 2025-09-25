@@ -5,3 +5,6 @@ export const TWENTY_FOUR_HOURS = 24 * ONE_HOUR
 
 export const LEADERBOARD_KEY = 'edgerates:topAssets'
 export const TOKEN_TYPES_KEY = 'tokenTypes'
+
+export const CRYPTO_LIMIT = 100
+export const FIAT_LIMIT = 256
