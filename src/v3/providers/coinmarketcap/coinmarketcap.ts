@@ -243,7 +243,15 @@ const getCurrentRates = async (ids: Set<string>): Promise<NumberMap> => {
       }
     }
   } catch (e) {
-    console.error('coinmarketcap current query error:', e)
+    console.error(
+      'coinmarketcap current query error:',
+      `${
+        config.providers.coinMarketCapHistorical.uri
+      }/v2/cryptocurrency/quotes/latest?id=${Array.from(ids).join(
+        ','
+      )}&skip_invalid=true&convert=USD`,
+      e
+    )
   }
   return out
 }
@@ -280,7 +288,15 @@ const getHistoricalRates = async (
       out[key] = value.quotes[0].quote.USD.price
     }
   } catch (e) {
-    console.error('coinmarketcap historical query error:', e)
+    console.error(
+      'coinmarketcap historical query error:',
+      `${
+        config.providers.coinMarketCapHistorical.uri
+      }/v2/cryptocurrency/quotes/historical?id=${Array.from(ids).join(
+        ','
+      )}&time_start=${date}&count=1&interval=${interval}&skip_invalid=true&convert=USD`,
+      e
+    )
   }
   return out
 }
