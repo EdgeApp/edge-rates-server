@@ -1,6 +1,8 @@
 import { asArray, asMaybe, asObject, asString } from 'cleaners'
 import { syncedDocument } from 'edge-server-tools'
+import nano from 'nano'
 
+import { config } from '../config'
 import currencyCodeMaps from './currencyCodeMaps.json'
 import { hsetAsync } from './dbUtils'
 import { logger } from './utils'
@@ -24,6 +26,8 @@ const asCurrencyCodeMaps = asMaybe(
   defaultCurrencyCodeMaps
 )
 
+type CurrencyCodeMaps = ReturnType<typeof asCurrencyCodeMaps>
+
 export const syncedCurrencyCodeMaps = syncedDocument(
   'currencyCodeMaps',
   asCurrencyCodeMaps
@@ -37,8 +41,11 @@ export const ratesDbSetup = {
 }
 
 // Set up the sync logic - this will only run in the indexEngines process
+const nanoDb = nano(config.couchUri)
+const dbRates = nanoDb.db.use('db_rates')
+
 export const setupCurrencyCodeMapsSync = (): void => {
-  syncedCurrencyCodeMaps.onChange(currencyCodeMaps => {
+  const onChange = (currencyCodeMaps: CurrencyCodeMaps): void => {
     const timestamp = new Date().toISOString()
     logger(
       `[${timestamp}] SYNC TRIGGERED: Syncing currency code maps with redis cache...`
@@ -78,5 +85,14 @@ export const setupCurrencyCodeMapsSync = (): void => {
       // Fire and forget - don't await in the callback
       updateKey().catch(e => logger('Unhandled error in updateKey', key, e))
     }
-  })
+  }
+
+  syncedCurrencyCodeMaps.onChange(onChange)
+
+  dbRates
+    .get('currencyCodeMaps')
+    .then((maps: unknown) => {
+      onChange(asCurrencyCodeMaps(maps))
+    })
+    .catch(e => logger('currencyCodeMaps sync error', e))
 }
