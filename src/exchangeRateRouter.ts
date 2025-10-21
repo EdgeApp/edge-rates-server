@@ -1,4 +1,4 @@
-import { mul } from 'biggystring'
+import { div, eq, mul } from 'biggystring'
 import { asArray, asMaybe, asObject, asOptional, asString } from 'cleaners'
 import express from 'express'
 import nano from 'nano'
@@ -7,7 +7,7 @@ import promisify from 'promisify-node'
 
 import { config } from './config'
 import { REDIS_COINRANK_KEY_PREFIX } from './constants'
-import { asReturnGetRate, getExchangeRates } from './rates'
+import { asReturnGetRate, getExchangeRates, PRECISION } from './rates'
 import {
   asCoinrankAssetReq,
   asCoinrankReq,
@@ -293,13 +293,46 @@ const queryExchangeRates: express.RequestHandler = async (
     return next()
   }
 
+  const flippedAssets: { [key: string]: true } = {}
+
+  // To prevent redudant rate requests and storage, sort the assets in alphabetical order
+  // ie. iso:USD_BTC -> BTC_iso:USD. Mark any flipped assets with the flippedAssets flag true
+  // so we can flip them back later.
+  const normalizedRequestedRates = exReq.requestedRates.data.map(req => {
+    const [assetA, assetB] = req.currency_pair.split('_')
+    if (assetA > assetB) {
+      const flippedPair = `${assetB}_${assetA}`
+      flippedAssets[`${flippedPair}_${req.date}`] = true
+      return { ...req, currency_pair: flippedPair }
+    }
+    return req
+  })
+
   try {
     const queriedRates = await getExchangeRates(
-      exReq.requestedRates.data,
+      normalizedRequestedRates,
       dbRates
     )
+    const unflippedRates = queriedRates.data.map(rate => {
+      const key = `${rate.currency_pair}_${rate.date}`
+      if (flippedAssets[key] === true) {
+        delete flippedAssets[key]
+        const [assetA, assetB] = rate.currency_pair.split('_')
+        const unflippedPair = `${assetB}_${assetA}`
+        if (rate.exchangeRate != null) {
+          if (eq(rate.exchangeRate, '0')) {
+            rate.exchangeRate = '0'
+          } else {
+            const unflippedRate = div('1', rate.exchangeRate, PRECISION)
+            rate.exchangeRate = unflippedRate
+          }
+        }
+        return { ...rate, currency_pair: unflippedPair }
+      }
+      return rate
+    })
     exReq.requestedRatesResult = {
-      data: [...(exReq.requestedRatesResult?.data ?? []), ...queriedRates.data],
+      data: [...(exReq.requestedRatesResult?.data ?? []), ...unflippedRates],
       documents: [...queriedRates.documents] // TODO: Change data type since the douch docs aren't needed after this
     }
   } catch (e) {
