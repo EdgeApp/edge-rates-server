@@ -2,7 +2,12 @@ import type { HttpResponse } from 'serverlet'
 import type { ExpressRequest } from 'serverlet/express'
 
 import { asExchangeRatesReq, getRedisMarkets } from '../exchangeRateRouter'
-import { asCoinrankReq, type CoinrankReq } from '../types'
+import {
+  asCoinrankAssetReq,
+  asCoinrankReq,
+  type CoinrankAssetReq,
+  type CoinrankReq
+} from '../types'
 import { ratesV3, v2CurrencyCodeMapSyncDoc } from './router'
 import { asGetRatesParams } from './types'
 import { convertV2, convertV3ToV2 } from './v2converter'
@@ -132,6 +137,74 @@ export const sendCoinranksV2 = async (
       status: 200,
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ data })
+    }
+  } catch (e: unknown) {
+    return {
+      status: 500,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ error: `Internal server error ${String(e)}` })
+    }
+  }
+}
+
+export const sendCoinrankAssetV2 = async (
+  request: ExpressRequest
+): Promise<HttpResponse> => {
+  if (request.req.query == null) {
+    return {
+      status: 400,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ error: 'Invalid request query' })
+    }
+  }
+
+  let query: CoinrankAssetReq
+  try {
+    query = asCoinrankAssetReq(request.req.query)
+  } catch (e) {
+    return {
+      status: 400,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ error: `Invalid request query ${String(e)}` })
+    }
+  }
+  const { fiatCode } = query
+  const pathParts = request.path.split('/')
+  const assetId = pathParts[pathParts.length - 1]
+  if (assetId == null) {
+    return {
+      status: 400,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ error: 'Invalid request path' })
+    }
+  }
+  try {
+    const redisResult = await getRedisMarkets(fiatCode)
+
+    if (redisResult == null) {
+      return {
+        status: 400,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          error: `Unable to get results for fiatCode ${fiatCode}`
+        })
+      }
+    }
+
+    const { markets } = redisResult
+    const market = markets.find(m => m.assetId === assetId)
+    if (market == null) {
+      return {
+        status: 404,
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ error: `assetId ${assetId} not found` })
+      }
+    }
+
+    return {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ data: market })
     }
   } catch (e: unknown) {
     return {
