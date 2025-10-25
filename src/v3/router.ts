@@ -11,11 +11,13 @@ import {
   asCrossChainMapping,
   asGetRatesParams,
   asIncomingGetRatesParams,
+  asV2CurrencyCodeMapDoc,
   type CrossChainMapping,
   type CryptoRate,
   type FiatRate,
   type GetRatesParams,
-  type IncomingGetRatesParams
+  type IncomingGetRatesParams,
+  type V2CurrencyCodeMapDoc
 } from './types'
 import { create30MinuteSyncInterval, toCryptoKey } from './utils'
 
@@ -59,6 +61,8 @@ const fixIncomingGetRatesParams = (
 // Map incoming crypto assets to their cross-chain canonical versions
 // Also return a mapping from each original asset key to its canonical key
 let crosschainMappings: CrossChainMapping = {}
+export const v2CurrencyCodeMap: V2CurrencyCodeMapDoc = { data: {} }
+
 const applyCrossChainMappings = (
   params: GetRatesParams
 ): {
@@ -90,6 +94,10 @@ const applyCrossChainMappings = (
   }
 }
 
+export const v2CurrencyCodeMapSyncDoc = syncedDocument(
+  'v2CurrencyCodeMap',
+  asV2CurrencyCodeMapDoc
+)
 const defaultCrossChainSyncDoc = syncedDocument(
   'crosschain',
   asCrossChainMapping
@@ -100,6 +108,10 @@ const automatedCrossChainSyncDoc = syncedDocument(
 )
 create30MinuteSyncInterval(defaultCrossChainSyncDoc, dbSettings)
 create30MinuteSyncInterval(automatedCrossChainSyncDoc, dbSettings)
+create30MinuteSyncInterval(v2CurrencyCodeMapSyncDoc, dbSettings)
+v2CurrencyCodeMapSyncDoc.onChange(ccm => {
+  v2CurrencyCodeMap.data = ccm.data
+})
 defaultCrossChainSyncDoc.onChange(defaultMappings => {
   crosschainMappings = {
     ...automatedCrossChainSyncDoc.doc,

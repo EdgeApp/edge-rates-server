@@ -82,7 +82,7 @@ export const asExchangeRateReq = (obj): ExchangeRateReq => {
   return out
 }
 
-const asExchangeRatesReq = asObject({
+export const asExchangeRatesReq = asObject({
   data: asArray(asExchangeRateReq)
 })
 

@@ -1,14 +1,22 @@
 import { type DatabaseSetup, setupDatabase } from 'edge-server-tools'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 
 import { config } from '../config'
 import { logger } from '../utils/utils'
 import { apiProviders } from './providers/allProviders'
 
 const createDatabases = async (): Promise<void> => {
+  const v2CurrencyCodeMapJson = readFileSync(
+    join(__dirname, '..', '..', 'data', 'v2CurrencyCodeMap.json'),
+    'utf8'
+  )
+  const v2CurrencyCodeMap = JSON.parse(v2CurrencyCodeMapJson)
   const ratesDbs: DatabaseSetup[] = [
     {
       name: 'rates_settings',
       documents: {
+        v2CurrencyCodeMap,
         README: {
           content: [
             "Use the following format when adding default mappings to the provider's settings document:",

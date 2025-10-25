@@ -2,6 +2,7 @@ import {
   asArray,
   asDate,
   asEither,
+  asMaybe,
   asNull,
   asNumber,
   asObject,
@@ -185,3 +186,20 @@ export type CrossChainMapping = ReturnType<typeof asCrossChainMapping>
 
 export const asCrossChainDoc = asCouchDoc(asCrossChainMapping)
 export const wasCrossChainDoc = uncleaner(asCrossChainDoc)
+
+export const asV2CurrencyCodeMap = asObject(
+  asObject({
+    pluginId: asString,
+    tokenId: asEdgeTokenId
+  })
+)
+export type V2CurrencyCodeMap = ReturnType<typeof asV2CurrencyCodeMap>
+
+// export const asV2CurrencyCodeMapDoc = asObject({ data: asMaybe(asV2CurrencyCodeMap, {}) })
+export const asV2CurrencyCodeMapDoc = (raw: any) => {
+  console.log('asV2CurrencyCodeMapDoc', JSON.stringify(raw, null, 2))
+  return asObject({ data: asMaybe(asV2CurrencyCodeMap, {}) })(raw)
+}
+
+asObject({ data: asV2CurrencyCodeMap })
+export type V2CurrencyCodeMapDoc = ReturnType<typeof asV2CurrencyCodeMapDoc>
