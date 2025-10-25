@@ -1,6 +1,7 @@
 import { asArray, asMaybe, asNumber, asObject, asString } from 'cleaners'
 import { asCouchDoc, syncedDocument } from 'edge-server-tools'
 
+import { coinrankEngine } from '../../../coinrankEngine'
 import { config } from '../../../config'
 import { dateOnly, snooze } from '../../../utils/utils'
 import { TOKEN_TYPES_KEY } from '../../constants'
@@ -355,6 +356,12 @@ export const coingecko: RateProvider = {
     {
       frequency: 'day',
       engine: tokenMapping
+    },
+    {
+      frequency: 120,
+      engine: async () => {
+        await coinrankEngine(true)
+      }
     }
   ]
 }

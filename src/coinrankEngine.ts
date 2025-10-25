@@ -17,15 +17,19 @@ const NUM_PAGES = 8
 
 const { defaultFiatCode } = config
 
-export const coinrankEngine = async (): Promise<void> => {
+export const coinrankEngine = async (
+  runOnce: boolean = false
+): Promise<void> => {
   while (true) {
     try {
       const { coinrankOffsetSeconds, coinrankIntervalSeconds } = config
-      const delay = getDelay({
-        now: new Date(),
-        intervalSeconds: coinrankIntervalSeconds,
-        offsetSeconds: coinrankOffsetSeconds
-      })
+      const delay = runOnce
+        ? 0
+        : getDelay({
+            now: new Date(),
+            intervalSeconds: coinrankIntervalSeconds,
+            offsetSeconds: coinrankOffsetSeconds
+          })
 
       logger(`**** COINRANK ENGINE SNOOZING ${delay / 1000}s`)
       await snooze(delay)
@@ -76,5 +80,6 @@ export const coinrankEngine = async (): Promise<void> => {
       })
       logger(message)
     }
+    if (runOnce) break
   }
 }
