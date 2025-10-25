@@ -20,7 +20,8 @@ const createEngineLoop = async (
   engine: RateEngine,
   frequency: Frequency
 ): Promise<void> => {
-  const delayMs = frequencyToMs[frequency]
+  const delayMs =
+    typeof frequency === 'number' ? frequency * 1000 : frequencyToMs[frequency]
   while (true) {
     const startTime = Date.now()
     try {

@@ -83,7 +83,7 @@ export interface UpdateRatesParams {
 
 export type RateEngine = () => Promise<void>
 
-export type Frequency = 'minute' | 'hour' | 'day' | 'week' | 'month'
+export type Frequency = 'minute' | 'hour' | 'day' | 'week' | 'month' | number
 
 export interface RateProvider {
   providerId: string
