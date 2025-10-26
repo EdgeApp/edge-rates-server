@@ -8,6 +8,7 @@ import {
   type CoinrankAssetReq,
   type CoinrankReq
 } from '../types'
+import { hgetallAsync } from '../utils/dbUtils'
 import { ratesV3, v2CurrencyCodeMapSyncDoc } from './router'
 import { asGetRatesParams } from './types'
 import { convertV2, convertV3ToV2 } from './v2converter'
@@ -205,6 +206,25 @@ export const sendCoinrankAssetV2 = async (
       status: 200,
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ data: market })
+    }
+  } catch (e: unknown) {
+    return {
+      status: 500,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ error: `Internal server error ${String(e)}` })
+    }
+  }
+}
+
+export const sendCoinrankListV2 = async (
+  request: ExpressRequest
+): Promise<HttpResponse> => {
+  try {
+    const data = await hgetallAsync('coingeckoassets')
+    return {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ data })
     }
   } catch (e: unknown) {
     return {

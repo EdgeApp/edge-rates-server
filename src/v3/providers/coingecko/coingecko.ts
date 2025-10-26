@@ -3,6 +3,9 @@ import { asCouchDoc, syncedDocument } from 'edge-server-tools'
 
 import { coinrankEngine } from '../../../coinrankEngine'
 import { config } from '../../../config'
+import { coingeckoAssetsInternal } from '../../../providers/coingecko'
+import type { AssetMap } from '../../../rates'
+import { hsetAsync } from '../../../utils/dbUtils'
 import { dateOnly, snooze } from '../../../utils/utils'
 import { TOKEN_TYPES_KEY } from '../../constants'
 import {
@@ -289,6 +292,17 @@ const getHistoricalRates = async (
   return out
 }
 
+const coingeckoAssetsEngine: RateEngine = async () => {
+  const assets = await coingeckoAssetsInternal(3000)
+  const assetMap: AssetMap = {}
+  for (const asset of assets) {
+    const currencyCode = asset.symbol.toUpperCase()
+    const { id } = asset
+    assetMap[currencyCode] ??= id
+  }
+  await hsetAsync('coingeckoassets', assetMap)
+}
+
 export const coingecko: RateProvider = {
   providerId: 'coingecko',
   type: 'api',
@@ -362,6 +376,10 @@ export const coingecko: RateProvider = {
       engine: async () => {
         await coinrankEngine(true)
       }
+    },
+    {
+      frequency: 'day',
+      engine: coingeckoAssetsEngine
     }
   ]
 }
