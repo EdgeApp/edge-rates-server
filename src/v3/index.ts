@@ -8,6 +8,7 @@ import {
   ratesV2,
   rateV2,
   sendCoinrankAssetV2,
+  sendCoinrankListV2,
   sendCoinranksV2
 } from './legacyRouter'
 import { heartbeatV3, ratesV3 } from './router'
@@ -23,6 +24,7 @@ function server(): void {
     '/v2/exchangeRates': pickMethod({ POST: ratesV2 }),
     '/v2/coinrank': pickMethod({ GET: sendCoinranksV2 }),
     '/v2/coinrankAsset/([^/]+)': pickMethod({ GET: sendCoinrankAssetV2 }),
+    '/v2/coinrankList': pickMethod({ GET: sendCoinrankListV2 }),
     '/v3/rates': pickMethod({ POST: ratesV3 })
   })
 

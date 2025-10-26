@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 3.1.0 (2025-10-25)
+
+- added: v2 api wrapper around v3 endpoints
+
+## 3.0.0
+
+- added: New v3 api
+
+## 2.0.0
+
 - added: Foolproof deployment scripts with yarn commands for consistent PM2 operations
 - fixed: Eliminated Redis race condition causing intermittent empty responses from Redis-dependent endpoints
 - fixed: Implemented atomic Redis updates using temporary keys and rename operations
