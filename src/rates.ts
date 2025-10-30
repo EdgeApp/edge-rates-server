@@ -39,9 +39,7 @@ import {
   checkConstantCode,
   currencyCodeArray,
   fromCode,
-  getNullRateArray,
-  invertPair,
-  isNotANumber,
+  getNullRateArray, isNotANumber,
   logger,
   normalizeDate,
   safeUpperCase,
@@ -115,9 +113,10 @@ const sanitizeNewRates = (
     }
 
     rateMap[pairCodes] = rate
-    rateMap[invertPair(pairCodes)] = eq(rate, '0')
-      ? '0'
-      : div('1', rate, PRECISION)
+    // Save storage by not saving the inverted pair
+    // rateMap[invertPair(pairCodes)] = eq(rate, '0')
+    //   ? '0'
+    //   : div('1', rate, PRECISION)
   }
 
   return rateMap
