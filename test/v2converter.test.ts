@@ -397,7 +397,7 @@ describe('convertV3ToV2', () => {
       assert.strictEqual(result[1].exchangeRate, '51000')
     })
 
-    it('should not match when request has no date but response has date', () => {
+    it('should throw error when request has no date', () => {
       const v2Requests = [
         { currency_pair: 'BTC_iso:USD' } // No date specified
       ]
@@ -413,12 +413,10 @@ describe('convertV3ToV2', () => {
         fiat: []
       }
 
-      const result = convertV3ToV2(v2Requests, v3Response, currencyCodeMap)
-
-      assert.strictEqual(result.length, 1)
-      // Should not match since request has no date but response has a date
-      assert.isNull(result[0].exchangeRate)
-      assert.match(result[0].error ?? '', /No rate found/)
+      // Should throw error since all V2 requests must have dates
+      assert.throws(() => {
+        convertV3ToV2(v2Requests, v3Response, currencyCodeMap)
+      }, /No date found for BTC_iso:USD/)
     })
 
     it('should match correct date for crypto_crypto pairs', () => {
