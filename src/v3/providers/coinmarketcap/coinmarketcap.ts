@@ -277,6 +277,7 @@ const getHistoricalRates = async (
 
     const data = asCoinMarketCapHistoricalQuotes(json)
     for (const [key, value] of Object.entries(data.data)) {
+      if (value.quotes.length === 0) continue
       out[key] = value.quotes[0].quote.USD.price
     }
   } catch (e) {
