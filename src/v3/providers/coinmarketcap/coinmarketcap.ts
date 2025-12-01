@@ -10,7 +10,7 @@ import { asCouchDoc, syncedDocument } from 'edge-server-tools'
 
 import { config } from '../../../config'
 import { daysBetween, snooze } from '../../../utils/utils'
-import { TOKEN_TYPES_KEY } from '../../constants'
+import { FIVE_MINUTES, TOKEN_TYPES_KEY } from '../../constants'
 import {
   asStringNullMap,
   asTokenMap,
@@ -321,7 +321,7 @@ export const coinmarketcap: RateProvider = {
     const allResults: RateBuckets = new Map()
     const promises: Array<Promise<void>> = []
     rateBuckets.forEach((ids, date) => {
-      if (isCurrent(new Date(date), rightNow)) {
+      if (isCurrent(new Date(date), rightNow, FIVE_MINUTES)) {
         promises.push(
           getCurrentRates(ids).then(results => {
             allResults.set(date, results)
