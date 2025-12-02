@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- added: Add script to wipe out provider rates from docs
+
 ## 3.1.0 (2025-10-25)
 
 - added: v2 api wrapper around v3 endpoints
