@@ -173,17 +173,26 @@ const asCoingeckoAssetResponse = asArray(
   })
 )
 
+type CoingeckoAssetResponse = ReturnType<typeof asCoingeckoAssetResponse>
+
 const DEFAULT_WAIT_MS = 2 * 1000
 const MAX_WAIT_MS = 5 * 60 * 1000
 
 export const coingeckoAssets = async (): Promise<AssetMap> => {
+  const assets = await coingeckoAssetsInternal()
+  return assetMapReducer(assets)
+}
+
+export const coingeckoAssetsInternal = async (
+  maxAssets: number = Infinity
+): Promise<CoingeckoAssetResponse> => {
   let page = 1
   const perPage = 250
-  let out: ReturnType<typeof asCoingeckoAssetResponse> = []
+  let out: CoingeckoAssetResponse = []
   let wait = DEFAULT_WAIT_MS
   while (true) {
     const response = await fetch(
-      `${uri}/api/v3/coins/markets?x_cg_pro_api_key=${apiKey}&vs_currency=usd&per_page=${perPage}&page=${page}&order=market_cap_asc`
+      `${uri}/api/v3/coins/markets?x_cg_pro_api_key=${apiKey}&vs_currency=usd&per_page=${perPage}&page=${page}&order=market_cap_desc`
     )
     if (!response.ok) {
       const text = await response.text()
@@ -214,7 +223,8 @@ export const coingeckoAssets = async (): Promise<AssetMap> => {
       `Querying coingeckoAssets page ${page}. Found ${out.length} assets so far`
     )
     page++
+    if (out.length >= maxAssets) break
   }
   logger(`Finished coingeckoAssets query found ${out.length} assets`)
-  return assetMapReducer(out)
+  return out
 }

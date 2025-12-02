@@ -2,6 +2,7 @@ import {
   asArray,
   asDate,
   asEither,
+  asMaybe,
   asNull,
   asNumber,
   asObject,
@@ -82,6 +83,7 @@ export interface UpdateRatesParams {
 
 export type RateEngine = () => Promise<void>
 
+export type FrequencySeconds = number
 export type Frequency = 'minute' | 'hour' | 'day' | 'week' | 'month'
 
 export interface RateProvider {
@@ -185,3 +187,17 @@ export type CrossChainMapping = ReturnType<typeof asCrossChainMapping>
 
 export const asCrossChainDoc = asCouchDoc(asCrossChainMapping)
 export const wasCrossChainDoc = uncleaner(asCrossChainDoc)
+
+export const asV2CurrencyCodeMap = asObject(
+  asObject({
+    pluginId: asString,
+    tokenId: asEdgeTokenId
+  })
+)
+export type V2CurrencyCodeMap = ReturnType<typeof asV2CurrencyCodeMap>
+
+export const asV2CurrencyCodeMapDoc = (raw: any) => {
+  return asObject({ data: asMaybe(asV2CurrencyCodeMap, {}) })(raw)
+}
+
+export type V2CurrencyCodeMapDoc = ReturnType<typeof asV2CurrencyCodeMapDoc>

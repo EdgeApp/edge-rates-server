@@ -5,7 +5,7 @@ import {
   dbProviders,
   memoryProviders
 } from './providers/allProviders'
-import type { Frequency, RateEngine } from './types'
+import type { Frequency, FrequencySeconds, RateEngine } from './types'
 
 const frequencyToMs: Record<Frequency, number> = {
   minute: 60 * 1000,
@@ -18,9 +18,10 @@ const frequencyToMs: Record<Frequency, number> = {
 const createEngineLoop = async (
   providerId: string,
   engine: RateEngine,
-  frequency: Frequency
+  frequency: Frequency | FrequencySeconds
 ): Promise<void> => {
-  const delayMs = frequencyToMs[frequency]
+  const delayMs =
+    typeof frequency === 'number' ? frequency * 1000 : frequencyToMs[frequency]
   while (true) {
     const startTime = Date.now()
     try {

@@ -82,7 +82,7 @@ export const asExchangeRateReq = (obj): ExchangeRateReq => {
   return out
 }
 
-const asExchangeRatesReq = asObject({
+export const asExchangeRatesReq = asObject({
   data: asArray(asExchangeRateReq)
 })
 
@@ -351,7 +351,7 @@ const sendExchangeRates: express.RequestHandler = (req, res, next): void => {
   res.json({ data: exReq.requestedRatesResult.data })
 }
 
-const getRedisMarkets = async (
+export const getRedisMarkets = async (
   fiatCode: string
 ): Promise<CoinrankRedis | undefined> => {
   const { ratesServerAddress } = config
