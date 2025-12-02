@@ -106,7 +106,7 @@ export interface RateProvider {
   }>
   updateRates?: (params: UpdateRatesParams, rightNow: Date) => Promise<void>
   engines?: Array<{
-    frequency: Frequency
+    frequency: Frequency | FrequencySeconds
     engine: RateEngine
   }>
 }
