@@ -110,6 +110,20 @@ export const createTokenId = (
   }
 }
 
+// Ignore requests with a future time with an allowance for clients that are close enough
+const isFutureTime = ({
+  rateDate,
+  rightNow,
+  fuzzFactor = 0
+}: {
+  rateDate: Date
+  rightNow: Date
+  fuzzFactor?: number
+}): boolean => {
+  const fuzzyFutureThreshold = new Date(rightNow.getTime() + fuzzFactor)
+  return rateDate > fuzzyFutureThreshold
+}
+
 // These functions reduce requested rates into buckets based on the date that
 // the providers can handle efficiently. The rates returned by the providers
 // can then be rematched with the requested rates
@@ -121,6 +135,16 @@ export const reduceRequestedCryptoRates = (
   const buckets: DateBuckets = new Map()
 
   requestedRates.forEach(rate => {
+    if (
+      isFutureTime({
+        rateDate: rate.isoDate,
+        rightNow,
+        fuzzFactor: ONE_MINUTE
+      })
+    ) {
+      return
+    }
+
     const rateTime = rate.isoDate.getTime()
 
     // Current rates (< five minutes old) use minute precision and historical rates use five minutes
@@ -193,11 +217,22 @@ export const expandReturnedCryptoRates = (
 }
 
 export const reduceRequestedFiatRates = (
-  requestedRates: FiatRateMap
+  requestedRates: FiatRateMap,
+  rightNow: Date
 ): DateBuckets => {
   const buckets: DateBuckets = new Map()
 
   requestedRates.forEach(rate => {
+    if (
+      isFutureTime({
+        rateDate: rate.isoDate,
+        rightNow,
+        fuzzFactor: ONE_MINUTE
+      })
+    ) {
+      return
+    }
+
     const rateTime = rate.isoDate.getTime()
 
     // Floor to the start of the interval bucket
@@ -243,13 +278,23 @@ export const expandReturnedFiatRates = (
 // This function breaks apart the requested rates into buckets of the given interval.
 type UpdateBuckets = Map<string, Record<string, number>>
 export const groupCryptoRatesByTime = (
-  requestedRates: CryptoRateMap
+  requestedRates: CryptoRateMap,
+  rightNow: Date
 ): UpdateBuckets => {
   const buckets: UpdateBuckets = new Map()
   const rightNowMs = new Date().getTime()
 
   requestedRates.forEach(cryptoRate => {
     if (cryptoRate.rate == null) return
+
+    if (
+      isFutureTime({
+        rateDate: cryptoRate.isoDate,
+        rightNow
+      })
+    ) {
+      return
+    }
 
     const rateTime = cryptoRate.isoDate.getTime()
 
@@ -269,12 +314,22 @@ export const groupCryptoRatesByTime = (
 }
 
 export const groupFiatRatesByTime = (
-  requestedRates: FiatRateMap
+  requestedRates: FiatRateMap,
+  rightNow: Date
 ): UpdateBuckets => {
   const buckets: UpdateBuckets = new Map()
 
   requestedRates.forEach(fiatRate => {
     if (fiatRate.rate == null) return
+
+    if (
+      isFutureTime({
+        rateDate: fiatRate.isoDate,
+        rightNow
+      })
+    ) {
+      return
+    }
 
     const rateTime = fiatRate.isoDate.getTime()
 

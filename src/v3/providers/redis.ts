@@ -81,7 +81,7 @@ export const redis: RateProvider = {
       requestedRates: out.requestedRates
     }
   },
-  getFiatRates: async ({ targetFiat, requestedRates }) => {
+  getFiatRates: async ({ targetFiat, requestedRates }, rightNow) => {
     if (targetFiat !== 'USD') {
       return {
         foundRates: new Map(),
@@ -89,7 +89,7 @@ export const redis: RateProvider = {
       }
     }
 
-    const rateBuckets = reduceRequestedFiatRates(requestedRates)
+    const rateBuckets = reduceRequestedFiatRates(requestedRates, rightNow)
 
     const allResults: RateBuckets = new Map()
     for (const [date, fiatPairs] of rateBuckets.entries()) {
@@ -115,7 +115,10 @@ export const redis: RateProvider = {
       requestedRates: out.requestedRates
     }
   },
-  updateRates: async (params: UpdateRatesParams): Promise<void> => {
+  updateRates: async (
+    params: UpdateRatesParams,
+    rightNow: Date
+  ): Promise<void> => {
     if (params.targetFiat !== 'USD') {
       return
     }
@@ -124,13 +127,13 @@ export const redis: RateProvider = {
       return
     }
 
-    const cryptoRateBuckets = groupCryptoRatesByTime(params.crypto)
+    const cryptoRateBuckets = groupCryptoRatesByTime(params.crypto, rightNow)
     for (const [date, cryptoRates] of cryptoRateBuckets.entries()) {
       const cryptoRedisKey = `rates_data:${date}:crypto`
       await hsetAsync(cryptoRedisKey, cryptoRates)
     }
 
-    const fiatRateBuckets = groupFiatRatesByTime(params.fiat)
+    const fiatRateBuckets = groupFiatRatesByTime(params.fiat, rightNow)
     for (const [date, fiatRates] of fiatRateBuckets.entries()) {
       const fiatRedisKey = `rates_data:${date}:fiat`
       await hsetAsync(fiatRedisKey, fiatRates)

@@ -249,11 +249,11 @@ const getCurrentRates = async (ids: Set<string>): Promise<NumberMap> => {
 }
 const getHistoricalRates = async (
   ids: Set<string>,
-  date: string
+  date: string,
+  rightNow: Date
 ): Promise<NumberMap> => {
   const out: NumberMap = {}
-  const now = new Date()
-  const days = daysBetween(new Date(date), now)
+  const days = daysBetween(new Date(date), rightNow)
 
   // If we're querying a date more than 3 months in the past, use
   // daily average
@@ -329,7 +329,7 @@ export const coinmarketcap: RateProvider = {
         )
       } else {
         promises.push(
-          getHistoricalRates(ids, date).then(results => {
+          getHistoricalRates(ids, date, rightNow).then(results => {
             allResults.set(date, results)
           })
         )

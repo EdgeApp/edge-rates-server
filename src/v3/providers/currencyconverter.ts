@@ -65,7 +65,7 @@ const fetchCurrencyConverter = async (
 export const currencyconverter: RateProvider = {
   providerId: 'currencyconverter',
   type: 'api',
-  getFiatRates: async ({ targetFiat, requestedRates }) => {
+  getFiatRates: async ({ targetFiat, requestedRates }, rightNow) => {
     if (apiKey == null) {
       return {
         foundRates: new Map(),
@@ -73,13 +73,12 @@ export const currencyconverter: RateProvider = {
       }
     }
 
-    const rateBuckets = reduceRequestedFiatRates(requestedRates)
+    const rateBuckets = reduceRequestedFiatRates(requestedRates, rightNow)
 
-    const currentDate = new Date()
     const allResults: RateBuckets = new Map()
     const promises: Array<Promise<void>> = []
     rateBuckets.forEach((ids, date) => {
-      if (isCurrentFiat(new Date(date), currentDate)) {
+      if (isCurrentFiat(new Date(date), rightNow)) {
         promises.push(
           fetchCurrencyConverter(targetFiat, Array.from(ids)).then(results => {
             allResults.set(date, results)
