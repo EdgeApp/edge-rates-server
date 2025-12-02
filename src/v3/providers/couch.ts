@@ -83,7 +83,7 @@ export const couch: RateProvider = {
       requestedRates: out.requestedRates
     }
   },
-  getFiatRates: async ({ targetFiat, requestedRates }) => {
+  getFiatRates: async ({ targetFiat, requestedRates }, rightNow) => {
     if (targetFiat !== 'USD') {
       return {
         foundRates: new Map(),
@@ -91,7 +91,7 @@ export const couch: RateProvider = {
       }
     }
 
-    const rateBuckets = reduceRequestedFiatRates(requestedRates)
+    const rateBuckets = reduceRequestedFiatRates(requestedRates, rightNow)
 
     const allResults: RateBuckets = new Map()
 
@@ -130,7 +130,10 @@ export const couch: RateProvider = {
       requestedRates: out.requestedRates
     }
   },
-  updateRates: async (params: UpdateRatesParams): Promise<void> => {
+  updateRates: async (
+    params: UpdateRatesParams,
+    rightNow: Date
+  ): Promise<void> => {
     if (params.targetFiat !== 'USD') {
       return
     }
@@ -138,8 +141,8 @@ export const couch: RateProvider = {
       return
     }
 
-    const cryptoRateBuckets = groupCryptoRatesByTime(params.crypto)
-    const fiatRateBuckets = groupFiatRatesByTime(params.fiat)
+    const cryptoRateBuckets = groupCryptoRatesByTime(params.crypto, rightNow)
+    const fiatRateBuckets = groupFiatRatesByTime(params.fiat, rightNow)
 
     const ids = new Set<string>([
       ...cryptoRateBuckets.keys(),

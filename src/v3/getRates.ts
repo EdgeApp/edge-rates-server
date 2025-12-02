@@ -86,11 +86,12 @@ const queryProviders = async (
 
 const updateProviders = async (
   providers: RateProvider[],
-  rates: UpdateRatesParams
+  rates: UpdateRatesParams,
+  rightNow: Date
 ): Promise<void> => {
   for (const p of providers) {
     if (p.updateRates != null) {
-      p.updateRates(rates).catch(err => {
+      p.updateRates(rates, rightNow).catch(err => {
         console.error(`Error updating rates from ${p.providerId}`, err)
       })
     }
@@ -152,20 +153,28 @@ export const getRates: GetRatesFunc = async (params, rightNow) => {
   )
 
   // Update redis with db and api data
-  updateProviders(memoryProviders, {
-    targetFiat,
-    crypto: new Map([...dbResults.foundCrypto, ...apiResults.foundCrypto]),
-    fiat: new Map([...dbResults.foundFiat, ...apiResults.foundFiat])
-  }).catch(e => {
+  updateProviders(
+    memoryProviders,
+    {
+      targetFiat,
+      crypto: new Map([...dbResults.foundCrypto, ...apiResults.foundCrypto]),
+      fiat: new Map([...dbResults.foundFiat, ...apiResults.foundFiat])
+    },
+    rightNow
+  ).catch(e => {
     console.error('Error updating memoryproviders', e)
   })
 
   // Update db with api data
-  updateProviders(dbProviders, {
-    targetFiat,
-    crypto: apiResults.foundCrypto,
-    fiat: apiResults.foundFiat
-  }).catch(e => {
+  updateProviders(
+    dbProviders,
+    {
+      targetFiat,
+      crypto: apiResults.foundCrypto,
+      fiat: apiResults.foundFiat
+    },
+    rightNow
+  ).catch(e => {
     console.error('Error updating dbproviders', e)
   })
 

@@ -10,7 +10,7 @@ import { asCouchDoc, syncedDocument } from 'edge-server-tools'
 
 import { config } from '../../../config'
 import { daysBetween, snooze } from '../../../utils/utils'
-import { TOKEN_TYPES_KEY } from '../../constants'
+import { FIVE_MINUTES, TOKEN_TYPES_KEY } from '../../constants'
 import {
   asStringNullMap,
   asTokenMap,
@@ -249,11 +249,11 @@ const getCurrentRates = async (ids: Set<string>): Promise<NumberMap> => {
 }
 const getHistoricalRates = async (
   ids: Set<string>,
-  date: string
+  date: string,
+  rightNow: Date
 ): Promise<NumberMap> => {
   const out: NumberMap = {}
-  const now = new Date()
-  const days = daysBetween(new Date(date), now)
+  const days = daysBetween(new Date(date), rightNow)
 
   // If we're querying a date more than 3 months in the past, use
   // daily average
@@ -277,6 +277,7 @@ const getHistoricalRates = async (
 
     const data = asCoinMarketCapHistoricalQuotes(json)
     for (const [key, value] of Object.entries(data.data)) {
+      if (value.quotes.length === 0) continue
       out[key] = value.quotes[0].quote.USD.price
     }
   } catch (e) {
@@ -320,7 +321,7 @@ export const coinmarketcap: RateProvider = {
     const allResults: RateBuckets = new Map()
     const promises: Array<Promise<void>> = []
     rateBuckets.forEach((ids, date) => {
-      if (isCurrent(new Date(date), rightNow)) {
+      if (isCurrent(new Date(date), rightNow, FIVE_MINUTES)) {
         promises.push(
           getCurrentRates(ids).then(results => {
             allResults.set(date, results)
@@ -328,7 +329,7 @@ export const coinmarketcap: RateProvider = {
         )
       } else {
         promises.push(
-          getHistoricalRates(ids, date).then(results => {
+          getHistoricalRates(ids, date, rightNow).then(results => {
             allResults.set(date, results)
           })
         )

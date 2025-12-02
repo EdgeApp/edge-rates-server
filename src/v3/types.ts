@@ -102,7 +102,7 @@ export interface RateProvider {
     foundRates: FiatRateMap
     requestedRates: FiatRateMap
   }>
-  updateRates?: (params: UpdateRatesParams) => Promise<void>
+  updateRates?: (params: UpdateRatesParams, rightNow: Date) => Promise<void>
   engines?: Array<{
     frequency: Frequency
     engine: RateEngine
