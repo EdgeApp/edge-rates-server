@@ -4,8 +4,9 @@ import { config } from './config'
 import { REDIS_COINRANK_KEY_PREFIX } from './constants'
 import {
   asCoingeckoMarkets,
-  type CoinrankMarkets,
-  type CoinrankRedis
+  type CoinrankMarket,
+  type CoinrankRedis,
+  type RankedCoinrankMarkets
 } from './types'
 import { setAsync, slackMessage } from './utils/dbUtils'
 import { getDelay, logger, snooze } from './utils/utils'
@@ -16,6 +17,10 @@ const MAX_WAIT_MS = 5 * 60 * 1000
 const NUM_PAGES = 8
 
 const { defaultFiatCode } = config
+
+const isRankedCoinrankMarket = (
+  market: CoinrankMarket
+): market is CoinrankMarket & { rank: number } => market.rank != null
 
 export const coinrankEngine = async (
   runOnce: boolean = false
@@ -39,7 +44,7 @@ export const coinrankEngine = async (
 
       const lastUpdate = new Date().toISOString()
       const { apiKey, uri } = config.providers.coingeckopro
-      let markets: CoinrankMarkets = []
+      let markets: RankedCoinrankMarkets = []
       let page = 1
       while (true) {
         const url = `${uri}/api/v3/coins/markets?x_cg_pro_api_key=${apiKey}&vs_currency=USD&page=${page}&per_page=${PAGE_SIZE}&price_change_percentage=1h,24h,7d,14d,30d,1y`
@@ -62,7 +67,8 @@ export const coinrankEngine = async (
 
         const reply = await response.json()
         const marketsPage = asCoingeckoMarkets(reply)
-        markets = [...markets, ...marketsPage]
+        // Filter out assets without a rank (newly listed assets may lack rankings)
+        markets = [...markets, ...marketsPage.filter(isRankedCoinrankMarket)]
         page++
         if (page > NUM_PAGES) break
       }
