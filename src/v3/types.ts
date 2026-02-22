@@ -164,6 +164,17 @@ type TokenType =
   | null
 export type TokenTypeMap = Record<string, TokenType>
 
+/** A JSON object (as opposed to an array or primitive). */
+export type JsonObject = Record<string, any>
+
+const asNetworkLocationType = asEither(
+  asValue('xrpl'),
+  asValue('solana'),
+  asNull
+)
+export const asNetworkLocationTypeMap = asObject(asNetworkLocationType)
+export type NetworkLocationTypeMap = ReturnType<typeof asNetworkLocationTypeMap>
+
 const asTokenType = asEither(
   asValue('simple'),
   asValue('evm'),

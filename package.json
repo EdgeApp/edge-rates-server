@@ -32,6 +32,7 @@
     "*.{js,jsx,ts,tsx}": "eslint"
   },
   "devDependencies": {
+    "@solana/web3.js": "^1.98.4",
     "@types/chai": "^4.2.9",
     "@types/express": "^4.17.13",
     "@types/mocha": "^7.0.1",

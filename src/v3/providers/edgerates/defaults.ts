@@ -1,4 +1,9 @@
-import type { CrossChainMapping, EdgeAsset, TokenTypeMap } from '../../types'
+import type {
+  CrossChainMapping,
+  EdgeAsset,
+  NetworkLocationTypeMap,
+  TokenTypeMap
+} from '../../types'
 
 export const defaultCrypto: EdgeAsset[] = [
   { pluginId: 'bitcoin', tokenId: null },
@@ -495,6 +500,11 @@ export const defaultTokenTypes: TokenTypeMap = {
   zcash: null,
   zcoin: null,
   zksync: 'evm'
+}
+
+export const defaultNetworkLocationTypes: NetworkLocationTypeMap = {
+  ripple: 'xrpl',
+  solana: 'solana'
 }
 
 export const defaultPlatformPriority: Record<string, number> = {
