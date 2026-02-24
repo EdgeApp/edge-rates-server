@@ -13,6 +13,8 @@ import {
 } from 'cleaners'
 import { asCouchDoc, type DatabaseSetup } from 'edge-server-tools'
 
+import { createTokenId } from './utils'
+
 const asEdgeTokenId = asEither(asString, asNull)
 export type EdgeTokenId = ReturnType<typeof asEdgeTokenId>
 
@@ -151,7 +153,7 @@ export const asRateDocument = asObject({
 })
 export type RateDocument = ReturnType<typeof asRateDocument>
 
-const asTokenMappingsDoc = asCouchDoc(asTokenMap)
+export const asTokenMappingsDoc = asCouchDoc(asTokenMap)
 export const wasExistingMappings = uncleaner(asTokenMappingsDoc)
 
 type TokenType =
@@ -243,3 +245,35 @@ export const asTokenOverride = asObject({
   networkLocation: asOptional(asJsonObject)
 })
 export type TokenOverride = ReturnType<typeof asTokenOverride>
+
+const asContractAddressNetworkLocation = asObject({
+  contractAddress: asString
+})
+
+const getContractAddress = (networkLocation: JsonObject): string | undefined => {
+  const contractAddressNetworkLocation = asMaybe(
+    asContractAddressNetworkLocation
+  )(networkLocation)
+  return contractAddressNetworkLocation?.contractAddress
+}
+
+export const tokenOverrideToEdgeTokenInfo = (
+  token: TokenOverride,
+  pluginId: string,
+  tokenType: string | null
+): EdgeTokenInfo | undefined => {
+  const contractAddress = getContractAddress(token.networkLocation ?? {})
+  const tokenId = createTokenId(tokenType, token.currencyCode, contractAddress)
+  if (tokenId == null) return
+
+  return {
+    rank: Number.MAX_SAFE_INTEGER,
+    contractAddress: contractAddress ?? tokenId,
+    currencyCode: token.currencyCode,
+    displayName: token.displayName,
+    decimals: token.decimals,
+    networkLocation: token.networkLocation,
+    chainPluginId: pluginId,
+    tokenId
+  }
+}
