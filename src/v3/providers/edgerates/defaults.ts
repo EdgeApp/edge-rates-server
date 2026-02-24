@@ -2,6 +2,7 @@ import type {
   CrossChainMapping,
   EdgeAsset,
   NetworkLocationTypeMap,
+  TokenOverride,
   TokenTypeMap
 } from '../../types'
 
@@ -615,4 +616,677 @@ export const defaultCrossChainMapping: CrossChainMapping = {
     currencyCode: 'TCY',
     tokenId: 'tcy'
   }
+}
+
+export const defaultTokenOverrides: Record<string, TokenOverride[]> = {
+  ripple: [
+    {
+      currencyCode: 'RLUSD',
+      displayName: 'Ripple USD',
+      decimals: 18,
+      networkLocation: {
+        currency: '524C555344000000000000000000000000000000',
+        issuer: 'rMxCKbEDwqr76QuheSUMdEGf4B9xJ8m5De'
+      }
+    },
+    {
+      currencyCode: 'SOLO',
+      displayName: 'Sologenic',
+      decimals: 18,
+      networkLocation: {
+        currency: '534F4C4F00000000000000000000000000000000',
+        issuer: 'rsoLo2S1kiGeCcn6hCUXVrCpGMWLrRrLZz'
+      }
+    },
+    {
+      currencyCode: 'USD',
+      displayName: 'Gatehub USD',
+      decimals: 18,
+      networkLocation: {
+        currency: 'USD',
+        issuer: 'rhub8VRN55s94qWKDv6jmDy1pUykJzF3wq'
+      }
+    },
+    {
+      currencyCode: 'EUR',
+      displayName: 'Gatehub EUR',
+      decimals: 18,
+      networkLocation: {
+        currency: 'EUR',
+        issuer: 'rhub8VRN55s94qWKDv6jmDy1pUykJzF3wq'
+      }
+    },
+    {
+      currencyCode: 'USD',
+      displayName: 'Bitstamp USD',
+      decimals: 18,
+      networkLocation: {
+        currency: 'USD',
+        issuer: 'rvYAfWj5gh67oV6fW32ZzP3Aw4Eubs59B'
+      }
+    },
+    {
+      currencyCode: 'EUR',
+      displayName: 'Bitstamp EUR',
+      decimals: 18,
+      networkLocation: {
+        currency: 'EUR',
+        issuer: 'rvYAfWj5gh67oV6fW32ZzP3Aw4Eubs59B'
+      }
+    },
+    {
+      currencyCode: 'USD',
+      displayName: 'Stably USD',
+      decimals: 18,
+      networkLocation: {
+        currency: 'USD',
+        issuer: 'rEn9eRkX25wfGPLysUMAvZ84jAzFNpT5fL'
+      }
+    },
+    {
+      currencyCode: 'USDC',
+      displayName: 'USDC',
+      decimals: 6,
+      networkLocation: {
+        currency: '5553444300000000000000000000000000000000',
+        issuer: 'rGm7WCVp9gb4jZHWTEtGUr4dd74z2XuWhE'
+      }
+    },
+    {
+      currencyCode: 'CORE',
+      displayName: 'Coreum',
+      decimals: 18,
+      networkLocation: {
+        currency: '434F524500000000000000000000000000000000',
+        issuer: 'rcoreNywaoz2ZCQ8Lg2EbSLnGuRBmun6D'
+      }
+    }
+  ],
+  solana: [
+    {
+      currencyCode: '$CWIF',
+      displayName: 'catwifhat',
+      decimals: 2,
+      networkLocation: {
+        contractAddress: '7atgF8KQo4wJrD5ATGX7t1V2zVvykPJbFfNeVf1icFv1',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'BIO',
+      displayName: 'BIO',
+      decimals: 9,
+      networkLocation: {
+        contractAddress: 'bioJ9JTqW62MLz7UKHU69gtKhPpGi1BQhccj2kmSvUJ',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'ABBVx',
+      displayName: 'AbbVie xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XswbinNKyPmzTa5CskMbCPvMW6G5CMnZXZEeQSSQoie',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'ABTx',
+      displayName: 'Abbott xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsHtf5RpxsQ7jeJ9ivNewouZKJHbPxhPoEy6yYvULr7',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'ACNx',
+      displayName: 'Accenture xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xs5UJzmCRQ8DWZjskExdSQDnbE6iLkRu2jjrRAB1JSU',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'GOOGLx',
+      displayName: 'Alphabet xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'AMZNx',
+      displayName: 'Amazon xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xs3eBt7uRfJX8QUs4suhyU8p2M6DoUDrJyWBa8LLZsg',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'AMBRx',
+      displayName: 'Amber xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsaQTCgebC2KPbf27KUhdv5JFvHhQ4GDAPURwrEhAzb',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'AAPLx',
+      displayName: 'Apple xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'APPx',
+      displayName: 'AppLovin xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsPdAVBi8Zc1xvv53k4JcMrQaEDTgkGqKYeh7AYgPHV',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'AZNx',
+      displayName: 'AstraZeneca xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xs3ZFkPYT2BN7qBMqf1j1bfTeTm1rFzEFSsQ1z3wAKU',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'BACx',
+      displayName: 'Bank of America xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XswsQk4duEQmCbGzfqUUWYmi7pV7xpJ9eEmLHXCaEQP',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'BRK.Bx',
+      displayName: 'Berkshire Hathaway xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xs6B6zawENwAbWVi7w92rjazLuAr5Az59qgWKcNb45x',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'AVGOx',
+      displayName: 'Broadcom xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsgSaSvNSqLTtFuyWPBhK9196Xb9Bbdyjj4fH3cPJGo',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'CVXx',
+      displayName: 'Chevron xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsNNMt7WTNA2sV3jrb1NNfNgapxRF5i4i6GcnTRRHts',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'CRCLx',
+      displayName: 'Circle xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsueG8BtpquVJX9LVLLEGuViXUungE6WmK5YZ3p3bd1',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'CSCOx',
+      displayName: 'Cisco xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xsr3pdLQyXvDJBFgpR5nexCEZwXvigb8wbPYp4YoNFf',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'KOx',
+      displayName: 'Coca-Cola xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsaBXg8dU5cPM6ehmVctMkVqoiRG2ZjMo1cyBJ3AykQ',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'COINx',
+      displayName: 'Coinbase xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xs7ZdzSHLU9ftNJsii5fCeJhoRWSC32SQGzGQtePxNu',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'CMCSAx',
+      displayName: 'Comcast xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsvKCaNsxg2GN8jjUmq71qukMJr7Q1c5R2Mk9P8kcS8',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'CRWDx',
+      displayName: 'CrowdStrike xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xs7xXqkcK7K8urEqGg52SECi79dRp2cEKKuYjUePYDw',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'DHRx',
+      displayName: 'Danaher xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xseo8tgCZfkHxWS9xbFYeKFyMSbWEvZGFV1Gh53GtCV',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'DFDVx',
+      displayName: 'DFDV xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xs2yquAgsHByNzx68WJC55WHjHBvG9JsMB7CWjTLyPy',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'LLYx',
+      displayName: 'Eli Lilly xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xsnuv4omNoHozR6EEW5mXkw8Nrny5rB3jVfLqi6gKMH',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'XOMx',
+      displayName: 'Exxon Mobil xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsaHND8sHyfMfsWPj6kSdd5VwvCayZvjYgKmmcNL5qh',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'GMEx',
+      displayName: 'Gamestop xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xsf9mBktVB9BSU5kf4nHxPq5hCBJ2j2ui3ecFGxPRGc',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'GLDx',
+      displayName: 'Gold xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'GSx',
+      displayName: 'Goldman Sachs xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsgaUyp4jd1fNBCxgtTKkW64xnnhQcvgaxzsbAq5ZD1',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'HDx',
+      displayName: 'Home Depot xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XszjVtyhowGjSC5odCqBpW1CtXXwXjYokymrk7fGKD3',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'HONx',
+      displayName: 'Honeywell xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsRbLZthfABAPAfumWNEJhPyiKDW6TvDVeAeW7oKqA2',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'INTCx',
+      displayName: 'Intel xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XshPgPdXFRWB8tP1j82rebb2Q9rPgGX37RuqzohmArM',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'IBMx',
+      displayName: 'International Business Machines xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XspwhyYPdWVM8XBHZnpS9hgyag9MKjLRyE3tVfmCbSr',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'JNJx',
+      displayName: 'Johnson & Johnson xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsGVi5eo1Dh2zUpic4qACcjuWGjNv8GCt3dm5XcX6Dn',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'JPMx',
+      displayName: 'JPMorgan Chase xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsMAqkcKsUewDrzVkait4e5u4y8REgtyS7jWgCpLV2C',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'LINx',
+      displayName: 'Linde xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsSr8anD1hkvNMu8XQiVcmiaTP7XGvYu7Q58LdmtE8Z',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'MRVLx',
+      displayName: 'Marvell xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsuxRGDzbLjnJ72v74b7p9VY6N66uYgTCyfwwRjVCJA',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'MAx',
+      displayName: 'Mastercard xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsApJFV9MAktqnAc6jqzsHVujxkGm9xcSUffaBoYLKC',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'MCDx',
+      displayName: "McDonald's xStock",
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsqE9cRRpzxcGKDXj1BJ7Xmg4GRhZoyY1KpmGSxAWT2',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'MDTx',
+      displayName: 'Medtronic xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsDgw22qRLTv5Uwuzn6T63cW69exG41T6gwQhEK22u2',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'MRKx',
+      displayName: 'Merck xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsnQnU7AdbRZYe2akqqpibDdXjkieGFfSkbkjX1Sd1X',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'METAx',
+      displayName: 'Meta xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xsa62P5mvPszXL1krVUnU5ar38bBSVcWAB6fmPCo5Zu',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'MSFTx',
+      displayName: 'Microsoft xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XspzcW1PRtgf6Wj92HCiZdjzKCyFekVD8P5Ueh3dRMX',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'MSTRx',
+      displayName: 'MicroStrategy xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'QQQx',
+      displayName: 'Nasdaq xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'NFLXx',
+      displayName: 'Netflix xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsEH7wWfJJu2ZT3UCFeVfALnVA6CP5ur7Ee11KmzVpL',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'NVOx',
+      displayName: 'Novo Nordisk xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsfAzPzYrYjd4Dpa9BU3cusBsvWfVB9gBcyGC87S57n',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'NVDAx',
+      displayName: 'NVIDIA xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'ORCLx',
+      displayName: 'Oracle xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsjFwUPiLofddX5cWFHW35GCbXcSu1BCUGfxoQAQjeL',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'PLTRx',
+      displayName: 'Palantir xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsoBhf2ufR8fTyNSjqfU71DYGaE6Z3SUGAidpzriAA4',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'PEPx',
+      displayName: 'PepsiCo xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xsv99frTRUeornyvCfvhnDesQDWuvns1M852Pez91vF',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'PFEx',
+      displayName: 'Pfizer xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsAtbqkAP1HJxy7hFDeq7ok6yM43DQ9mQ1Rh861X8rw',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'PMx',
+      displayName: 'Philip Morris xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xsba6tUnSjDae2VcopDB6FGGDaxRrewFCDa5hKn5vT3',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'PGx',
+      displayName: 'Procter & Gamble xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsYdjDjNUygZ7yGKfQaB6TxLh2gC6RRjzLtLAGJrhzV',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'HOODx',
+      displayName: 'Robinhood xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsvNBAYkrDRNhA7wPHQfX3ZUXZyZLdnCQDfHZ56bzpg',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'CRMx',
+      displayName: 'Salesforce xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsczbcQ3zfcgAEt9qHQES8pxKAVG5rujPSHQEXi4kaN',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'SPYx',
+      displayName: 'SP500 xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'TSLAx',
+      displayName: 'Tesla xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'TMOx',
+      displayName: 'Thermo Fisher xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xs8drBWy3Sd5QY3aifG9kt9KFs2K3PGZmx7jWrsrk57',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'TQQQx',
+      displayName: 'TQQQ xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsjQP3iMAaQ3kQScQKthQpx9ALRbjKAjQtHg6TFomoc',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'UNHx',
+      displayName: 'UnitedHealth xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XszvaiXGPwvk2nwb3o9C1CX4K6zH8sez11E6uyup6fe',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'VTIx',
+      displayName: 'Vanguard xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsssYEQjzxBCFgvYFFNuhJFBeHNdLWYeUSP8F45cDr9',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'Vx',
+      displayName: 'Visa xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'XsqgsbXwWogGJsNcVZ3TyVouy2MbTkfCFhCGGGcQZ2p',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'WMTx',
+      displayName: 'Walmart xStock',
+      decimals: 8,
+      networkLocation: {
+        contractAddress: 'Xs151QeqTCiuKtinzfRATnUESM2xTU6V9Wy8Vy538ci',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'SPINE',
+      displayName: 'SpineDAO',
+      decimals: 9,
+      networkLocation: {
+        contractAddress: 'spinezMPKxkBpf4Q9xET2587fehM3LuKe4xoAoXtSjR',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    },
+    {
+      currencyCode: 'PYUSD',
+      displayName: 'PayPal USD',
+      decimals: 6,
+      networkLocation: {
+        contractAddress: '2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo',
+        tokenProgram: 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
+      }
+    }
+  ]
 }

@@ -235,3 +235,11 @@ export type EdgeTokenInfo = ReturnType<typeof asEdgeTokenInfo>
 
 export const asTokenInfoDoc = asCouchDoc(asEdgeTokenInfo)
 export const wasTokenInfoDoc = uncleaner(asTokenInfoDoc)
+
+export const asTokenOverride = asObject({
+  currencyCode: asString,
+  displayName: asString,
+  decimals: asNumber,
+  networkLocation: asOptional(asJsonObject)
+})
+export type TokenOverride = ReturnType<typeof asTokenOverride>
