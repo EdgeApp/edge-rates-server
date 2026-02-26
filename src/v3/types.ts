@@ -13,6 +13,8 @@ import {
 } from 'cleaners'
 import { asCouchDoc, type DatabaseSetup } from 'edge-server-tools'
 
+import { createTokenId } from './utils'
+
 const asEdgeTokenId = asEither(asString, asNull)
 export type EdgeTokenId = ReturnType<typeof asEdgeTokenId>
 
@@ -151,7 +153,7 @@ export const asRateDocument = asObject({
 })
 export type RateDocument = ReturnType<typeof asRateDocument>
 
-const asTokenMappingsDoc = asCouchDoc(asTokenMap)
+export const asTokenMappingsDoc = asCouchDoc(asTokenMap)
 export const wasExistingMappings = uncleaner(asTokenMappingsDoc)
 
 type TokenType =
@@ -163,6 +165,17 @@ type TokenType =
   | 'lowercase'
   | null
 export type TokenTypeMap = Record<string, TokenType>
+
+/** A JSON object (as opposed to an array or primitive). */
+export type JsonObject = Record<string, any>
+
+const asNetworkLocationType = asEither(
+  asValue('xrpl'),
+  asValue('solana'),
+  asNull
+)
+export const asNetworkLocationTypeMap = asObject(asNetworkLocationType)
+export type NetworkLocationTypeMap = ReturnType<typeof asNetworkLocationTypeMap>
 
 const asTokenType = asEither(
   asValue('simple'),
@@ -201,3 +214,66 @@ export const asV2CurrencyCodeMapDoc = (raw: any) => {
 }
 
 export type V2CurrencyCodeMapDoc = ReturnType<typeof asV2CurrencyCodeMapDoc>
+
+const asJsonObject = (raw: unknown): JsonObject => {
+  if (raw == null || typeof raw !== 'object') {
+    throw new TypeError('Expected a JSON object')
+  }
+  return raw as JsonObject
+}
+
+// couch id [chainCode]:[tokenId]
+const asEdgeTokenInfo = asObject({
+  rank: asNumber, // v3/coins/markets
+  contractAddress: asString, // v3/coins/list, v3/coins/markets, v3/token_lists
+  currencyCode: asString, // v3/coins/list, v3/coins/markets, v3/token_lists
+  displayName: asString, // v3/coins/list, v3/coins/markets, v3/token_lists
+  decimals: asNumber, // v3/token_lists
+  networkLocation: asOptional(asJsonObject),
+  chainPluginId: asString, // v3/coins/list, v3/token_lists
+  tokenId: asString // v3/coins/list, v3/token_lists
+})
+export type EdgeTokenInfo = ReturnType<typeof asEdgeTokenInfo>
+
+export const asTokenInfoDoc = asCouchDoc(asEdgeTokenInfo)
+export const wasTokenInfoDoc = uncleaner(asTokenInfoDoc)
+
+export const asTokenOverride = asObject({
+  currencyCode: asString,
+  displayName: asString,
+  decimals: asNumber,
+  networkLocation: asOptional(asJsonObject)
+})
+export type TokenOverride = ReturnType<typeof asTokenOverride>
+
+const asContractAddressNetworkLocation = asObject({
+  contractAddress: asString
+})
+
+const getContractAddress = (networkLocation: JsonObject): string | undefined => {
+  const contractAddressNetworkLocation = asMaybe(
+    asContractAddressNetworkLocation
+  )(networkLocation)
+  return contractAddressNetworkLocation?.contractAddress
+}
+
+export const tokenOverrideToEdgeTokenInfo = (
+  token: TokenOverride,
+  pluginId: string,
+  tokenType: string | null
+): EdgeTokenInfo | undefined => {
+  const contractAddress = getContractAddress(token.networkLocation ?? {})
+  const tokenId = createTokenId(tokenType, token.currencyCode, contractAddress)
+  if (tokenId == null) return
+
+  return {
+    rank: Number.MAX_SAFE_INTEGER,
+    contractAddress: contractAddress ?? tokenId,
+    currencyCode: token.currencyCode,
+    displayName: token.displayName,
+    decimals: token.decimals,
+    networkLocation: token.networkLocation,
+    chainPluginId: pluginId,
+    tokenId
+  }
+}

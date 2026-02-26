@@ -1,27 +1,40 @@
 import { asArray, asMaybe, asNumber, asObject, asString } from 'cleaners'
-import { asCouchDoc, syncedDocument } from 'edge-server-tools'
+import { asCouchDoc, type CouchDoc, syncedDocument } from 'edge-server-tools'
 
 import { coinrankEngine } from '../../../coinrankEngine'
 import { config } from '../../../config'
+import { REDIS_COINRANK_KEY_PREFIX } from '../../../constants'
 import { coingeckoAssetsInternal } from '../../../providers/coingecko'
 import type { AssetMap } from '../../../rates'
+import type { CoinrankMarkets } from '../../../types'
 import { hsetAsync } from '../../../utils/dbUtils'
-import { dateOnly, snooze } from '../../../utils/utils'
-import { TOKEN_TYPES_KEY } from '../../constants'
+import { dateOnly, logger, snooze } from '../../../utils/utils'
+import {
+  NETWORK_LOCATION_TYPES_KEY,
+  TOKEN_OVERRIDES_KEY,
+  TOKEN_TYPES_KEY
+} from '../../constants'
 import {
   asCrossChainDoc,
+  asNetworkLocationTypeMap,
   asNumberMap,
   asStringNullMap,
+  asTokenInfoDoc,
   asTokenMap,
+  asTokenMappingsDoc,
+  asTokenOverride,
   asTokenTypeMap,
   type CrossChainMapping,
+  type EdgeTokenInfo,
   type NumberMap,
   type RateBuckets,
   type RateEngine,
   type RateProvider,
   type TokenMap,
+  tokenOverrideToEdgeTokenInfo,
   wasCrossChainDoc,
-  wasExistingMappings
+  wasExistingMappings,
+  wasTokenInfoDoc
 } from '../../types'
 import {
   create30MinuteSyncInterval,
@@ -31,7 +44,9 @@ import {
   reduceRequestedCryptoRates,
   toCryptoKey
 } from '../../utils'
-import { dbSettings } from '../couch'
+import { dbSettings, dbTokens } from '../couch'
+import { getAsync } from '../redis'
+import { getNetworkLocation } from './currencyUtils'
 import {
   coingeckoMainnetCurrencyMapping,
   coingeckoPlatformIdMapping
@@ -238,6 +253,205 @@ const tokenMapping: RateEngine = async () => {
   )
 }
 
+const asTokenList = asObject({
+  tokens: asArray(
+    asObject({
+      // chainId: asEither(asNumber, asNull),
+      address: asString,
+      name: asString,
+      symbol: asString,
+      decimals: asNumber
+      // logoURI: asString
+    })
+  )
+})
+
+// Builds token info documents by merging CoinGecko token lists with manual
+// overrides, then writes only new or changed documents to CouchDB.
+// NetworkLocation is carried forward from existing docs to avoid redundant
+// RPC calls (e.g. Solana getAccountInfo) on every run; it is only fetched
+// for genuinely new tokens.
+const updateTokenInfos = async (): Promise<void> => {
+  const newTokenInfoDocs: Array<CouchDoc<EdgeTokenInfo>> = []
+  const mergedTokenInfos = new Map<string, EdgeTokenInfo>()
+
+  const coingeckoIdsDocument = await dbSettings.get('coingecko:automated')
+  const coingeckoIds = asTokenMappingsDoc(coingeckoIdsDocument).doc
+
+  const tokenTypesDoc = await dbSettings.get(TOKEN_TYPES_KEY)
+  const tokenTypes = asCouchDoc(asStringNullMap)(tokenTypesDoc).doc
+
+  const crosschainDocument = await dbSettings.get('crosschain:automated')
+  const crosschain = asCrossChainDoc(crosschainDocument).doc
+
+  const networkLocationTypesDoc = await dbSettings.get(
+    NETWORK_LOCATION_TYPES_KEY
+  )
+  const networkLocationTypes = asCouchDoc(asNetworkLocationTypeMap)(
+    networkLocationTypesDoc
+  ).doc
+
+  const coinranksStr = await getAsync(`${REDIS_COINRANK_KEY_PREFIX}_iso:USD`)
+  if (coinranksStr == null) return
+  const coinrankMarkets: CoinrankMarkets = JSON.parse(coinranksStr)?.markets
+  const idRankMap = new Map<string, number | null>()
+  for (const market of coinrankMarkets) {
+    idRankMap.set(market.assetId, market.rank)
+  }
+
+  for (const [edgePluginId, platform] of Object.entries(
+    platformIdMappingSyncDoc.doc
+  )) {
+    const tokenType = tokenTypes[edgePluginId]
+    if (platform == null || tokenType == null) continue
+
+    try {
+      const response = await fetchCoingecko(
+        `${config.providers.coingeckopro.uri}/api/v3/token_lists/${platform}/all.json`
+      )
+      const tokenList = asTokenList(response).tokens
+
+      for (const token of tokenList) {
+        const tokenId = createTokenId(tokenType, token.symbol, token.address)
+        if (tokenId == null) continue
+        const cryptoKey = toCryptoKey({ pluginId: edgePluginId, tokenId })
+        if (coingeckoIds[cryptoKey] == null) continue
+
+        let id: string | undefined = coingeckoIds[cryptoKey]?.id
+        if (id == null) {
+          const crosschainAsset = crosschain[cryptoKey]
+          if (crosschainAsset != null) {
+            const crosschainKey = toCryptoKey({
+              pluginId: crosschainAsset.destChain,
+              tokenId: crosschainAsset.tokenId
+            })
+            id = coingeckoIds[crosschainKey]?.id
+          }
+        }
+
+        const rank = idRankMap.get(id) ?? Number.MAX_SAFE_INTEGER
+
+        const newInfo: EdgeTokenInfo = {
+          rank,
+          contractAddress: token.address,
+          currencyCode: token.symbol,
+          displayName: token.name,
+          decimals: token.decimals,
+          networkLocation: undefined,
+          chainPluginId: edgePluginId,
+          tokenId
+        }
+        mergedTokenInfos.set(cryptoKey, newInfo)
+      }
+    } catch (error) {
+      logger(`${edgePluginId} ${platform} tokenList failure`, error)
+    }
+  }
+
+  const tokenOverridesDocument = await dbSettings.get(TOKEN_OVERRIDES_KEY)
+  const tokenOverrides = asCouchDoc(asObject(asArray(asTokenOverride)))(
+    tokenOverridesDocument
+  ).doc
+
+  for (const [pluginId, tokens] of Object.entries(tokenOverrides)) {
+    const tokenType = tokenTypes[pluginId]
+    if (tokenType == null) continue
+
+    for (const token of tokens) {
+      const overrideInfo = tokenOverrideToEdgeTokenInfo(
+        token,
+        pluginId,
+        tokenType
+      )
+      if (overrideInfo == null) continue
+
+      const cryptoKey = toCryptoKey({
+        pluginId,
+        tokenId: overrideInfo.tokenId
+      })
+      const coingeckoTokenInfo = mergedTokenInfos.get(cryptoKey)
+
+      // Coingecko priority: rank/contractAddress
+      // Manual priority: currencyCode/decimals/displayName/networkLocation.
+      if (coingeckoTokenInfo == null) {
+        mergedTokenInfos.set(cryptoKey, overrideInfo)
+      } else {
+        mergedTokenInfos.set(cryptoKey, {
+          ...coingeckoTokenInfo,
+          currencyCode: overrideInfo.currencyCode,
+          decimals: overrideInfo.decimals,
+          displayName: overrideInfo.displayName,
+          networkLocation: overrideInfo.networkLocation
+        })
+      }
+    }
+  }
+
+  const hasTokenInfoChange = (
+    existing: EdgeTokenInfo,
+    next: EdgeTokenInfo
+  ): boolean => {
+    return (
+      existing.rank !== next.rank ||
+      existing.contractAddress !== next.contractAddress ||
+      existing.currencyCode !== next.currencyCode ||
+      existing.displayName !== next.displayName ||
+      existing.decimals !== next.decimals ||
+      JSON.stringify(existing.networkLocation ?? null) !==
+        JSON.stringify(next.networkLocation ?? null) ||
+      existing.chainPluginId !== next.chainPluginId ||
+      existing.tokenId !== next.tokenId
+    )
+  }
+
+  const keys = Array.from(mergedTokenInfos.keys())
+  const existingDocs = await dbTokens.fetch({ keys })
+
+  const existingMap = new Map<string, { doc: EdgeTokenInfo; rev: string }>()
+  for (const row of existingDocs.rows) {
+    if ('error' in row || row.doc == null) continue
+    const parsed = asMaybe(asTokenInfoDoc)(row.doc)
+    if (parsed == null) continue
+    existingMap.set(row.id, { doc: parsed.doc, rev: row.doc._rev })
+  }
+
+  for (const [cryptoKey, newInfo] of mergedTokenInfos) {
+    const existing = existingMap.get(cryptoKey)
+    if (existing != null) {
+      newInfo.networkLocation ??= existing.doc.networkLocation
+      if (hasTokenInfoChange(existing.doc, newInfo)) {
+        newTokenInfoDocs.push(
+          wasTokenInfoDoc({
+            doc: newInfo,
+            id: cryptoKey,
+            rev: existing.rev
+          })
+        )
+      }
+    } else {
+      const networkLocation = await getNetworkLocation(
+        networkLocationTypes[newInfo.chainPluginId] ?? null,
+        newInfo.contractAddress
+      )
+      if (networkLocation != null) {
+        newInfo.networkLocation = networkLocation
+        newTokenInfoDocs.push(
+          wasTokenInfoDoc({
+            doc: newInfo,
+            id: cryptoKey
+          })
+        )
+      }
+    }
+  }
+
+  if (newTokenInfoDocs.length > 0) {
+    await dbTokens.bulk({
+      docs: newTokenInfoDocs
+    })
+  }
+}
+
 const getCurrentRates = async (ids: Set<string>): Promise<NumberMap> => {
   const out: NumberMap = {}
   try {
@@ -380,6 +594,10 @@ export const coingecko: RateProvider = {
     {
       frequency: 'day',
       engine: coingeckoAssetsEngine
+    },
+    {
+      frequency: 'hour',
+      engine: updateTokenInfos
     }
   ]
 }

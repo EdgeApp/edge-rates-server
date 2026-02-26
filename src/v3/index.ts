@@ -4,6 +4,7 @@ import { pickMethod, pickPath, withCors } from 'serverlet'
 import { makeExpressRoute } from 'serverlet/express'
 
 import { config } from '../config'
+import { findTokensV1, getTokenV1, listTokensV1 } from './getTokenInfo'
 import {
   ratesV2,
   rateV2,
@@ -21,6 +22,9 @@ function server(): void {
   const server = withCors(
     pickPath({
       '/': pickMethod({ GET: heartbeatV3 }),
+      '/v1/getToken': pickMethod({ GET: getTokenV1 }),
+      '/v1/findTokens': pickMethod({ GET: findTokensV1 }),
+      '/v1/listTokens': pickMethod({ GET: listTokensV1 }),
       '/v2/exchangeRate': pickMethod({ GET: rateV2 }),
       '/v2/exchangeRates': pickMethod({ POST: ratesV2 }),
       '/v2/coinrank': pickMethod({ GET: sendCoinranksV2 }),

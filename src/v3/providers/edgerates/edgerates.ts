@@ -17,7 +17,9 @@ import {
   defaultCrossChainMapping,
   defaultCrypto,
   defaultFiat,
+  defaultNetworkLocationTypes,
   defaultPlatformPriority,
+  defaultTokenOverrides,
   defaultTokenTypes
 } from './defaults'
 
@@ -122,6 +124,8 @@ export const edgerates: RateProvider = {
           fiat: defaultFiat
         },
         tokenTypes: defaultTokenTypes,
+        networkLocationTypes: defaultNetworkLocationTypes,
+        tokenOverrides: defaultTokenOverrides,
         platformPriority: defaultPlatformPriority,
         'crosschain:automated': {},
         crosschain: defaultCrossChainMapping
