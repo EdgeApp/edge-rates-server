@@ -253,6 +253,14 @@ const getHistoricalRates = async (
   rightNow: Date
 ): Promise<NumberMap> => {
   const out: NumberMap = {}
+
+  const { maxHistoricalMonths } = config.providers.coinMarketCapHistorical
+  const oldestAllowed = new Date(Date.now())
+  oldestAllowed.setMonth(oldestAllowed.getMonth() - maxHistoricalMonths)
+  if (new Date(date) < oldestAllowed) {
+    return out
+  }
+
   const days = daysBetween(new Date(date), rightNow)
 
   // If we're querying a date more than 3 months in the past, use
