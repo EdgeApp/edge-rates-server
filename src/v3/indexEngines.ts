@@ -5,6 +5,7 @@ import {
   dbProviders,
   memoryProviders
 } from './providers/allProviders'
+import { bootstrapV3SyncedDocs } from './syncedDocs'
 import type { Frequency, FrequencySeconds, RateEngine } from './types'
 
 const frequencyToMs: Record<Frequency, number> = {
@@ -47,7 +48,7 @@ const startEngines = (): void => {
         provider.providerId,
         engine.engine,
         engine.frequency
-      ).catch(e => {
+      ).catch((e: unknown) => {
         console.error(
           `Engine failed to initialize '${provider.providerId} ${engine.frequency}':`,
           e
@@ -56,4 +57,13 @@ const startEngines = (): void => {
     }
   }
 }
-startEngines()
+
+async function main(): Promise<void> {
+  await bootstrapV3SyncedDocs()
+  startEngines()
+}
+
+main().catch((error: unknown) => {
+  console.error(error)
+  process.exit(1)
+})

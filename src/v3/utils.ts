@@ -371,16 +371,9 @@ export const create30MinuteSyncInterval = (
   syncedDocument: SyncedDocument<unknown>,
   db: nano.DocumentScope<any>
 ): void => {
-  syncedDocument
-    .sync(db)
-    .then(() => {
-      setInterval(() => {
-        syncedDocument.sync(db).catch(e => {
-          console.error('interval sync error', syncedDocument.id, e)
-        })
-      }, 30 * ONE_MINUTE)
+  setInterval(() => {
+    syncedDocument.sync(db).catch((e: unknown) => {
+      console.error('interval sync error', syncedDocument.id, e)
     })
-    .catch(e => {
-      console.error('create30MinuteSyncInterval error', syncedDocument.id, e)
-    })
+  }, 30 * ONE_MINUTE)
 }

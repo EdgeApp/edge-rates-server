@@ -12,8 +12,10 @@ import {
   sendCoinranksV2
 } from './legacyRouter'
 import { heartbeatV3, ratesV3 } from './router'
+import { bootstrapV3SyncedDocs } from './syncedDocs'
 
 async function main(): Promise<void> {
+  await bootstrapV3SyncedDocs()
   server()
 }
 
@@ -43,7 +45,7 @@ function server(): void {
   console.log(`HTTP v3 server listening on port ${httpPort}`)
 }
 
-main().catch(error => {
+main().catch((error: unknown) => {
   console.error(error)
   process.exit(1)
 })

@@ -11,6 +11,7 @@ import { asCouchDoc, syncedDocument } from 'edge-server-tools'
 import { config } from '../../../config'
 import { daysBetween, snooze } from '../../../utils/utils'
 import { FIVE_MINUTES, TOKEN_TYPES_KEY } from '../../constants'
+import { makeSyncedDocumentOptions } from '../../syncedDocHelpers'
 import {
   asStringNullMap,
   asTokenMap,
@@ -22,7 +23,6 @@ import {
   wasExistingMappings
 } from '../../types'
 import {
-  create30MinuteSyncInterval,
   createTokenId,
   expandReturnedCryptoRates,
   isCurrent,
@@ -136,18 +136,26 @@ const createDefaultTokenMappings = (): TokenMap => {
 
 let coinmarketcapTokenIdMap = createDefaultTokenMappings()
 
-const userTokenMappingsSyncDoc = syncedDocument('coinmarketcap', asTokenMap)
+const userTokenMappingsSyncDoc = syncedDocument(
+  'coinmarketcap',
+  asTokenMap,
+  makeSyncedDocumentOptions('coinmarketcap', 'asTokenMap')
+)
 const automatedTokenMappingsSyncDoc = syncedDocument(
   'coinmarketcap:automated',
-  asTokenMap
+  asTokenMap,
+  makeSyncedDocumentOptions('coinmarketcap:automated', 'asTokenMap')
 )
 const platformIdMappingSyncDoc = syncedDocument(
   'coinmarketcap:platforms',
-  asStringNullMap
+  asStringNullMap,
+  makeSyncedDocumentOptions('coinmarketcap:platforms', 'asStringNullMap')
 )
-create30MinuteSyncInterval(userTokenMappingsSyncDoc, dbSettings)
-create30MinuteSyncInterval(automatedTokenMappingsSyncDoc, dbSettings)
-create30MinuteSyncInterval(platformIdMappingSyncDoc, dbSettings)
+export const coinmarketcapSyncedDocuments = [
+  userTokenMappingsSyncDoc,
+  automatedTokenMappingsSyncDoc,
+  platformIdMappingSyncDoc
+] as const
 userTokenMappingsSyncDoc.onChange(userMappings => {
   coinmarketcapTokenIdMap = {
     ...automatedTokenMappingsSyncDoc.doc,
@@ -305,11 +313,7 @@ export const coinmarketcap: RateProvider = {
         'coinmarketcap:automated': createDefaultTokenMappings(),
         'coinmarketcap:platforms': coinmarketcapPlatformIdMapping
       },
-      syncedDocuments: [
-        userTokenMappingsSyncDoc,
-        automatedTokenMappingsSyncDoc,
-        platformIdMappingSyncDoc
-      ]
+      syncedDocuments: [...coinmarketcapSyncedDocuments]
     }
   ],
   getCryptoRates: async ({ targetFiat, requestedRates }, rightNow) => {
