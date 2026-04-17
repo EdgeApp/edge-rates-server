@@ -20,6 +20,7 @@ const {
   COIN_GECKO_API_KEY = '',
   COIN_MARKET_CAP_API_KEY = '',
   COIN_MARKET_CAP_HISTORICAL_API_KEY = '',
+  COIN_MARKET_CAP_HISTORICAL_MAX_MONTHS = '60',
   SLACK_WEBHOOK_URL = '',
   OPEN_EXCHANGE_RATES_API_KEY = '',
   DEFAULT_FIAT = 'iso:USD'
@@ -39,7 +40,8 @@ const providerDefaults = {
   },
   coinMarketCapHistorical: {
     uri: 'https://pro-api.coinmarketcap.com',
-    apiKey: COIN_MARKET_CAP_HISTORICAL_API_KEY
+    apiKey: COIN_MARKET_CAP_HISTORICAL_API_KEY,
+    maxHistoricalMonths: Number(COIN_MARKET_CAP_HISTORICAL_MAX_MONTHS)
   },
   openExchangeRates: {
     uri: 'https://openexchangerates.org',
@@ -146,7 +148,8 @@ export const asConfig = asObject({
       coinMarketCapHistorical: asMaybe(
         asObject({
           uri: asString,
-          apiKey: asString
+          apiKey: asString,
+          maxHistoricalMonths: asOptional(asNumber, 60)
         }),
         providerDefaults.coinMarketCapHistorical
       ),

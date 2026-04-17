@@ -35,7 +35,7 @@ const asCoingeckoAsset = (raw: any) => {
     image: asString,
     current_price: asOptional(asNumber),
     market_cap: asOptional(asNumber),
-    market_cap_rank: asNumber,
+    market_cap_rank: asOptional(asNumber),
 
     high_24h: asOptional(asNumber),
     low_24h: asOptional(asNumber),
@@ -125,10 +125,13 @@ const asCoingeckoAsset = (raw: any) => {
 
 export const asCoingeckoMarkets = asArray(asCoingeckoAsset)
 
-export type CoinrankMarkets = ReturnType<typeof asCoingeckoMarkets>
+export type CoinrankMarket = ReturnType<typeof asCoingeckoAsset>
+export type CoinrankMarkets = CoinrankMarket[]
+export type RankedCoinrankMarket = CoinrankMarket & { rank: number }
+export type RankedCoinrankMarkets = RankedCoinrankMarket[]
 export interface CoinrankRedis {
   lastUpdate: string
-  markets: CoinrankMarkets
+  markets: RankedCoinrankMarkets
 }
 
 export const asExchangeRateResponse = asObject({

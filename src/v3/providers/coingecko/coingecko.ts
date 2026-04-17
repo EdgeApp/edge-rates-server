@@ -8,6 +8,7 @@ import type { AssetMap } from '../../../rates'
 import { hsetAsync } from '../../../utils/dbUtils'
 import { dateOnly, snooze } from '../../../utils/utils'
 import { TOKEN_TYPES_KEY } from '../../constants'
+import { makeSyncedDocumentOptions } from '../../syncedDocHelpers'
 import {
   asCrossChainDoc,
   asNumberMap,
@@ -24,7 +25,6 @@ import {
   wasExistingMappings
 } from '../../types'
 import {
-  create30MinuteSyncInterval,
   createTokenId,
   expandReturnedCryptoRates,
   isCurrent,
@@ -106,18 +106,26 @@ const createDefaultTokenMappings = (): TokenMap => {
 
 let coingeckoTokenIdMap = createDefaultTokenMappings()
 
-const manualTokenMappingsSyncDoc = syncedDocument('coingecko', asTokenMap)
+const manualTokenMappingsSyncDoc = syncedDocument(
+  'coingecko',
+  asTokenMap,
+  makeSyncedDocumentOptions('coingecko', 'asTokenMap')
+)
 const automatedTokenMappingsSyncDoc = syncedDocument(
   'coingecko:automated',
-  asTokenMap
+  asTokenMap,
+  makeSyncedDocumentOptions('coingecko:automated', 'asTokenMap')
 )
 const platformIdMappingSyncDoc = syncedDocument(
   'coingecko:platforms',
-  asStringNullMap
+  asStringNullMap,
+  makeSyncedDocumentOptions('coingecko:platforms', 'asStringNullMap')
 )
-create30MinuteSyncInterval(manualTokenMappingsSyncDoc, dbSettings)
-create30MinuteSyncInterval(automatedTokenMappingsSyncDoc, dbSettings)
-create30MinuteSyncInterval(platformIdMappingSyncDoc, dbSettings)
+export const coingeckoSyncedDocuments = [
+  manualTokenMappingsSyncDoc,
+  automatedTokenMappingsSyncDoc,
+  platformIdMappingSyncDoc
+] as const
 manualTokenMappingsSyncDoc.onChange(manualMappings => {
   coingeckoTokenIdMap = {
     ...automatedTokenMappingsSyncDoc.doc,
@@ -314,11 +322,7 @@ export const coingecko: RateProvider = {
         'coingecko:automated': createDefaultTokenMappings(),
         'coingecko:platforms': coingeckoPlatformIdMapping
       },
-      syncedDocuments: [
-        manualTokenMappingsSyncDoc,
-        automatedTokenMappingsSyncDoc,
-        platformIdMappingSyncDoc
-      ]
+      syncedDocuments: [...coingeckoSyncedDocuments]
     }
   ],
   getCryptoRates: async ({ targetFiat, requestedRates }, rightNow) => {

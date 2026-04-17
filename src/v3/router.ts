@@ -6,7 +6,7 @@ import { config } from '../config'
 import { slackPoster } from '../utils/postToSlack'
 import { CRYPTO_LIMIT, FIAT_LIMIT, ONE_MINUTE } from './constants'
 import { getRates } from './getRates'
-import { dbSettings } from './providers/couch'
+import { makeSyncedDocumentOptions } from './syncedDocHelpers'
 import {
   asCrossChainMapping,
   asGetRatesParams,
@@ -19,7 +19,7 @@ import {
   type IncomingGetRatesParams,
   type V2CurrencyCodeMapDoc
 } from './types'
-import { create30MinuteSyncInterval, toCryptoKey } from './utils'
+import { toCryptoKey } from './utils'
 
 const fixIncomingGetRatesParams = (
   rawParams: IncomingGetRatesParams,
@@ -96,19 +96,24 @@ const applyCrossChainMappings = (
 
 export const v2CurrencyCodeMapSyncDoc = syncedDocument(
   'v2CurrencyCodeMap',
-  asV2CurrencyCodeMapDoc
+  asV2CurrencyCodeMapDoc,
+  makeSyncedDocumentOptions('v2CurrencyCodeMap', 'asV2CurrencyCodeMapDoc')
 )
 const defaultCrossChainSyncDoc = syncedDocument(
   'crosschain',
-  asCrossChainMapping
+  asCrossChainMapping,
+  makeSyncedDocumentOptions('crosschain', 'asCrossChainMapping')
 )
 const automatedCrossChainSyncDoc = syncedDocument(
   'crosschain:automated',
-  asCrossChainMapping
+  asCrossChainMapping,
+  makeSyncedDocumentOptions('crosschain:automated', 'asCrossChainMapping')
 )
-create30MinuteSyncInterval(defaultCrossChainSyncDoc, dbSettings)
-create30MinuteSyncInterval(automatedCrossChainSyncDoc, dbSettings)
-create30MinuteSyncInterval(v2CurrencyCodeMapSyncDoc, dbSettings)
+export const routerSyncedDocuments = [
+  defaultCrossChainSyncDoc,
+  automatedCrossChainSyncDoc,
+  v2CurrencyCodeMapSyncDoc
+] as const
 v2CurrencyCodeMapSyncDoc.onChange(ccm => {
   v2CurrencyCodeMap.data = ccm.data
 })

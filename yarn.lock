@@ -1359,10 +1359,10 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
-edge-server-tools@^0.2.22:
-  version "0.2.22"
-  resolved "https://registry.yarnpkg.com/edge-server-tools/-/edge-server-tools-0.2.22.tgz#c4571747a25ee1d3ae27613a718fe2356c21c70c"
-  integrity sha512-C7U3Cc+smlVzPtOy6pwQbyFyrBxwj80hCePmHOK0VwGPCjfrXpYqlw/sdwdRY5gYFfm6vVoq5KrEb3hxhSJNwQ==
+edge-server-tools@^0.2.24:
+  version "0.2.24"
+  resolved "https://registry.yarnpkg.com/edge-server-tools/-/edge-server-tools-0.2.24.tgz#6b0b66d767250cc878d8485c0b1721b1dc093e24"
+  integrity sha512-HbR13V65TwzAmihmF2S+EWsOTiS3xZ/TwfeKDlxI/ojhAzEs8lokBnu3t2frsTuGM3if2Tr15UjpcxJjbUTqzA==
   dependencies:
     cleaners "^0.3.11"
     nano "^10.1.3"
@@ -3890,14 +3890,6 @@ reusify@^1.0.4:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/reusify/-/reusify-1.1.0.tgz#0fe13b9522e1473f51b558ee796e08f11f9b489f"
   integrity sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw==
-
-rimraf@^6.0.1:
-  version "6.0.1"
-  resolved "https://registry.yarnpkg.com/rimraf/-/rimraf-6.0.1.tgz#ffb8ad8844dd60332ab15f52bc104bc3ed71ea4e"
-  integrity sha512-9dkvaxAsk/xNXSJzMgFqqMCuFgt2+KsOFek3TMLfo8NCPfWpBmqwyNn5Y+NX56QUYfCtsyhF3ayiboEoUmJk/A==
-  dependencies:
-    glob "^11.0.0"
-    package-json-from-dist "^1.0.0"
 
 rimraf@^6.0.1:
   version "6.0.1"

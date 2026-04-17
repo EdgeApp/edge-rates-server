@@ -1,16 +1,16 @@
 import { asNumber, asObject } from 'cleaners'
 import { syncedDocument } from 'edge-server-tools'
 
+import { makeSyncedDocumentOptions } from '../syncedDocHelpers'
 import type { NumberMap, RateBuckets, RateProvider } from '../types'
-import {
-  create30MinuteSyncInterval,
-  expandReturnedCryptoRates,
-  reduceRequestedCryptoRates
-} from '../utils'
-import { dbSettings } from './couch'
+import { expandReturnedCryptoRates, reduceRequestedCryptoRates } from '../utils'
 
-const constantRateSyncDoc = syncedDocument('constantrates', asObject(asNumber))
-create30MinuteSyncInterval(constantRateSyncDoc, dbSettings)
+const constantRateSyncDoc = syncedDocument(
+  'constantrates',
+  asObject(asNumber),
+  makeSyncedDocumentOptions('constantrates', 'asObject(asNumber)')
+)
+export const constantRatesSyncedDocuments = [constantRateSyncDoc] as const
 
 export const constantRates: RateProvider = {
   providerId: 'constantRates',
@@ -52,7 +52,7 @@ export const constantRates: RateProvider = {
       templates: {
         constantrates: {}
       },
-      syncedDocuments: [constantRateSyncDoc]
+      syncedDocuments: [...constantRatesSyncedDocuments]
     }
   ],
   engines: []
