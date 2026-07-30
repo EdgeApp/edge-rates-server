@@ -4,6 +4,8 @@
 
 - added: Add script to wipe out provider rates from docs
 - added: Robinhood Chain exchange rate support
+- fixed: Fall back to the bundled currency code map when the v2 currency code map has not synced from CouchDB, instead of answering every v2 rate with null and a 200 status
+- fixed: Fail the heartbeat when the v2 currency code map has never synced, so an instance that cannot reach CouchDB is removed from the load balancer
 
 ## 3.1.0 (2025-10-25)
 

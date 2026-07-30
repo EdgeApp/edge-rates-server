@@ -9,7 +9,7 @@ import {
   type CoinrankReq
 } from '../types'
 import { hgetallAsync } from '../utils/dbUtils'
-import { ratesV3, v2CurrencyCodeMapSyncDoc } from './router'
+import { getV2CurrencyCodeMap, ratesV3 } from './router'
 import { asGetRatesParams } from './types'
 import { convertV2, convertV3ToV2 } from './v2converter'
 
@@ -18,11 +18,9 @@ export const ratesV2 = async (
   singleRate?: boolean
 ): Promise<HttpResponse> => {
   try {
+    const currencyCodeMap = getV2CurrencyCodeMap()
     const requestedRates = asExchangeRatesReq(request.req.body)
-    const v3request = convertV2(
-      requestedRates.data,
-      v2CurrencyCodeMapSyncDoc.doc.data
-    )
+    const v3request = convertV2(requestedRates.data, currencyCodeMap)
 
     const v3HttpRequest = {
       ...request,
@@ -37,7 +35,7 @@ export const ratesV2 = async (
     const v2response = convertV3ToV2(
       requestedRates.data,
       v3Body,
-      v2CurrencyCodeMapSyncDoc.doc.data
+      currencyCodeMap
     )
     if (singleRate === true) {
       return {
