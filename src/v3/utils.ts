@@ -1,7 +1,12 @@
 import type { SyncedDocument } from 'edge-server-tools'
 import type nano from 'nano'
 
-import { FIVE_MINUTES, ONE_MINUTE, TWENTY_FOUR_HOURS } from './constants'
+import {
+  FIVE_MINUTES,
+  FIVE_SECONDS,
+  ONE_MINUTE,
+  TWENTY_FOUR_HOURS
+} from './constants'
 import type {
   CryptoRateMap,
   DateBuckets,
@@ -376,4 +381,53 @@ export const create30MinuteSyncInterval = (
       console.error('interval sync error', syncedDocument.id, e)
     })
   }, 30 * ONE_MINUTE)
+}
+
+/**
+ * Retry a synced document that failed its initial load, backing off from five
+ * seconds up to five minutes, until it loads.
+ *
+ * `isLoaded` distinguishes a sync that resolved from one that actually loaded.
+ * `syncedDocument.sync()` resolves after inserting an empty document when none
+ * existed, and that insert is durable, so a document that is not allowed to be
+ * empty would otherwise stop retrying while still empty and never recover.
+ * Documents that may legitimately be empty can leave it unset.
+ *
+ * The 30 minute interval above is too coarse to recover from a dependency that
+ * is only slow to start. A package upgrade that restarts CouchDB and this
+ * process at the same time makes the bootstrap sync lose the race, which would
+ * otherwise leave the document empty for up to half an hour.
+ */
+export const retrySyncUntilLoaded = (
+  syncedDocument: SyncedDocument<unknown>,
+  db: nano.DocumentScope<any>,
+  isLoaded: () => boolean = () => true
+): void => {
+  let delay = FIVE_SECONDS
+
+  const attempt = (): void => {
+    setTimeout(() => {
+      syncedDocument.sync(db).then(
+        () => {
+          if (!isLoaded()) {
+            console.error(
+              'synced doc sync resolved but loaded nothing',
+              syncedDocument.id
+            )
+            delay = Math.min(delay * 2, FIVE_MINUTES)
+            attempt()
+            return
+          }
+          console.log('recovered synced doc', syncedDocument.id)
+        },
+        (e: unknown) => {
+          console.error('retry sync error', syncedDocument.id, e)
+          delay = Math.min(delay * 2, FIVE_MINUTES)
+          attempt()
+        }
+      )
+    }, delay)
+  }
+
+  attempt()
 }

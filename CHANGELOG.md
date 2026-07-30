@@ -6,6 +6,8 @@
 - added: Robinhood Chain exchange rate support
 - fixed: Fall back to the bundled currency code map when the v2 currency code map has not synced from CouchDB, instead of answering every v2 rate with null and a 200 status
 - fixed: Fail the heartbeat when the v2 currency code map has never synced, so an instance that cannot reach CouchDB is removed from the load balancer
+- fixed: Retry synced documents that fail their initial load on a five second to five minute backoff, rather than waiting for the 30 minute refresh interval
+- fixed: Log the reason each synced document fails to load during bootstrap
 
 ## 3.1.0 (2025-10-25)
 
