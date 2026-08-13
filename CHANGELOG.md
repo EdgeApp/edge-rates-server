@@ -3,6 +3,7 @@
 ## Unreleased
 
 - added: Add script to wipe out provider rates from docs
+- added: Robinhood Chain exchange rate support
 
 ## 3.1.0 (2025-10-25)
 
