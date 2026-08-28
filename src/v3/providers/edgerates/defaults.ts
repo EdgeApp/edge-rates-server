@@ -477,6 +477,7 @@ export const defaultTokenTypes: TokenTypeMap = {
   qtum: null,
   ravencoin: null,
   ripple: 'xrpl',
+  robinhood: 'evm',
   rsk: 'evm',
   smartcash: null,
   solana: 'simple',
@@ -559,7 +560,10 @@ export const defaultPlatformPriority: Record<string, number> = {
   binance: 590,
   fantom: 600,
   abstract: 610,
-  botanix: 620
+  botanix: 620,
+  // Robinhood Chain ranks last so that assets bridged onto it resolve to their
+  // canonical chain's rate rather than becoming their own pricing source.
+  robinhood: 630
 }
 
 export const defaultCrossChainMapping: CrossChainMapping = {
@@ -586,6 +590,28 @@ export const defaultCrossChainMapping: CrossChainMapping = {
     destChain: 'filecoin',
     currencyCode: 'tFIL',
     tokenId: null
+  },
+  // CoinGecko lists no Robinhood Chain address for the canonical USDC, USDT and
+  // WBTC coins, so the automated sweep cannot reach them. Price them off their
+  // Ethereum counterparts instead. WETH and USDG need no entry here: CoinGecko
+  // does list those on this chain, so the sweep maps them on its own.
+  robinhood_6bac06600d220ac5ac281ad1f504d2cf0f90f6e6: {
+    sourceChain: 'robinhood',
+    destChain: 'ethereum',
+    currencyCode: 'WBTC',
+    tokenId: '2260fac5e5542a773aa44fbcfedf7c193bc2c599'
+  },
+  robinhood_80e0e24718dbfcad49ecaa6f1e6c89a190586ca8: {
+    sourceChain: 'robinhood',
+    destChain: 'ethereum',
+    currencyCode: 'USDC',
+    tokenId: 'a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+  },
+  robinhood_e246bc49b0598d7cd9f0ead48b885034f1254380: {
+    sourceChain: 'robinhood',
+    destChain: 'ethereum',
+    currencyCode: 'USDT',
+    tokenId: 'dac17f958d2ee523a2206206994597c13d831ec7'
   },
   sepolia: {
     sourceChain: 'sepolia',
