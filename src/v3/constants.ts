@@ -1,3 +1,4 @@
+export const FIVE_SECONDS = 5 * 1000
 export const ONE_MINUTE = 60 * 1000
 export const FIVE_MINUTES = 5 * ONE_MINUTE
 export const ONE_HOUR = 60 * ONE_MINUTE

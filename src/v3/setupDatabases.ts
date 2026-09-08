@@ -1,17 +1,16 @@
 import { type DatabaseSetup, setupDatabase } from 'edge-server-tools'
-import { readFileSync } from 'fs'
-import { join } from 'path'
 
 import { config } from '../config'
 import { logger } from '../utils/utils'
+import { bundledV2CurrencyCodeMap } from './bundledCurrencyCodeMap'
 import { apiProviders } from './providers/allProviders'
 
 const createDatabases = async (): Promise<void> => {
-  const v2CurrencyCodeMapJson = readFileSync(
-    join(__dirname, '..', '..', 'data', 'v2CurrencyCodeMap.json'),
-    'utf8'
-  )
-  const v2CurrencyCodeMap = JSON.parse(v2CurrencyCodeMapJson)
+  // `asV2CurrencyCodeMapDoc` reads the map out of a `data` field, and
+  // `setupDatabase` overwrites any document that does not match. Seeding the
+  // bare map here would rewrite the document into a shape the cleaner reads as
+  // empty, which breaks every v2 rate lookup:
+  const v2CurrencyCodeMap = { data: bundledV2CurrencyCodeMap }
   const ratesDbs: DatabaseSetup[] = [
     {
       name: 'rates_settings',

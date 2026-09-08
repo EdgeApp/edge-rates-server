@@ -4,6 +4,7 @@ import type { ExpressRequest } from 'serverlet/express'
 
 import { config } from '../config'
 import { slackPoster } from '../utils/postToSlack'
+import { bundledV2CurrencyCodeMap } from './bundledCurrencyCodeMap'
 import { CRYPTO_LIMIT, FIAT_LIMIT, ONE_MINUTE } from './constants'
 import { getRates } from './getRates'
 import { makeSyncedDocumentOptions } from './syncedDocHelpers'
@@ -17,7 +18,7 @@ import {
   type FiatRate,
   type GetRatesParams,
   type IncomingGetRatesParams,
-  type V2CurrencyCodeMapDoc
+  type V2CurrencyCodeMap
 } from './types'
 import { toCryptoKey } from './utils'
 
@@ -61,7 +62,6 @@ const fixIncomingGetRatesParams = (
 // Map incoming crypto assets to their cross-chain canonical versions
 // Also return a mapping from each original asset key to its canonical key
 let crosschainMappings: CrossChainMapping = {}
-export const v2CurrencyCodeMap: V2CurrencyCodeMapDoc = { data: {} }
 
 const applyCrossChainMappings = (
   params: GetRatesParams
@@ -114,9 +114,7 @@ export const routerSyncedDocuments = [
   automatedCrossChainSyncDoc,
   v2CurrencyCodeMapSyncDoc
 ] as const
-v2CurrencyCodeMapSyncDoc.onChange(ccm => {
-  v2CurrencyCodeMap.data = ccm.data
-})
+
 defaultCrossChainSyncDoc.onChange(defaultMappings => {
   crosschainMappings = {
     ...automatedCrossChainSyncDoc.doc,
@@ -129,6 +127,32 @@ automatedCrossChainSyncDoc.onChange(automatedMappings => {
     ...defaultCrossChainSyncDoc.doc
   }
 })
+
+/**
+ * True once the v2 currency code map has loaded entries from CouchDB.
+ *
+ * Keyed on the map holding entries rather than on a sync having resolved.
+ * `syncedDocument.sync()` resolves, and emits, even when it creates an empty
+ * document because none existed yet, so a resolved sync does not mean the map
+ * loaded.
+ */
+export const hasV2CurrencyCodeMapSynced = (): boolean =>
+  Object.keys(v2CurrencyCodeMapSyncDoc.doc.data).length > 0
+
+/**
+ * The currency code map that v2 requests should be converted with.
+ *
+ * `asV2CurrencyCodeMapDoc` defaults `data` to `{}`, so a document that never
+ * loaded looks identical to a loaded one at the call site. Every currency code
+ * then falls back to a fabricated pluginId, which resolves to no rate and
+ * answers with a null rate and a 200 status. Prefer the bundled map that seeds
+ * `rates_settings` over an empty one, so a CouchDB outage during startup cannot
+ * silently turn every v2 rate into null.
+ */
+export const getV2CurrencyCodeMap = (): V2CurrencyCodeMap =>
+  hasV2CurrencyCodeMapSynced()
+    ? v2CurrencyCodeMapSyncDoc.doc.data
+    : bundledV2CurrencyCodeMap
 
 export const toDatedFiatKey = (asset: FiatRate): string => {
   return `${asset.isoDate.toISOString()}_${asset.fiatCode}`
@@ -262,9 +286,27 @@ export const ratesV3 = async (
   }
 }
 
+// `slackPoster` throttles on one global last-message slot, so posting this on
+// every health check would alternate with the heartbeat failure alert below and
+// defeat the throttle for both. Post once per transition instead:
+let warnedUnsyncedV2Map = false
+
 export const heartbeatV3 = async (
   request: ExpressRequest
 ): Promise<HttpResponse> => {
+  // Report the fallback, but stay healthy. Caddy health checks this route with
+  // `health_status 2xx`, so failing here would pull the instance at the moment
+  // the bundled map is keeping v2 correct, and would pull every instance at
+  // once during a shared CouchDB outage, taking v3 down with it:
+  const syncedV2Map = hasV2CurrencyCodeMapSynced()
+  if (!syncedV2Map && !warnedUnsyncedV2Map) {
+    warnedUnsyncedV2Map = true
+    slackPoster(
+      'Rates server is answering v2 from the bundled currency code map: v2CurrencyCodeMap has not synced'
+    ).catch(console.error)
+  }
+  if (syncedV2Map) warnedUnsyncedV2Map = false
+
   const testData = {
     targetFiat: 'USD',
     crypto: [
