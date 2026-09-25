@@ -2,11 +2,13 @@ import { syncedDocument } from 'edge-server-tools'
 import type { HttpResponse } from 'serverlet'
 import type { ExpressRequest } from 'serverlet/express'
 
-import { config } from '../config'
+import { assetResolverActive, config } from '../config'
 import { slackPoster } from '../utils/postToSlack'
 import { bundledV2CurrencyCodeMap } from './bundledCurrencyCodeMap'
 import { CRYPTO_LIMIT, FIAT_LIMIT, ONE_MINUTE } from './constants'
 import { getRates } from './getRates'
+import { recordUnresolvedAssets } from './providers/assetResolver/store'
+import { collectUnresolvedKeys } from './providers/assetResolver/tally'
 import { makeSyncedDocumentOptions } from './syncedDocHelpers'
 import {
   asCrossChainMapping,
@@ -264,6 +266,15 @@ export const ratesV3 = async (
         rate
       }
     })
+
+    // Record the assets going back without a rate, for the asset resolver:
+    if (assetResolverActive) {
+      recordUnresolvedAssets(collectUnresolvedKeys(remappedCrypto)).catch(
+        (error: unknown) => {
+          console.error('assetResolver: failed to record assets', error)
+        }
+      )
+    }
 
     return {
       headers: { 'content-type': 'application/json' },

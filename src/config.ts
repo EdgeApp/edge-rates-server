@@ -24,7 +24,8 @@ const {
     coinMarketCapHistoricalMaxMonths = '60',
   SLACK_WEBHOOK_URL: slackWebhookUrl = '',
   OPEN_EXCHANGE_RATES_API_KEY: openExchangeRatesApiKey = '',
-  DEFAULT_FIAT: defaultFiat = 'iso:USD'
+  DEFAULT_FIAT: defaultFiat = 'iso:USD',
+  CURSOR_API_KEY: cursorApiKey = ''
 } = process.env
 
 const providerDefaults = {
@@ -70,6 +71,10 @@ const providerDefaults = {
   coinmonitor: {
     uri: 'http://ar.coinmonitor.info'
   }
+}
+
+const assetResolverDefaults = {
+  cursorApiKey
 }
 
 // Config:
@@ -124,6 +129,13 @@ export const asConfig = asObject({
   ]),
   ratesServerAddress: asOptional(asString, ratesServerAddress),
   slackWebhookUrl: asOptional(asString, slackWebhookUrl),
+  assetResolver: asOptional(
+    asObject({
+      // A Cursor API key activates the asset resolver on this box:
+      cursorApiKey: asOptional(asString, assetResolverDefaults.cursorApiKey)
+    }),
+    assetResolverDefaults
+  ),
   providers: asMaybe(
     asObject({
       coincap: asMaybe(
@@ -228,3 +240,10 @@ export const asConfig = asObject({
 })
 
 export const config = makeConfig(asConfig, 'serverConfig.json')
+
+/**
+ * The asset resolver runs only where a Cursor API key is configured, so one
+ * box records, reports, and resolves while every other box stays inert.
+ */
+export const assetResolverActive: boolean =
+  config.assetResolver.cursorApiKey !== ''
