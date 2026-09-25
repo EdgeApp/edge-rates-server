@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Asset resolver verdicts",
+  "type": "object",
+  "required": ["batchId", "instructionsVersion", "verdicts"],
+  "properties": {
+    "batchId": { "type": "string" },
+    "instructionsVersion": { "type": "integer" },
+    "agent": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "model": { "type": "string" },
+        "startedAt": { "type": "string" },
+        "finishedAt": { "type": "string" }
+      }
+    },
+    "verdicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "decision", "confidence", "rationale"],
+        "properties": {
+          "key": { "type": "string" },
+          "decision": { "enum": ["same_asset", "distinct_asset", "not_found", "suspected_scam", "unsure"] },
+          "coingeckoId": { "type": ["string", "null"] },
+          "relationship": { "enum": ["native_issuance", "canonical_bridge", "wrapped", "third_party_bridge", "other", null] },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "issuer": { "type": ["string", "null"] },
+          "rationale": { "type": "string", "maxLength": 400 },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["source", "claim", "supports"],
+              "properties": {
+                "source": { "type": "string" },
+                "url": { "type": ["string", "null"] },
+                "claim": { "type": "string" },
+                "supports": { "enum": ["same", "distinct", "scam", "neutral"] },
+                "primary": { "type": "boolean" }
+              }
+            }
+          },
+          "scamIndicators": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

@@ -26,7 +26,8 @@ const {
   OPEN_EXCHANGE_RATES_API_KEY: openExchangeRatesApiKey = '',
   DEFAULT_FIAT: defaultFiat = 'iso:USD',
   CURSOR_API_KEY: cursorApiKey = '',
-  ASSET_RESOLVER_SLACK_WEBHOOK_URL: assetResolverSlackWebhookUrl = ''
+  ASSET_RESOLVER_SLACK_WEBHOOK_URL: assetResolverSlackWebhookUrl = '',
+  TYPESAFE_API_KEY: typesafeApiKey = ''
 } = process.env
 
 const providerDefaults = {
@@ -81,7 +82,24 @@ const assetResolverDefaults = {
   runAfterUtcHour: 16,
   reportTopN: 50,
   // Empty falls back to the global slackWebhookUrl:
-  slackWebhookUrl: assetResolverSlackWebhookUrl
+  slackWebhookUrl: assetResolverSlackWebhookUrl,
+  agent: {
+    // The Cursor CLI binary, or another agent that accepts its flags:
+    command: 'agent',
+    // Empty uses the CLI's default model:
+    model: '',
+    runRoot: '~/.edge-rates/assetResolver/runs',
+    timeoutSeconds: 1800,
+    maxAssetsPerBatch: 25
+  },
+  judge: {
+    // Where the confidence of an agent verdict comes from: 'agent' or 'jev'
+    kind: 'agent',
+    // A second judge whose probability is stored without gating: 'none', 'agent', or 'jev'
+    shadow: 'none',
+    typesafeApiKey,
+    jevModel: 'jev-latest'
+  }
 }
 
 // Config:
@@ -148,6 +166,34 @@ export const asConfig = asObject({
       slackWebhookUrl: asOptional(
         asString,
         assetResolverDefaults.slackWebhookUrl
+      ),
+      agent: asOptional(
+        asObject({
+          command: asOptional(asString, assetResolverDefaults.agent.command),
+          model: asOptional(asString, assetResolverDefaults.agent.model),
+          runRoot: asOptional(asString, assetResolverDefaults.agent.runRoot),
+          timeoutSeconds: asOptional(
+            asNumber,
+            assetResolverDefaults.agent.timeoutSeconds
+          ),
+          maxAssetsPerBatch: asOptional(
+            asNumber,
+            assetResolverDefaults.agent.maxAssetsPerBatch
+          )
+        }),
+        assetResolverDefaults.agent
+      ),
+      judge: asOptional(
+        asObject({
+          kind: asOptional(asString, assetResolverDefaults.judge.kind),
+          shadow: asOptional(asString, assetResolverDefaults.judge.shadow),
+          typesafeApiKey: asOptional(
+            asString,
+            assetResolverDefaults.judge.typesafeApiKey
+          ),
+          jevModel: asOptional(asString, assetResolverDefaults.judge.jevModel)
+        }),
+        assetResolverDefaults.judge
       )
     }),
     assetResolverDefaults
