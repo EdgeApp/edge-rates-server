@@ -1,4 +1,5 @@
 import type { RateProvider } from '../types'
+import { assetResolver } from './assetResolver/assetResolver'
 import { coingecko } from './coingecko/coingecko'
 import { coinmarketcap } from './coinmarketcap/coinmarketcap'
 // import { coinmonitor } from './coinmonitor'
@@ -14,6 +15,7 @@ import { wazirx } from './wazirx'
 // Order matters here. The array will determine the order of priority within each provider type.
 const looselyOrderedProviders: RateProvider[] = [
   edgerates,
+  assetResolver, // documents and engines only, never a rate source
   // coinmonitor, // down?
   coinstore,
   midgard,

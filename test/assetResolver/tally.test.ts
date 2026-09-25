@@ -1,7 +1,10 @@
 import { assert } from 'chai'
 import { describe, it } from 'mocha'
 
-import { collectUnresolvedKeys } from '../../src/v3/providers/assetResolver/tally'
+import {
+  collectUnresolvedKeys,
+  parseScoredMembers
+} from '../../src/v3/providers/assetResolver/tally'
 
 describe('collectUnresolvedKeys', function () {
   const isoDate = new Date('2026-09-25T12:00:00.000Z')
@@ -35,5 +38,20 @@ describe('collectUnresolvedKeys', function () {
 
   it('returns nothing for an empty request', function () {
     assert.deepEqual(collectUnresolvedKeys([]), [])
+  })
+})
+
+describe('parseScoredMembers', function () {
+  it('pairs members with their scores', function () {
+    const counts = parseScoredMembers(['polygon_dead', '12', 'ufo', '3'])
+    assert.deepEqual(Array.from(counts), [
+      ['polygon_dead', 12],
+      ['ufo', 3]
+    ])
+  })
+
+  it('tolerates an empty or odd reply', function () {
+    assert.deepEqual(Array.from(parseScoredMembers([])), [])
+    assert.deepEqual(Array.from(parseScoredMembers(['ufo'])), [])
   })
 })

@@ -13,3 +13,12 @@ export const collectUnresolvedKeys = (rates: CryptoRate[]): string[] => {
   }
   return Array.from(keys)
 }
+
+/** Turns a `[member, score, member, score, ...]` reply into counts. */
+export const parseScoredMembers = (reply: string[]): Map<string, number> => {
+  const counts = new Map<string, number>()
+  for (let i = 0; i + 1 < reply.length; i += 2) {
+    counts.set(reply[i], Number(reply[i + 1]))
+  }
+  return counts
+}

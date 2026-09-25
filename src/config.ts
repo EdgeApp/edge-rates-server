@@ -25,7 +25,8 @@ const {
   SLACK_WEBHOOK_URL: slackWebhookUrl = '',
   OPEN_EXCHANGE_RATES_API_KEY: openExchangeRatesApiKey = '',
   DEFAULT_FIAT: defaultFiat = 'iso:USD',
-  CURSOR_API_KEY: cursorApiKey = ''
+  CURSOR_API_KEY: cursorApiKey = '',
+  ASSET_RESOLVER_SLACK_WEBHOOK_URL: assetResolverSlackWebhookUrl = ''
 } = process.env
 
 const providerDefaults = {
@@ -74,7 +75,13 @@ const providerDefaults = {
 }
 
 const assetResolverDefaults = {
-  cursorApiKey
+  cursorApiKey,
+  // The daily engine runs after this UTC hour, once the 15:00 restart and the
+  // CoinGecko sweep are done:
+  runAfterUtcHour: 16,
+  reportTopN: 50,
+  // Empty falls back to the global slackWebhookUrl:
+  slackWebhookUrl: assetResolverSlackWebhookUrl
 }
 
 // Config:
@@ -132,7 +139,16 @@ export const asConfig = asObject({
   assetResolver: asOptional(
     asObject({
       // A Cursor API key activates the asset resolver on this box:
-      cursorApiKey: asOptional(asString, assetResolverDefaults.cursorApiKey)
+      cursorApiKey: asOptional(asString, assetResolverDefaults.cursorApiKey),
+      runAfterUtcHour: asOptional(
+        asNumber,
+        assetResolverDefaults.runAfterUtcHour
+      ),
+      reportTopN: asOptional(asNumber, assetResolverDefaults.reportTopN),
+      slackWebhookUrl: asOptional(
+        asString,
+        assetResolverDefaults.slackWebhookUrl
+      )
     }),
     assetResolverDefaults
   ),
