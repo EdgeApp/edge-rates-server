@@ -1,0 +1,10 @@
+{
+  "score": 1801,
+  "score_normalised": 63,
+  "risks": [
+    { "name": "Mint Authority still enabled", "level": "danger", "description": "More tokens can be minted", "score": 1000, "value": "" },
+    { "name": "Low Liquidity", "level": "warn", "description": "Low amount of liquidity", "score": 801, "value": "$1234" }
+  ],
+  "lpLockedPct": 0,
+  "tokenProgram": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+}

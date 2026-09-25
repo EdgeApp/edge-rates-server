@@ -1,0 +1,8 @@
+{
+  "coins": [
+    { "id": "usd-coin", "name": "USDC", "symbol": "USDC", "market_cap_rank": 6, "thumb": "x" },
+    { "id": "fake-usdc", "name": "USDC", "symbol": "USDC", "market_cap_rank": null },
+    { "id": "broken" }
+  ],
+  "exchanges": []
+}
