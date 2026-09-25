@@ -6,13 +6,15 @@ import { postSlackText } from '../../../utils/postToSlack'
 import { dateOnly } from '../../../utils/utils'
 import type { EdgeAsset, RateEngine } from '../../types'
 import { client } from '../redis'
-import { prepareRunDir, readVerdictsText, runAgent } from './agent'
+import { prepareRunDir, readVerdictsText, runAgent, type RunDir } from './agent'
 import {
   type BatchEntry,
+  type BatchFile,
   buildBatch,
   indexVerdicts,
   instructionsVersion,
-  parseVerdictsFile
+  parseVerdictsFile,
+  type VerdictsFile
 } from './batch'
 import { maxDrainedAssets } from './constants'
 import {
@@ -59,7 +61,7 @@ import {
 import type { Proposal } from './types'
 
 const ignoreFooter =
-  'Silence an entry: add "pluginId_tokenId": { "reason": "...", "until": "YYYY-MM-DD" } to rates_settings/assetResolver'
+  'Silence an entry: yarn assetResolver ignore <pluginId> [tokenId] --reason "..." [--until YYYY-MM-DD]'
 
 const asLocalRates = asObject({
   crypto: asArray(asObject({ rate: asOptional(asNumber) }))
@@ -176,6 +178,90 @@ export interface ResearchRun {
   report: ResolverReport
   proposals: Map<string, Proposal>
   researchedKeys: Set<string>
+}
+
+/** A batch entry as the resolution the policy works on. */
+export const resolutionFromBatchEntry = (entry: BatchEntry): Resolution => ({
+  key: entry.key,
+  asset: entry.asset,
+  assetClass: entry.assetClass,
+  requestCount: entry.requestCount,
+  evidence: entry.evidence,
+  signals: entry.scamSignals,
+  candidates: entry.candidates,
+  outcome: { status: 'awaiting_agent', judge: 'none', guards: [], reasons: [] }
+})
+
+/**
+ * Decides every batch entry with its verdict, applying what passes.
+ * Entries without a verdict stay awaiting the agent.
+ */
+export const ingestVerdicts = async (
+  batch: BatchFile,
+  file: VerdictsFile,
+  deps: ResolveDeps,
+  opts: { forced?: boolean; appliesThisRun: number }
+): Promise<Resolution[]> => {
+  const verdicts = indexVerdicts(file)
+  const out: Resolution[] = []
+  let appliesThisRun = opts.appliesThisRun
+  for (const entry of batch.entries) {
+    const resolution = resolutionFromBatchEntry(entry)
+    const verdict = verdicts.get(entry.key)
+    const decided = await decide(resolution, verdict, deps, {
+      forced: opts.forced,
+      appliesThisRun,
+      requestCount: entry.requestCount
+    })
+    const appliedEntry = await applyResolution(decided)
+    if (appliedEntry != null) appliesThisRun++
+    out.push(decided)
+  }
+  return out
+}
+
+/** Runs the agent on a prepared batch and reads its verdicts. */
+export const runAgentOnBatch = async (
+  batch: BatchFile,
+  runDir: RunDir
+): Promise<VerdictsFile> => {
+  const { agent } = config.assetResolver
+  await saveBatchRecord(batch.batchId, {
+    status: 'running',
+    createdAt: batch.createdAt,
+    runDir: runDir.dir,
+    assetCount: batch.entries.length
+  })
+  const result = await runAgent({
+    runDir: runDir.dir,
+    command: agent.command,
+    model: agent.model,
+    apiKey: config.assetResolver.cursorApiKey,
+    timeoutSeconds: agent.timeoutSeconds
+  })
+  const text = await readVerdictsText(runDir.verdictsPath)
+  if (text == null) {
+    throw new Error(
+      result.timedOut
+        ? `timed out after ${String(agent.timeoutSeconds)}s`
+        : `agent exited ${String(
+            result.exitCode
+          )} without writing verdicts.json`
+    )
+  }
+  const file = parseVerdictsFile(text, {
+    batchId: batch.batchId,
+    instructionsVersion,
+    keys: batch.entries.map(entry => entry.key)
+  })
+  await saveBatchRecord(batch.batchId, {
+    status: 'ingested',
+    createdAt: batch.createdAt,
+    runDir: runDir.dir,
+    assetCount: batch.entries.length,
+    verdictCount: file.verdicts.length
+  })
+  return file
 }
 
 /**
@@ -295,61 +381,28 @@ export const researchAssets = async (
     const batch = buildBatch(batchEntries, rightNow)
     report.batch = { batchId: batch.batchId, assetCount: batchEntries.length }
     const inBatch = new Set(batchEntries.map(entry => entry.key))
-    let verdicts = new Map<
-      string,
-      ReturnType<typeof indexVerdicts> extends Map<string, infer V> ? V : never
-    >()
     try {
       const runDir = await prepareRunDir(agent.runRoot, batch)
-      await saveBatchRecord(batch.batchId, {
-        status: 'running',
-        createdAt: batch.createdAt,
-        runDir: runDir.dir,
-        assetCount: batchEntries.length
+      const file = await runAgentOnBatch(batch, runDir)
+      report.batch.verdictCount = file.verdicts.length
+      const decided = await ingestVerdicts(batch, file, resolveDeps, {
+        appliesThisRun
       })
-      const result = await runAgent({
-        runDir: runDir.dir,
-        command: agent.command,
-        model: agent.model,
-        apiKey: config.assetResolver.cursorApiKey,
-        timeoutSeconds: agent.timeoutSeconds
-      })
-      const text = await readVerdictsText(runDir.verdictsPath)
-      if (text == null) {
-        throw new Error(
-          result.timedOut
-            ? `timed out after ${String(agent.timeoutSeconds)}s`
-            : `agent exited ${String(
-                result.exitCode
-              )} without writing verdicts.json`
+      for (const resolution of decided) {
+        if (resolution.outcome.status === 'applied') appliesThisRun++
+        proposals.set(
+          resolution.key,
+          toProposal(resolution, docs.proposals[resolution.key], rightNow, {
+            batchId: batch.batchId,
+            instructionsVersion,
+            agent: file.agent,
+            appliedEntry:
+              resolution.outcome.status === 'applied'
+                ? toCrossChainEntry(resolution)
+                : undefined
+          })
         )
-      }
-      const file = parseVerdictsFile(text, {
-        batchId: batch.batchId,
-        instructionsVersion,
-        keys: batchEntries.map(entry => entry.key)
-      })
-      verdicts = indexVerdicts(file)
-      report.batch.verdictCount = verdicts.size
-      await saveBatchRecord(batch.batchId, {
-        status: 'ingested',
-        createdAt: batch.createdAt,
-        runDir: runDir.dir,
-        assetCount: batchEntries.length,
-        verdictCount: verdicts.size
-      })
-      for (const { entry, resolution } of pending) {
-        if (!inBatch.has(resolution.key)) continue
-        const verdict = verdicts.get(resolution.key)
-        const decided = await decide(resolution, verdict, resolveDeps, {
-          appliesThisRun,
-          requestCount: entry.count
-        })
-        await finish(decided, {
-          batchId: batch.batchId,
-          instructionsVersion,
-          agent: file.agent
-        })
+        report.resolved.push(toLine(resolution))
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error)

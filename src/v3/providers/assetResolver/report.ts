@@ -139,6 +139,9 @@ export interface ResolverReport {
 const withSymbol = (line: ResolvedLine): string =>
   line.symbol == null ? line.key : `${line.key} (${line.symbol})`
 
+/** The CLI arguments that name an asset. */
+const cliAsset = (key: string): string => key.split('_').join(' ')
+
 const mapping = (line: ResolvedLine): string =>
   `-> ${line.destinationKey ?? '?'} ${line.coingeckoId ?? '?'}, ${
     line.relationship ?? '?'
@@ -154,7 +157,10 @@ export const resolverReportSections = (
     {
       title: 'APPLIED',
       lines: byStatus('applied').map(
-        line => `- ${withSymbol(line)} ${mapping(line)}`
+        line =>
+          `- ${withSymbol(line)} ${mapping(
+            line
+          )} | rollback: yarn assetResolver rollback ${cliAsset(line.key)}`
       )
     },
     {
@@ -163,7 +169,9 @@ export const resolverReportSections = (
         line =>
           `- ${withSymbol(line)} ${mapping(
             line
-          )} | not applied: ${line.reasons.join(', ')}`
+          )} | not applied: ${line.reasons.join(
+            ', '
+          )} | apply: yarn assetResolver apply ${cliAsset(line.key)} --force`
       )
     },
     {
@@ -210,7 +218,13 @@ export const resolverReportSections = (
   if (report.agentError != null) {
     sections.push({
       title: 'AGENT ERROR',
-      lines: [`- batch ${report.batch?.batchId ?? '?'}: ${report.agentError}`]
+      lines: [
+        `- batch ${report.batch?.batchId ?? '?'}: ${
+          report.agentError
+        } | re-run: yarn assetResolver agent --batch ${
+          report.batch?.batchId ?? '?'
+        }`
+      ]
     })
   }
   return sections.filter(section => section.lines.length > 0)

@@ -26,7 +26,8 @@
     "deploy:stop": "pm2 delete all || true",
     "deploy:restart": "npm run deploy",
     "deploy:status": "pm2 status",
-    "deploy:logs": "pm2 logs"
+    "deploy:logs": "pm2 logs",
+    "assetResolver": "node -r sucrase/register bin/assetResolver.ts"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": "eslint"

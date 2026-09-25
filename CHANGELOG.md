@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- added: Track assets returned from /v3/rates without a rate, research them with scripted sources and a Cursor agent, report them to Slack daily, and apply proven cross-chain mappings through a new crosschain:ai document
 - added: Add script to wipe out provider rates from docs
 - added: Robinhood Chain exchange rate support
 - fixed: Fall back to the bundled currency code map when the v2 currency code map has not synced from CouchDB, instead of answering every v2 rate with null and a 200 status

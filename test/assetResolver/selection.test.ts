@@ -159,9 +159,9 @@ describe('resolverReportSections', function () {
       text,
       [
         'APPLIED',
-        '- polygon_a (USDC) -> ethereum_x usd-coin, canonical_bridge, 0.99 proof',
+        '- polygon_a (USDC) -> ethereum_x usd-coin, canonical_bridge, 0.99 proof | rollback: yarn assetResolver rollback polygon a',
         'PROPOSED (needs review)',
-        '- polygon_b (USDT) -> ethereum_y tether, native_issuance, 0.91 agent | not applied: deterministic_proof',
+        '- polygon_b (USDT) -> ethereum_y tether, native_issuance, 0.91 agent | not applied: deterministic_proof | apply: yarn assetResolver apply polygon b --force',
         'SUSPECTED SCAM (not priced)',
         '- base_c (USDC) | impersonation, is_honeypot',
         'NEEDS MANUAL MAPPING',
@@ -184,7 +184,12 @@ describe('resolverReportSections', function () {
       agentError: 'timed out after 1800s'
     })
     assert.deepEqual(failed, [
-      { title: 'AGENT ERROR', lines: ['- batch b: timed out after 1800s'] }
+      {
+        title: 'AGENT ERROR',
+        lines: [
+          '- batch b: timed out after 1800s | re-run: yarn assetResolver agent --batch b'
+        ]
+      }
     ])
   })
 })
