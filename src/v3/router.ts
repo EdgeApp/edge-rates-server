@@ -46,14 +46,10 @@ const fixIncomingGetRatesParams = (
     ) {
       throw new Error('tokenId cannot include _')
     }
-    if (crypto.isoDate == null) {
-      crypto.isoDate = normalizedIsoDate
-    }
+    crypto.isoDate ??= normalizedIsoDate
   })
   params.fiat.forEach(fiat => {
-    if (fiat.isoDate == null) {
-      fiat.isoDate = normalizedIsoDate
-    }
+    fiat.isoDate ??= normalizedIsoDate
   })
 
   return params as GetRatesParams

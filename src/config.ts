@@ -11,19 +11,20 @@ import {
 // Customization:
 
 const {
-  COUCH_HOSTNAME = 'localhost',
-  COUCH_PASSWORD = 'password',
-  INFO_SERVER_ADDRESS = 'info1.edge.app',
-  INFO_SERVER_API_KEY = '',
-  RATES_SERVER_ADDRESS = 'http://127.0.0.1:8087',
-  CURRENCY_CONVERTER_API_KEY = '',
-  COIN_GECKO_API_KEY = '',
-  COIN_MARKET_CAP_API_KEY = '',
-  COIN_MARKET_CAP_HISTORICAL_API_KEY = '',
-  COIN_MARKET_CAP_HISTORICAL_MAX_MONTHS = '60',
-  SLACK_WEBHOOK_URL = '',
-  OPEN_EXCHANGE_RATES_API_KEY = '',
-  DEFAULT_FIAT = 'iso:USD'
+  COUCH_HOSTNAME: couchHostname = 'localhost',
+  COUCH_PASSWORD: couchPassword = 'password',
+  INFO_SERVER_ADDRESS: infoServerAddress = 'info1.edge.app',
+  INFO_SERVER_API_KEY: infoServerApiKey = '',
+  RATES_SERVER_ADDRESS: ratesServerAddress = 'http://127.0.0.1:8087',
+  CURRENCY_CONVERTER_API_KEY: currencyConverterApiKey = '',
+  COIN_GECKO_API_KEY: coinGeckoApiKey = '',
+  COIN_MARKET_CAP_API_KEY: coinMarketCapApiKey = '',
+  COIN_MARKET_CAP_HISTORICAL_API_KEY: coinMarketCapHistoricalApiKey = '',
+  COIN_MARKET_CAP_HISTORICAL_MAX_MONTHS:
+    coinMarketCapHistoricalMaxMonths = '60',
+  SLACK_WEBHOOK_URL: slackWebhookUrl = '',
+  OPEN_EXCHANGE_RATES_API_KEY: openExchangeRatesApiKey = '',
+  DEFAULT_FIAT: defaultFiat = 'iso:USD'
 } = process.env
 
 const providerDefaults = {
@@ -32,20 +33,20 @@ const providerDefaults = {
   },
   currencyConverter: {
     uri: 'https://api.currconv.com',
-    apiKey: CURRENCY_CONVERTER_API_KEY
+    apiKey: currencyConverterApiKey
   },
   coinMarketCapCurrent: {
     uri: 'https://pro-api.coinmarketcap.com',
-    apiKey: COIN_MARKET_CAP_API_KEY
+    apiKey: coinMarketCapApiKey
   },
   coinMarketCapHistorical: {
     uri: 'https://pro-api.coinmarketcap.com',
-    apiKey: COIN_MARKET_CAP_HISTORICAL_API_KEY,
-    maxHistoricalMonths: Number(COIN_MARKET_CAP_HISTORICAL_MAX_MONTHS)
+    apiKey: coinMarketCapHistoricalApiKey,
+    maxHistoricalMonths: Number(coinMarketCapHistoricalMaxMonths)
   },
   openExchangeRates: {
     uri: 'https://openexchangerates.org',
-    apiKey: OPEN_EXCHANGE_RATES_API_KEY
+    apiKey: openExchangeRatesApiKey
   },
   coinstore: {
     uri: 'https://api.coinstore.com'
@@ -55,7 +56,7 @@ const providerDefaults = {
   },
   coingeckopro: {
     uri: 'https://pro-api.coingecko.com',
-    apiKey: COIN_GECKO_API_KEY
+    apiKey: coinGeckoApiKey
   },
   compound: {
     uri: 'https://api.compound.finance'
@@ -76,12 +77,12 @@ const providerDefaults = {
 export const asConfig = asObject({
   couchUri: asOptional(
     asString,
-    `http://admin:${COUCH_PASSWORD}@${COUCH_HOSTNAME}:5984`
+    `http://admin:${couchPassword}@${couchHostname}:5984`
   ),
   httpPort: asOptional(asNumber, 8008),
   httpHost: asOptional(asString, '127.0.0.1'),
-  infoServerAddress: asOptional(asString, INFO_SERVER_ADDRESS),
-  infoServerApiKey: asOptional(asString, INFO_SERVER_API_KEY),
+  infoServerAddress: asOptional(asString, infoServerAddress),
+  infoServerApiKey: asOptional(asString, infoServerApiKey),
   bridgeCurrencies: asOptional(asArray(asString), ['iso:USD', 'BTC', 'USDT']),
   cryptoCurrencyCodes: asOptional(asArray(asString), [
     'BTC',
@@ -121,8 +122,8 @@ export const asConfig = asObject({
     'iso:JPY',
     'iso:GBP'
   ]),
-  ratesServerAddress: asOptional(asString, RATES_SERVER_ADDRESS),
-  slackWebhookUrl: asOptional(asString, SLACK_WEBHOOK_URL),
+  ratesServerAddress: asOptional(asString, ratesServerAddress),
+  slackWebhookUrl: asOptional(asString, slackWebhookUrl),
   providers: asMaybe(
     asObject({
       coincap: asMaybe(
@@ -210,7 +211,7 @@ export const asConfig = asObject({
     'BTC_iso:ARS',
     'BTC_iso:INR'
   ]),
-  defaultFiatCode: asOptional(asString, DEFAULT_FIAT),
+  defaultFiatCode: asOptional(asString, defaultFiat),
 
   /**
    * Run the engine every n seconds after the hour

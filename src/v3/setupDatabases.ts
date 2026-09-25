@@ -68,6 +68,6 @@ const createDatabases = async (): Promise<void> => {
 
 createDatabases()
   .then(() => process.exit(0))
-  .catch(e => {
+  .catch((e: unknown) => {
     logger('createDatabases failure', e)
   })
