@@ -14,7 +14,13 @@ export const assetResolver: RateProvider = {
       name: 'rates_settings',
       templates: {
         // Hand-edited: assets to keep out of reports and resolution
-        assetResolver: {}
+        assetResolver: {},
+        // Machine-written: every asset the resolver has looked at
+        'assetResolver:proposals': {},
+        // Machine-written: agent batches and how they ended
+        'assetResolver:batches': {},
+        // Machine-written cross-chain entries; hand-edited crosschain wins
+        'crosschain:ai': {}
       }
     }
   ],

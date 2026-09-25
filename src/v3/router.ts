@@ -107,24 +107,29 @@ const automatedCrossChainSyncDoc = syncedDocument(
   asCrossChainMapping,
   makeSyncedDocumentOptions('crosschain:automated', 'asCrossChainMapping')
 )
+// Written by the asset resolver; hand edits still win
+const aiCrossChainSyncDoc = syncedDocument(
+  'crosschain:ai',
+  asCrossChainMapping,
+  makeSyncedDocumentOptions('crosschain:ai', 'asCrossChainMapping')
+)
 export const routerSyncedDocuments = [
   defaultCrossChainSyncDoc,
   automatedCrossChainSyncDoc,
+  aiCrossChainSyncDoc,
   v2CurrencyCodeMapSyncDoc
 ] as const
 
-defaultCrossChainSyncDoc.onChange(defaultMappings => {
+const recomputeCrossChainMappings = (): void => {
   crosschainMappings = {
     ...automatedCrossChainSyncDoc.doc,
-    ...defaultMappings
-  }
-})
-automatedCrossChainSyncDoc.onChange(automatedMappings => {
-  crosschainMappings = {
-    ...automatedMappings,
+    ...aiCrossChainSyncDoc.doc,
     ...defaultCrossChainSyncDoc.doc
   }
-})
+}
+defaultCrossChainSyncDoc.onChange(recomputeCrossChainMappings)
+automatedCrossChainSyncDoc.onChange(recomputeCrossChainMappings)
+aiCrossChainSyncDoc.onChange(recomputeCrossChainMappings)
 
 /**
  * True once the v2 currency code map has loaded entries from CouchDB.

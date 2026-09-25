@@ -1,20 +1,7 @@
 import type { Destination } from './destination'
 import type { ProvenanceProof } from './provenance'
 import { hasStrongSignal, type ScamSignal } from './scam'
-import type { Relationship, Verdict } from './types'
-
-export type ProposalStatus =
-  | 'applied'
-  | 'proposed'
-  | 'suspected_scam'
-  | 'needs_manual_mapping'
-  | 'awaiting_agent'
-  | 'distinct_asset'
-  | 'not_found'
-  | 'unsure'
-  | 'error'
-  | 'superseded'
-  | 'rolled_back'
+import type { ProposalStatus, Relationship, Verdict } from './types'
 
 export interface GuardResult {
   name: string

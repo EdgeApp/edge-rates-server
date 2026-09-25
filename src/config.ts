@@ -1,6 +1,7 @@
 import { makeConfig } from 'cleaner-config'
 import {
   asArray,
+  asBoolean,
   asMaybe,
   asNumber,
   asObject,
@@ -27,7 +28,9 @@ const {
   DEFAULT_FIAT: defaultFiat = 'iso:USD',
   CURSOR_API_KEY: cursorApiKey = '',
   ASSET_RESOLVER_SLACK_WEBHOOK_URL: assetResolverSlackWebhookUrl = '',
-  TYPESAFE_API_KEY: typesafeApiKey = ''
+  TYPESAFE_API_KEY: typesafeApiKey = '',
+  ETHERSCAN_API_KEY: etherscanApiKey = '',
+  GOPLUS_API_KEY: goplusApiKey = ''
 } = process.env
 
 const providerDefaults = {
@@ -99,6 +102,33 @@ const assetResolverDefaults = {
     shadow: 'none',
     typesafeApiKey,
     jevModel: 'jev-latest'
+  },
+  research: {
+    // Requests since the last report before an asset is worth researching:
+    minRequestCount: 5,
+    maxAssetsPerRun: 10,
+    retryDays: 14,
+    scamRecheckDays: 180,
+    etherscanApiKey,
+    goplusApiKey,
+    coingeckoSpacingMs: 400
+  },
+  autoApply: {
+    enabled: false,
+    minConfidence: 0.95,
+    priceParityTolerance: 0.03,
+    requireIndependentPrice: true,
+    relationships: ['native_issuance', 'canonical_bridge'],
+    maxPerRun: 5,
+    // Let agent verdicts above minConfidence apply without a scripted proof:
+    trustAgentVerdicts: false
+  },
+  scam: {
+    minLiquidityUsd: 10000,
+    minHolders: 50,
+    maxSellTax: 0.2,
+    rugcheckMaxScore: 50,
+    topCoinRank: 300
   }
 }
 
@@ -194,6 +224,97 @@ export const asConfig = asObject({
           jevModel: asOptional(asString, assetResolverDefaults.judge.jevModel)
         }),
         assetResolverDefaults.judge
+      ),
+      research: asOptional(
+        asObject({
+          minRequestCount: asOptional(
+            asNumber,
+            assetResolverDefaults.research.minRequestCount
+          ),
+          maxAssetsPerRun: asOptional(
+            asNumber,
+            assetResolverDefaults.research.maxAssetsPerRun
+          ),
+          retryDays: asOptional(
+            asNumber,
+            assetResolverDefaults.research.retryDays
+          ),
+          scamRecheckDays: asOptional(
+            asNumber,
+            assetResolverDefaults.research.scamRecheckDays
+          ),
+          etherscanApiKey: asOptional(
+            asString,
+            assetResolverDefaults.research.etherscanApiKey
+          ),
+          goplusApiKey: asOptional(
+            asString,
+            assetResolverDefaults.research.goplusApiKey
+          ),
+          coingeckoSpacingMs: asOptional(
+            asNumber,
+            assetResolverDefaults.research.coingeckoSpacingMs
+          )
+        }),
+        assetResolverDefaults.research
+      ),
+      autoApply: asOptional(
+        asObject({
+          enabled: asOptional(
+            asBoolean,
+            assetResolverDefaults.autoApply.enabled
+          ),
+          minConfidence: asOptional(
+            asNumber,
+            assetResolverDefaults.autoApply.minConfidence
+          ),
+          priceParityTolerance: asOptional(
+            asNumber,
+            assetResolverDefaults.autoApply.priceParityTolerance
+          ),
+          requireIndependentPrice: asOptional(
+            asBoolean,
+            assetResolverDefaults.autoApply.requireIndependentPrice
+          ),
+          relationships: asOptional(
+            asArray(asString),
+            assetResolverDefaults.autoApply.relationships
+          ),
+          maxPerRun: asOptional(
+            asNumber,
+            assetResolverDefaults.autoApply.maxPerRun
+          ),
+          trustAgentVerdicts: asOptional(
+            asBoolean,
+            assetResolverDefaults.autoApply.trustAgentVerdicts
+          )
+        }),
+        assetResolverDefaults.autoApply
+      ),
+      scam: asOptional(
+        asObject({
+          minLiquidityUsd: asOptional(
+            asNumber,
+            assetResolverDefaults.scam.minLiquidityUsd
+          ),
+          minHolders: asOptional(
+            asNumber,
+            assetResolverDefaults.scam.minHolders
+          ),
+          maxSellTax: asOptional(
+            asNumber,
+            assetResolverDefaults.scam.maxSellTax
+          ),
+          rugcheckMaxScore: asOptional(
+            asNumber,
+            assetResolverDefaults.scam.rugcheckMaxScore
+          ),
+          topCoinRank: asOptional(
+            asNumber,
+            assetResolverDefaults.scam.topCoinRank
+          )
+        }),
+        assetResolverDefaults.scam
       )
     }),
     assetResolverDefaults

@@ -113,3 +113,113 @@ export const formatReport = (opts: {
   )
   return [header, ...body, ...footer].join('\n')
 }
+
+// Resolver outcomes
+
+export interface ResolvedLine {
+  key: string
+  symbol?: string
+  status: string
+  coingeckoId?: string
+  relationship?: string
+  confidence?: number
+  judge: string
+  destinationKey?: string
+  reasons: string[]
+  signals: string[]
+}
+
+export interface ResolverReport {
+  resolved: ResolvedLine[]
+  superseded: string[]
+  batch?: { batchId: string; assetCount: number; verdictCount?: number }
+  agentError?: string
+}
+
+const withSymbol = (line: ResolvedLine): string =>
+  line.symbol == null ? line.key : `${line.key} (${line.symbol})`
+
+const mapping = (line: ResolvedLine): string =>
+  `-> ${line.destinationKey ?? '?'} ${line.coingeckoId ?? '?'}, ${
+    line.relationship ?? '?'
+  }, ${String(line.confidence ?? '?')} ${line.judge}`
+
+/** The report sections for what the resolver decided this run. */
+export const resolverReportSections = (
+  report: ResolverReport
+): ReportSection[] => {
+  const byStatus = (status: string): ResolvedLine[] =>
+    report.resolved.filter(line => line.status === status)
+  const sections: ReportSection[] = [
+    {
+      title: 'APPLIED',
+      lines: byStatus('applied').map(
+        line => `- ${withSymbol(line)} ${mapping(line)}`
+      )
+    },
+    {
+      title: 'PROPOSED (needs review)',
+      lines: byStatus('proposed').map(
+        line =>
+          `- ${withSymbol(line)} ${mapping(
+            line
+          )} | not applied: ${line.reasons.join(', ')}`
+      )
+    },
+    {
+      title: 'SUSPECTED SCAM (not priced)',
+      lines: byStatus('suspected_scam').map(
+        line => `- ${withSymbol(line)} | ${line.signals.join(', ')}`
+      )
+    },
+    {
+      title: 'NEEDS MANUAL MAPPING',
+      lines: byStatus('needs_manual_mapping').map(
+        line =>
+          `- ${withSymbol(line)} | coingecko "${
+            line.coingeckoId ?? '?'
+          }" is not priced on any Edge chain; add "${line.key}": { "id": "${
+            line.coingeckoId ?? '?'
+          }", "displayName": "${
+            line.symbol ?? line.coingeckoId ?? '?'
+          }" } to rates_settings/coingecko`
+      )
+    },
+    {
+      title: 'NOT RESOLVED (rechecked later)',
+      lines: report.resolved
+        .filter(line =>
+          [
+            'distinct_asset',
+            'not_found',
+            'unsure',
+            'error',
+            'awaiting_agent'
+          ].includes(line.status)
+        )
+        .map(
+          line =>
+            `- ${withSymbol(line)} | ${line.status}: ${line.reasons.join('; ')}`
+        )
+    },
+    {
+      title: 'SUPERSEDED (now mapped by another document)',
+      lines: report.superseded.map(key => `- ${key}`)
+    }
+  ]
+  if (report.agentError != null) {
+    sections.push({
+      title: 'AGENT ERROR',
+      lines: [`- batch ${report.batch?.batchId ?? '?'}: ${report.agentError}`]
+    })
+  }
+  return sections.filter(section => section.lines.length > 0)
+}
+
+export const agentSummary = (report: ResolverReport): string | undefined => {
+  if (report.batch == null) return
+  const { batchId, assetCount, verdictCount } = report.batch
+  return `agent batch ${batchId}: ${String(assetCount)} assets, ${
+    verdictCount == null ? 'no verdicts' : `${String(verdictCount)} verdicts`
+  }`
+}
