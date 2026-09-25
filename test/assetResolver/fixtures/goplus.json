@@ -1,0 +1,26 @@
+{
+  "code": 1,
+  "message": "OK",
+  "result": {
+    "0x2791bca1f2de4661ed88a30c99a7a9449aa84174": {
+      "token_name": "USD Coin (PoS)",
+      "token_symbol": "USDC",
+      "is_honeypot": "0",
+      "is_open_source": "1",
+      "is_proxy": "1",
+      "is_mintable": "1",
+      "buy_tax": "0",
+      "sell_tax": "0",
+      "cannot_sell_all": "0",
+      "hidden_owner": "0",
+      "owner_change_balance": "0",
+      "is_airdrop_scam": "0",
+      "trust_list": "1",
+      "holder_count": "1200000",
+      "lp_holder_count": "5000",
+      "is_in_dex": "1",
+      "dex": [{ "name": "UniswapV3", "liquidity": "12345678.9", "pair": "0xabc" }],
+      "creator_percent": "0.000001"
+    }
+  }
+}

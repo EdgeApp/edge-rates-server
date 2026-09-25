@@ -2,11 +2,13 @@ import { syncedDocument } from 'edge-server-tools'
 import type { HttpResponse } from 'serverlet'
 import type { ExpressRequest } from 'serverlet/express'
 
-import { config } from '../config'
+import { assetResolverActive, config } from '../config'
 import { slackPoster } from '../utils/postToSlack'
 import { bundledV2CurrencyCodeMap } from './bundledCurrencyCodeMap'
 import { CRYPTO_LIMIT, FIAT_LIMIT, ONE_MINUTE } from './constants'
 import { getRates } from './getRates'
+import { recordUnresolvedAssets } from './providers/assetResolver/store'
+import { collectUnresolvedKeys } from './providers/assetResolver/tally'
 import { makeSyncedDocumentOptions } from './syncedDocHelpers'
 import {
   asCrossChainMapping,
@@ -46,14 +48,10 @@ const fixIncomingGetRatesParams = (
     ) {
       throw new Error('tokenId cannot include _')
     }
-    if (crypto.isoDate == null) {
-      crypto.isoDate = normalizedIsoDate
-    }
+    crypto.isoDate ??= normalizedIsoDate
   })
   params.fiat.forEach(fiat => {
-    if (fiat.isoDate == null) {
-      fiat.isoDate = normalizedIsoDate
-    }
+    fiat.isoDate ??= normalizedIsoDate
   })
 
   return params as GetRatesParams
@@ -109,24 +107,29 @@ const automatedCrossChainSyncDoc = syncedDocument(
   asCrossChainMapping,
   makeSyncedDocumentOptions('crosschain:automated', 'asCrossChainMapping')
 )
+// Written by the asset resolver; hand edits still win
+const aiCrossChainSyncDoc = syncedDocument(
+  'crosschain:ai',
+  asCrossChainMapping,
+  makeSyncedDocumentOptions('crosschain:ai', 'asCrossChainMapping')
+)
 export const routerSyncedDocuments = [
   defaultCrossChainSyncDoc,
   automatedCrossChainSyncDoc,
+  aiCrossChainSyncDoc,
   v2CurrencyCodeMapSyncDoc
 ] as const
 
-defaultCrossChainSyncDoc.onChange(defaultMappings => {
+const recomputeCrossChainMappings = (): void => {
   crosschainMappings = {
     ...automatedCrossChainSyncDoc.doc,
-    ...defaultMappings
-  }
-})
-automatedCrossChainSyncDoc.onChange(automatedMappings => {
-  crosschainMappings = {
-    ...automatedMappings,
+    ...aiCrossChainSyncDoc.doc,
     ...defaultCrossChainSyncDoc.doc
   }
-})
+}
+defaultCrossChainSyncDoc.onChange(recomputeCrossChainMappings)
+automatedCrossChainSyncDoc.onChange(recomputeCrossChainMappings)
+aiCrossChainSyncDoc.onChange(recomputeCrossChainMappings)
 
 /**
  * True once the v2 currency code map has loaded entries from CouchDB.
@@ -268,6 +271,15 @@ export const ratesV3 = async (
         rate
       }
     })
+
+    // Record the assets going back without a rate, for the asset resolver:
+    if (assetResolverActive) {
+      recordUnresolvedAssets(collectUnresolvedKeys(remappedCrypto)).catch(
+        (error: unknown) => {
+          console.error('assetResolver: failed to record assets', error)
+        }
+      )
+    }
 
     return {
       headers: { 'content-type': 'application/json' },

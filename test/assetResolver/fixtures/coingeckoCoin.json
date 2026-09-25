@@ -1,0 +1,15 @@
+{
+  "id": "usd-coin",
+  "symbol": "usdc",
+  "name": "USDC",
+  "asset_platform_id": "ethereum",
+  "platforms": {
+    "ethereum": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "polygon-pos": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+    "": ""
+  },
+  "categories": ["Stablecoins", null, "USD Stablecoin"],
+  "links": { "homepage": ["https://www.circle.com/en/usdc", "", null] },
+  "market_cap_rank": 6,
+  "market_data": { "current_price": { "usd": 0.9998, "eur": 0.92 } }
+}

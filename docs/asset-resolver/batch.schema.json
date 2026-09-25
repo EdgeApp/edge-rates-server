@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Asset resolver batch",
+  "type": "object",
+  "required": ["batchId", "instructionsVersion", "createdAt", "entries"],
+  "properties": {
+    "batchId": { "type": "string" },
+    "instructionsVersion": { "type": "integer" },
+    "createdAt": { "type": "string" },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "asset", "assetClass", "requestCount", "evidence", "scamSignals", "candidates"],
+        "properties": {
+          "key": { "type": "string" },
+          "asset": {
+            "type": "object",
+            "required": ["pluginId"],
+            "properties": { "pluginId": { "type": "string" }, "tokenId": { "type": ["string", "null"] } }
+          },
+          "assetClass": { "enum": ["unmapped-token", "unmapped-native"] },
+          "requestCount": { "type": "number" },
+          "evidence": { "type": "object", "description": "The AssetEvidence bundle from src/v3/providers/assetResolver/evidence/types.ts" },
+          "scamSignals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "strength", "detail"],
+              "properties": {
+                "name": { "type": "string" },
+                "strength": { "enum": ["strong", "weak"] },
+                "detail": { "type": "string" }
+              }
+            }
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "symbol", "name", "platforms", "homepage", "categories"],
+              "properties": {
+                "id": { "type": "string" },
+                "symbol": { "type": "string" },
+                "name": { "type": "string" },
+                "marketCapRank": { "type": "number" },
+                "platforms": { "type": "object", "additionalProperties": { "type": "string" } },
+                "homepage": { "type": "array", "items": { "type": "string" } },
+                "categories": { "type": "array", "items": { "type": "string" } },
+                "priceUsd": { "type": "number" },
+                "destination": {
+                  "type": "object",
+                  "required": ["key", "asset"],
+                  "properties": {
+                    "key": { "type": "string" },
+                    "asset": { "type": "object" },
+                    "usdRate": { "type": "number" }
+                  }
+                },
+                "priceDelta": { "type": "number" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

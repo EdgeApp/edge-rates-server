@@ -290,7 +290,7 @@ const getHistoricalRates = async (
             out[id] = data.market_data.current_price.usd
           }
         })
-        .catch(e => {
+        .catch((e: unknown) => {
           console.error('coingecko historical query error:', e)
         })
     )

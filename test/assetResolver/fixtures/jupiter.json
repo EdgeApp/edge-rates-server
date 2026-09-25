@@ -1,0 +1,13 @@
+[
+  {
+    "id": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "name": "USD Coin",
+    "symbol": "USDC",
+    "decimals": 6,
+    "isVerified": true,
+    "tags": ["verified", "strict"],
+    "organicScore": 99.1,
+    "holderCount": 3000000,
+    "liquidity": 500000000.5
+  }
+]

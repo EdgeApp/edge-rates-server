@@ -30,7 +30,13 @@ const createDatabases = async (): Promise<void> => {
             'pluginIds can be found here:',
             'https://github.com/EdgeApp/edge-react-gui/blob/6d443a56c0196955ca97d3615d4772c0e15978b9/src/util/corePlugins.ts#L5',
             '',
-            'tokenId is typically based on the contract address but may vary from blockchain to blockchain'
+            'tokenId is typically based on the contract address but may vary from blockchain to blockchain',
+            '',
+            'The assetResolver document silences assets in the daily report of assets returned without a rate:',
+            '',
+            '"pluginId_tokenId": { "reason": "why", "until": "YYYY-MM-DD" }',
+            '',
+            'Omit "until" to silence an asset forever.'
           ]
         }
       },
@@ -68,6 +74,6 @@ const createDatabases = async (): Promise<void> => {
 
 createDatabases()
   .then(() => process.exit(0))
-  .catch(e => {
+  .catch((e: unknown) => {
     logger('createDatabases failure', e)
   })
