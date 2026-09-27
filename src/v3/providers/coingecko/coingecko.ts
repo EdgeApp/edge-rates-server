@@ -33,6 +33,11 @@ import {
 } from '../../utils'
 import { dbSettings } from '../couch'
 import {
+  defaultCrossChainMapping,
+  defaultPlatformPriority,
+  defaultTokenTypes
+} from '../edgerates/defaults'
+import {
   coingeckoMainnetCurrencyMapping,
   coingeckoPlatformIdMapping
 } from './defaultPluginIdMapping'
@@ -155,20 +160,31 @@ const tokenMapping: RateEngine = async () => {
   const json = await fetchCoingecko(
     `${config.providers.coingeckopro.uri}/api/v3/coins/list?include_platform=true`
   )
-  const tokenTypes = asCouchDoc(asTokenTypeMap)(
-    await dbSettings.get(TOKEN_TYPES_KEY)
-  )
-
   const data = asCoingeckoAssetResponse(json)
 
+  // The database templates only apply when a document is missing, so layer
+  // each stored document over its code default. A chain added in code maps
+  // without a manual Couch edit, and an explicit null in Couch still wins.
+  const tokenTypesDoc = asCouchDoc(asTokenTypeMap)(
+    await dbSettings.get(TOKEN_TYPES_KEY)
+  )
+  const tokenTypes = { ...defaultTokenTypes, ...tokenTypesDoc.doc }
+
+  const platformIdMapping = {
+    ...coingeckoPlatformIdMapping,
+    ...platformIdMappingSyncDoc.doc
+  }
   const invertPlatformMapping: Record<string, string> = {}
-  for (const [key, value] of Object.entries(platformIdMappingSyncDoc.doc)) {
+  for (const [key, value] of Object.entries(platformIdMapping)) {
     if (value === null) continue
     invertPlatformMapping[value] = key
   }
 
   const platformPriorityDoc = await dbSettings.get('platformPriority')
-  const platformPriority = asCouchDoc(asNumberMap)(platformPriorityDoc).doc
+  const platformPriority = {
+    ...defaultPlatformPriority,
+    ...asCouchDoc(asNumberMap)(platformPriorityDoc).doc
+  }
   const getPriority = (k: string): number =>
     platformPriority[k] ?? Number.MAX_SAFE_INTEGER
 
@@ -187,7 +203,7 @@ const tokenMapping: RateEngine = async () => {
       const edgePluginId = invertPlatformMapping[platform]
       if (edgePluginId == null) continue
 
-      const tokenType = tokenTypes.doc[edgePluginId]
+      const tokenType = tokenTypes[edgePluginId]
       if (tokenType == null) continue
 
       try {
@@ -241,7 +257,11 @@ const tokenMapping: RateEngine = async () => {
     wasCrossChainDoc({
       id: crossChainAutoDoc.id,
       rev: crossChainAutoDoc.rev,
-      doc: { ...crossChainMapping, ...crossChainDefaultDoc.doc }
+      doc: {
+        ...crossChainMapping,
+        ...defaultCrossChainMapping,
+        ...crossChainDefaultDoc.doc
+      }
     })
   )
 }
