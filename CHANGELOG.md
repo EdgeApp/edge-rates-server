@@ -4,6 +4,7 @@
 
 - added: Add script to wipe out provider rates from docs
 - added: Robinhood Chain exchange rate support
+- added: HyperCore exchange rate support
 - fixed: Fall back to the bundled currency code map when the v2 currency code map has not synced from CouchDB, instead of answering every v2 rate with null and a 200 status
 - fixed: Alert on Slack when the v2 currency code map has never synced, while keeping the heartbeat healthy so a CouchDB outage does not pull every instance from the load balancer
 - fixed: Retry synced documents that fail their initial load on a five second to five minute backoff, rather than waiting for the 30 minute refresh interval
