@@ -463,6 +463,7 @@ export const defaultTokenTypes: TokenTypeMap = {
   fio: null,
   groestlcoin: null,
   hedera: null,
+  hypercore: 'evm',
   hyperevm: 'evm',
   liberland: 'simple',
   litecoin: null,
@@ -563,7 +564,10 @@ export const defaultPlatformPriority: Record<string, number> = {
   botanix: 620,
   // Robinhood Chain ranks last so that assets bridged onto it resolve to their
   // canonical chain's rate rather than becoming their own pricing source.
-  robinhood: 630
+  robinhood: 630,
+  // HyperCore ranks last for the same reason. A token listed only on
+  // HyperCore still prices off HyperCore.
+  hypercore: 640
 }
 
 export const defaultCrossChainMapping: CrossChainMapping = {
