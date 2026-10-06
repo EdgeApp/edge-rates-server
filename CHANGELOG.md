@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- added: Arc exchange rate support
 - added: Add script to wipe out provider rates from docs
 - added: Robinhood Chain exchange rate support
 - fixed: Fall back to the bundled currency code map when the v2 currency code map has not synced from CouchDB, instead of answering every v2 rate with null and a 200 status

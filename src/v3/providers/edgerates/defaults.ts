@@ -432,6 +432,7 @@ export const defaultTokenTypes: TokenTypeMap = {
   abstract: 'evm',
   algorand: 'simple',
   arbitrum: 'evm',
+  arc: 'evm',
   avalanche: 'evm',
   axelar: 'cosmos',
   base: 'evm',
@@ -563,7 +564,10 @@ export const defaultPlatformPriority: Record<string, number> = {
   botanix: 620,
   // Robinhood Chain ranks last so that assets bridged onto it resolve to their
   // canonical chain's rate rather than becoming their own pricing source.
-  robinhood: 630
+  robinhood: 630,
+  // Arc ranks last for the same reason: its USDC, EURC and cirBTC also live on
+  // chains that already price them.
+  arc: 640
 }
 
 export const defaultCrossChainMapping: CrossChainMapping = {
