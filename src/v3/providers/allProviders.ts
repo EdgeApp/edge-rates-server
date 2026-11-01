@@ -7,6 +7,7 @@ import { constantRates } from './constantRates'
 import { couch } from './couch'
 import { currencyconverter } from './currencyconverter'
 import { edgerates } from './edgerates/edgerates'
+import { makeFiatPeggedRates } from './fiatPeggedRates'
 import { midgard } from './midgard'
 import { redis } from './redis'
 import { wazirx } from './wazirx'
@@ -20,6 +21,7 @@ const looselyOrderedProviders: RateProvider[] = [
   wazirx,
   coinmarketcap,
   coingecko,
+  makeFiatPeggedRates([redis, couch, currencyconverter]),
   constantRates,
   currencyconverter,
   couch,
